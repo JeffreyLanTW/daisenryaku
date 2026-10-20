@@ -1,0 +1,213 @@
+'use strict';
+// ===== 電腦 AI =====
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// 多源反向 Dijkstra：每格到最近目標的移動成本。goals: Map(idx -> 起始偏移，越小越優先)
+function distField(goals, mt) {
+  const N = G.w * G.h, d = new Float64Array(N).fill(Infinity), done = new Uint8Array(N), open = [];
+  for (const [g, off] of goals) if (off < d[g]) { d[g] = off; open.push(g); }
+  while (open.length) {
+    let bi = 0;
+    for (let k = 1; k < open.length; k++) if (d[open[k]] < d[open[bi]]) bi = k;
+    const cur = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+    if (done[cur]) continue;
+    done[cur] = 1;
+    const c = goals.has(cur) ? 1 : moveCost(G.terrain[cur], mt);
+    if (c === Infinity) continue;
+    const [cx, cy] = ixy(cur);
+    for (const [nx, ny] of neighbors(cx, cy)) {
+      const ni = ny * G.w + nx;
+      if (done[ni] || moveCost(G.terrain[ni], mt) === Infinity) continue;
+      const nd = d[cur] + c;
+      if (nd < d[ni]) { d[ni] = nd; open.push(ni); }
+    }
+  }
+  return d;
+}
+
+function ownBases(side, cat, self = null) {
+  const m = new Map();
+  for (let i = 0; i < G.owner.length; i++) {
+    const t = TERRAIN[G.terrain[i]];
+    if (G.owner[i] !== side || !t.heal || !t.heal.includes(cat)) continue;
+    const [x, y] = ixy(i), o = unitAt(x, y);
+    if (self && o && o !== self) continue;
+    m.set(i, 0);
+  }
+  return m;
+}
+
+function threatAt(u, x, y, enemies) {
+  let t = 0;
+  for (const e of enemies) {
+    if (!canHit(e.type, u)) continue;
+    const ed = UNITS[e.type];
+    const r = isIndirect(e.type) ? ed.range[1] : ed.move + ed.range[1];
+    if (hexDist(e.x, e.y, x, y) <= r) t += baseDamage(e.type, e.hp, u, x, y);
+  }
+  return Math.min(t, 10);
+}
+
+function aiGoals(u, baseField) {
+  const d = UNITS[u.type], s = u.side, goals = new Map();
+  const add = (i, off) => { if (!goals.has(i) || goals.get(i) > off) goals.set(i, off); };
+  const here = idxOf(u.x, u.y);
+  const lowFuel = baseField && u.fuel <= baseField[here] + d.upkeep * 2 + 3;
+  if (u.hp <= 3 || lowFuel) {
+    const bases = ownBases(s, d.cat, u);
+    if (bases.size && !(d.capture && canCapture(u))) return { goals: bases, mode: 'retreat' };
+  }
+  if (d.capture) {
+    for (let i = 0; i < G.owner.length; i++) {
+      if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
+      add(i, G.terrain[i] === 'capital' ? -5 : G.owner[i] >= 0 ? -1 : 0);
+    }
+  }
+  for (const e of G.units) if (e.side !== s && canHit(u.type, e)) add(idxOf(e.x, e.y), e.vip ? -4 : d.capture ? 4 : 0);
+  if (!d.capture && d.cat !== 'air') {
+    for (let i = 0; i < G.owner.length; i++) {
+      if (G.owner[i] === 1 - s) add(i, G.terrain[i] === 'capital' ? 2 : 5);
+    }
+  }
+  if (!goals.size) for (const [i] of ownBases(s, d.cat)) add(i, 0);
+  return { goals, mode: 'attack' };
+}
+
+async function aiAct(u, token) {
+  const d = UNITS[u.type], s = u.side, W = G.w;
+  const reach = computeReach(u);
+  const baseField = d.fuel !== undefined ? distField(ownBases(s, 'air', u), 'air') : null;
+  const { goals, mode } = aiGoals(u, baseField);
+  const field = distField(goals, d.mt);
+  const enemies = G.units.filter(e => e.side !== s);
+  const start = idxOf(u.x, u.y);
+  let best = { score: -Infinity, dest: start, act: null };
+
+  for (const [i, v] of reach) {
+    if (!v.canStop) continue;
+    const [x, y] = ixy(i), t = TERRAIN[G.terrain[i]];
+    const consider = (sc, act) => { if (sc > best.score) best = { score: sc, dest: i, act }; };
+    let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : 9);
+    if (d.cat === 'land') base += t.def * 0.4;
+    const thrW = mode === 'retreat' ? 3 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
+    base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW;
+    if (t.build && G.owner[i] === s && d.cat !== 'air') base -= 45;
+    if (t.prop && G.owner[i] !== s && !d.capture) base -= 30;
+    if (baseField) {
+      const home = baseField[i];
+      if (u.fuel - v.cost < home + d.upkeep * Math.ceil(Math.max(1, home) / d.move) + 1) base -= 3000;
+      if (home === 0 && mode === 'retreat') base += 500;
+    }
+    base += Math.random() * 2;
+
+    consider(base, null);
+    if (d.capture && t.prop && G.owner[i] !== s) {
+      let cs = 350 + (G.owner[i] >= 0 ? 120 : 0) + (G.terrain[i] === 'capital' ? 3000 : 0);
+      const c = G.capture[i];
+      if (c && c.uid === u.id) cs += 400;
+      consider(base + cs, { kind: 'capture' });
+    }
+    if (!isIndirect(u.type) || i === start) {
+      for (const e of targetsFrom(u, x, y)) {
+        const f = forecast(u, e, x, y);
+        if (f.dmg === 0) continue;
+        const ec = UNITS[e.type].cost;
+        let val = f.dmg * ec / 10 + (f.dmg >= e.hp ? ec * 0.4 : 0) - f.counter * d.cost / 10 * 0.9;
+        if (G.capture[idxOf(e.x, e.y)]) val += 250;
+        if (e.vip) val += 500;
+        consider(base + val + 30, { kind: 'attack', target: e });
+      }
+    }
+  }
+
+  if (token !== gameToken) return;
+  if (best.dest !== start) {
+    ensureVisible(u.x, u.y);
+    await doMove(u, reachPath(reach, best.dest), reach.get(best.dest).cost, SETTINGS.aiStep);
+  }
+  if (token !== gameToken) return;
+  const act = best.act;
+  if (act && act.kind === 'attack' && act.target.hp > 0) {
+    ensureVisible(u.x, u.y);
+    await performAttack(u, act.target, SETTINGS.aiStep / 110);
+  } else if (act && act.kind === 'capture') {
+    const [cx, cy] = tileCenter(u.x, u.y);
+    const took = doCapture(u);
+    fxText(cx, cy, took ? '佔領！' : `佔領中 ${G.capture[idxOf(u.x, u.y)].pts}`, SIDES[s].light);
+    await sleep(SETTINGS.aiStep * 2);
+  }
+  if (u.hp > 0) markDone(u);
+  refreshPanel();
+}
+
+function aiProduce(s) {
+  const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => u.side !== s);
+  const cnt = k => G.units.filter(u => u.side === s && UNITS[u.type].base === k).length;
+  const ecls = c => foes.filter(u => UNITS[u.type].cls === c).length;
+  const enemyAir = ecls('air') + ecls('heli'), enemyHard = ecls('hard'), enemySoft = ecls('soft'), enemyShip = ecls('ship');
+  const capturers = mine.filter(u => UNITS[u.type].capture).length;
+  let openProps = 0;
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) openProps++;
+
+  const sites = [];
+  for (let i = 0; i < G.owner.length; i++) {
+    const [x, y] = ixy(i);
+    if (buildOptions(x, y, s).length) sites.push(i);
+  }
+  sites.sort((a, b) => (G.terrain[a] === 'capital') - (G.terrain[b] === 'capital'));
+  const thirsty = mine.filter(u => UNITS[u.type].fuel !== undefined && u.fuel < UNITS[u.type].fuel * 0.6);
+  for (const i of sites) {
+    const [x, y] = ixy(i);
+    const f = G.funds[s];
+    if (TERRAIN[G.terrain[i]].heal.includes('air') && thirsty.some(u => hexDist(u.x, u.y, x, y) <= UNITS[u.type].move * 2)) continue;
+    const w = {
+      inf: capturers < Math.min(7, 2 + openProps / 2) ? 7 : 1,
+      atinf: 1 + enemyHard * 0.3,
+      recon: 0.8 + enemySoft * 0.2,
+      tank: 3 + enemyHard * 0.3,
+      arty: 2,
+      rocket: 1.4,
+      aa: 0.3 + enemyAir * 1.5,
+      sam: enemyAir * 1.0,
+      heli: 1.6,
+      fighter: 0.2 + enemyAir * 1.6,
+      attacker: 1 + enemyShip,
+      destroyer: cnt('destroyer') >= Math.min(3, 1 + enemyShip) ? 0 : 0.3 + enemyShip * 0.8,
+      stealth: 1.2 + enemyAir * 0.3,
+      heavy: cnt('heavy') >= 3 ? 0.3 : 1.5 + enemyHard * 0.2,
+    };
+    const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
+    if (!opts.length) continue;
+    let total = 0;
+    const ws = opts.map(k => {
+      let v = w[UNITS[k].base] * (1 + UNITS[k].cost / 1000 * Math.min(2, f / 2500));
+      if (isIndirect(k) && cnt(UNITS[k].base) >= 4) v *= 0.3;
+      total += v;
+      return v;
+    });
+    let r = Math.random() * total, pick = opts[0];
+    for (let k = 0; k < opts.length; k++) { r -= ws[k]; if (r <= 0) { pick = opts[k]; break; } }
+    produce(pick, x, y, s);
+  }
+}
+
+async function aiTurn() {
+  const token = gameToken, s = G.cur;
+  await sleep(SETTINGS.aiStep * 3);
+  const prio = u => {
+    const d = UNITS[u.type];
+    return isIndirect(u.type) ? 0 : d.capture ? 1 : d.cat === 'air' ? 3 : 2;
+  };
+  const units = G.units.filter(u => u.side === s && !u.done).sort((a, b) => prio(a) - prio(b));
+  for (const u of units) {
+    if (token !== gameToken || G.winner != null) return;
+    if (u.hp <= 0) continue;
+    await aiAct(u, token);
+    checkVictory();
+  }
+  if (token !== gameToken || G.winner != null) return;
+  aiProduce(s);
+  refreshPanel();
+  await sleep(SETTINGS.aiStep * 3);
+}

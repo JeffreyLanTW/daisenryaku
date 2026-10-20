@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f141a">
+<title>大戰略 Web</title>
+<link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand" id="btnMenu" title="主選單">大戰略</div>
+    <div id="turnInfo" class="pill"></div>
+    <div id="funds"></div>
+    <div class="spacer"></div>
+    <button id="btnNext" title="下一個未行動部隊 (Tab)">下一部隊</button>
+    <button id="btnEnd" class="primary">結束回合</button>
+    <span class="sep"></span>
+    <button id="btnCampaign">劇情</button>
+    <button id="btnNew">新遊戲</button>
+    <button id="btnSave">存檔</button>
+    <button id="btnLoad">讀檔</button>
+    <button id="btnHelp">說明</button>
+    <button id="btnMore" title="選單">☰</button>
+  </header>
+  <main>
+    <div id="mapWrap">
+      <canvas id="map"></canvas>
+      <div id="actionMenu" class="hidden"></div>
+      <div id="banner" class="hidden"></div>
+      <div id="toast" class="hidden"></div>
+      <button id="btnPanel" title="顯示/隱藏側欄">▤</button>
+      <div id="zoomCtl"><button id="zLabel" title="顯示/隱藏兵種名稱">名</button><button id="zIn" title="放大">＋</button><button id="zOut" title="縮小">－</button></div>
+    </div>
+    <aside id="panel">
+      <canvas id="mini"></canvas>
+      <section id="objCard" class="card obj-card hidden"></section>
+      <section id="tileInfo" class="card"></section>
+      <section id="unitInfo" class="card"></section>
+      <section id="forecast" class="card hidden"></section>
+      <section class="card logcard"><h3>戰報</h3><div id="log"></div></section>
+    </aside>
+  </main>
+</div>
+<div id="modal" class="hidden"><div id="modalBox"></div></div>
+<div id="rotateHint"><div class="phone">📱</div><p>請將手機橫放<br>以獲得最佳遊戲體驗</p><button id="rotateOk">仍要直向遊玩</button></div>
+<script src="js/data.js?v=5"></script>
+<script src="js/game.js?v=5"></script>
+<script src="js/map.js?v=5"></script>
+<script src="js/render.js?v=5"></script>
+<script src="js/ai.js?v=5"></script>
+<script src="js/campaign.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
+</body>
+</html>
