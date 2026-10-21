@@ -12,7 +12,6 @@ try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETT
 let modalDismissable = false;
 let lastPointerType = 'mouse';
 const isTouch = () => lastPointerType === 'touch' || lastPointerType === 'pen';
-const SAVE_KEY = 'daisenryaku_save_v1';
 const SIZES = { s: [18, 13], m: [24, 15], l: [30, 19] };
 
 const isHumanTurn = () => G && G.winner == null && !G.players[G.cur].ai;
@@ -425,8 +424,8 @@ function openMoreMenu() {
     <button id="moMain">🏠 主選單</button><button class="close">✕ 關閉</button></div>`, box => {
     box.querySelector('#moCamp').onclick = openCampaignMenu;
     box.querySelector('#moNew').onclick = openNewGame;
-    box.querySelector('#moSave').onclick = () => { closeModal(); saveGame(); };
-    box.querySelector('#moLoad').onclick = () => { closeModal(); loadGame(); };
+    box.querySelector('#moSave').onclick = openSaveDialog;
+    box.querySelector('#moLoad').onclick = openLoadDialog;
     box.querySelector('#moFull').onclick = () => { closeModal(); toggleFullscreen(); };
     box.querySelector('#moHelp').onclick = openHelp;
     box.querySelector('#moMain').onclick = openMainMenu;
@@ -448,7 +447,7 @@ function openMainMenu() {
     <button class="big" id="mmHelp">❓ 作戰說明</button></div>`, box => {
     box.querySelector('#mmCamp').onclick = openCampaignMenu;
     box.querySelector('#mmFree').onclick = openNewGame;
-    box.querySelector('#mmLoad').onclick = () => { closeModal(); loadGame(); };
+    box.querySelector('#mmLoad').onclick = openLoadDialog;
     box.querySelector('#mmHelp').onclick = openHelp;
   });
 }
@@ -483,6 +482,7 @@ async function turnIntro() {
   }
   UIS.mode = 'idle';
   if (G.players.every(p => !p.ai)) { const [cx, cy] = idxCenter(G.caps[G.cur]); centerOn(cx, cy); }
+  autoSave();
   refreshPanel();
 }
 function endTurnClicked() {
@@ -512,27 +512,8 @@ function startGame(opts) {
   centerOn(cx, cy);
   turnIntro();
 }
-function saveGame() {
-  if (!G || UIS.mode === 'busy' || !isHumanTurn()) return showBanner('只能在自己的回合存檔', '#666');
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(G, (k, v) => k === '_anim' ? undefined : v));
-    showBanner('已存檔', '#3a8a4a');
-  } catch (e) { showBanner('存檔失敗', '#a33'); }
-}
-function loadGame() {
-  let data = null;
-  try { data = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { /* 忽略 */ }
-  if (!data) return showBanner('沒有存檔', '#666');
-  gameToken++;
-  clearSel(); setInspect(null); FX.length = 0;
-  G = data;
-  for (const u of G.units) u.type = ftype(u.type, u.side);
-  buildTerrain(); resize(); fitView();
-  const [cx, cy] = idxCenter(G.caps[G.cur]); centerOn(cx, cy);
-  showBanner('讀取完成', '#3a8a4a');
-  UIS.mode = 'idle';
-  if (G.players[G.cur].ai) turnIntro(); else refreshPanel();
-}
+function saveGame() { openSaveDialog(); }
+function loadGame() { openLoadDialog(); }
 
 // ----- 輸入 -----
 function setupInput() {
@@ -659,6 +640,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (window.ResizeObserver) new ResizeObserver(() => resize()).observe($('#mapWrap'));
   resize();
   loadCamp();
+  migrateOldSave();
   startGame({ w: 24, h: 15, seed: Math.floor(Math.random() * 99999), players: [{ ai: false }, { ai: true }] });
   resize();
   openMainMenu();
