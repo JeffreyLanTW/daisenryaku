@@ -5,12 +5,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // 多源反向 Dijkstra：每格到最近目標的移動成本。goals: Map(idx -> 起始偏移，越小越優先)
 function distField(goals, mt) {
-  const N = G.w * G.h, d = new Float64Array(N).fill(Infinity), done = new Uint8Array(N), open = [];
-  for (const [g, off] of goals) if (off < d[g]) { d[g] = off; open.push(g); }
-  while (open.length) {
-    let bi = 0;
-    for (let k = 1; k < open.length; k++) if (d[open[k]] < d[open[bi]]) bi = k;
-    const cur = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+  const N = G.w * G.h, d = new Float64Array(N).fill(Infinity), done = new Uint8Array(N), open = new MinHeap();
+  for (const [g, off] of goals) if (off < d[g]) d[g] = off;
+  for (const [g] of goals) open.push(d[g], g);
+  while (open.size) {
+    const cur = open.pop();
     if (done[cur]) continue;
     done[cur] = 1;
     const c = goals.has(cur) ? 1 : moveCost(G.terrain[cur], mt);
@@ -20,7 +19,7 @@ function distField(goals, mt) {
       const ni = ny * G.w + nx;
       if (done[ni] || moveCost(G.terrain[ni], mt) === Infinity) continue;
       const nd = d[cur] + c;
-      if (nd < d[ni]) { d[ni] = nd; open.push(ni); }
+      if (nd < d[ni]) { d[ni] = nd; open.push(nd, ni); }
     }
   }
   return d;
@@ -79,6 +78,16 @@ function aiGoals(u, baseField) {
 }
 
 async function aiAct(u, token) {
+  // 能進化就先進化（選第一個分支）
+  const evo = evoOptions(u);
+  if (evo.length) {
+    evolve(u, evo[0]);
+    if (typeof sfx === 'function') sfx('build');
+    const [cx, cy] = tileCenter(u.x, u.y);
+    fxText(cx, cy, '進化！', '#ffd34d');
+    markDone(u);
+    return;
+  }
   const d = UNITS[u.type], s = u.side, W = G.w;
   const reach = computeReach(u);
   const baseField = d.fuel !== undefined ? distField(ownBases(s, 'air', u), 'air') : null;
@@ -90,7 +99,7 @@ async function aiAct(u, token) {
   let best = { score: -Infinity, dest: start, act: null };
 
   for (const [i, v] of reach) {
-    if (!v.canStop) continue;
+    if (!v.canStop || v.load) continue;
     const [x, y] = ixy(i), t = TERRAIN[G.terrain[i]];
     const consider = (sc, act) => { if (sc > best.score) best = { score: sc, dest: i, act }; };
     let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : mode === 'vip' ? 14 : 9 * ag);
@@ -141,6 +150,7 @@ async function aiAct(u, token) {
   } else if (act && act.kind === 'capture') {
     const [cx, cy] = tileCenter(u.x, u.y);
     const took = doCapture(u);
+    if (took && typeof sfx === 'function') sfx('capture');
     fxText(cx, cy, took ? '佔領！' : `佔領中 ${G.capture[idxOf(u.x, u.y)].pts}`, SIDES[s].light);
     await sleep(SETTINGS.aiStep * 2);
   }
@@ -185,14 +195,16 @@ function aiProduce(s) {
       fighter: 0.2 + enemyAir * 1.6,
       attacker: 1 + enemyShip,
       destroyer: cnt('destroyer') >= Math.min(3, 1 + enemyShip) ? 0 : 0.3 + enemyShip * 0.8,
-      stealth: 1.2 + enemyAir * 0.3,
-      heavy: cnt('heavy') >= 3 ? 0.3 : 1.5 + enemyHard * 0.2,
+      stealth: 1.2,
+      bomber: cnt('bomber') >= 3 ? 0.3 : 1.1,
+      marine: capturers < Math.min(7, 2 + openProps / 2) ? 3 : 0.8,
     };
     const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     if (!opts.length) continue;
     let total = 0;
     const ws = opts.map(k => {
-      let v = w[UNITS[k].base] * (1 + UNITS[k].cost / 1000 * Math.min(2, f / 2500));
+      const pref = NATIONS[G.nations[s]].prefer[UNITS[k].base] || 1;
+      let v = w[UNITS[k].base] * pref * (1 + UNITS[k].cost / 1000 * Math.min(2, f / 2500));
       if (isIndirect(k) && cnt(UNITS[k].base) >= 4) v *= 0.3;
       total += v;
       return v;

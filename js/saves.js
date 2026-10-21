@@ -25,7 +25,7 @@ function defaultSaveName() {
   return `${d.title} 第${G.turn}回合`;
 }
 function serializeGame() {
-  const camp = G.missionId ? { id: campOf(MISSIONS[G.missionId]), flags: CAMP.flags, current: CAMP.current } : null;
+  const camp = G.missionId ? { id: campOf(MISSIONS[G.missionId]), flags: CAMP.flags, current: CAMP.current, roster: CAMP.roster || {}, carryFunds: CAMP.carryFunds || 0 } : null;
   return JSON.stringify({ v: 2, G, camp }, (k, v) => k === '_anim' ? undefined : v);
 }
 
@@ -116,14 +116,19 @@ function autoSave() {
 function applySave(obj) {
   const g = obj && (obj.G || obj);
   if (!g || !Array.isArray(g.terrain) || !Array.isArray(g.units)) { showBanner('存檔格式錯誤', '#a33'); return false; }
+  if (g.missionId && !MISSIONS[g.missionId]) { showBanner('此存檔屬於舊版劇情（fictional-v1 分支）', '#a33'); return false; }
   gameToken++;
   clearSel(); setInspect(null); FX.length = 0;
   G = g;
+  if (!G.nations) G.nations = ['TW', 'CN'];
+  applyNations(G.nations);
   for (const u of G.units) u.type = ftype(u.type, u.side);
   if (obj.camp) {
-    loadCamp(obj.camp.id || (G.missionId ? campOf(MISSIONS[G.missionId]) : 'fed'));
+    loadCamp(obj.camp.id && CAMPAIGNS[obj.camp.id] ? obj.camp.id : campOf(MISSIONS[G.missionId]));
     CAMP.flags = obj.camp.flags || {};
     CAMP.current = obj.camp.current || G.missionId;
+    CAMP.roster = obj.camp.roster || {};
+    CAMP.carryFunds = obj.camp.carryFunds || 0;
     saveCamp();
   }
   closeModal();

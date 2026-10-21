@@ -22,6 +22,39 @@ function hexDist(ax, ay, bx, by) {
   const dq = aq - bq, dr = ay - by;
   return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
 }
+// 二元堆積（最小值優先），供各種尋路使用
+class MinHeap {
+  constructor() { this.k = []; this.v = []; }
+  get size() { return this.k.length; }
+  push(key, val) {
+    const k = this.k, v = this.v;
+    let i = k.length;
+    k.push(key); v.push(val);
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (k[p] <= key) break;
+      k[i] = k[p]; v[i] = v[p]; i = p;
+    }
+    k[i] = key; v[i] = val;
+  }
+  pop() {
+    const k = this.k, v = this.v, top = v[0], lk = k.pop(), lv = v.pop();
+    if (k.length) {
+      let i = 0;
+      const n = k.length;
+      for (;;) {
+        let c = 2 * i + 1;
+        if (c >= n) break;
+        if (c + 1 < n && k[c + 1] < k[c]) c++;
+        if (k[c] >= lk) break;
+        k[i] = k[c]; v[i] = v[c]; i = c;
+      }
+      k[i] = lk; v[i] = lv;
+    }
+    return top;
+  }
+}
+
 const inMap = (x, y) => x >= 0 && y >= 0 && x < G.w && y < G.h;
 const idxOf = (x, y) => y * G.w + x;
 const ixy = i => [i % G.w, (i / G.w) | 0];
@@ -63,11 +96,10 @@ function computeReach(u) {
   }
   const start = u.y * W + u.x;
   const dist = new Map([[start, { cost: 0, prev: -1 }]]);
-  const open = [start], done = new Set();
-  while (open.length) {
-    let bi = 0;
-    for (let k = 1; k < open.length; k++) if (dist.get(open[k]).cost < dist.get(open[bi]).cost) bi = k;
-    const cur = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+  const open = new MinHeap(), done = new Set();
+  open.push(0, start);
+  while (open.size) {
+    const cur = open.pop();
     if (done.has(cur)) continue;
     done.add(cur);
     if (cur !== start && zoc && zoc[cur]) continue;
@@ -85,12 +117,106 @@ function computeReach(u) {
       const ex = dist.get(ni);
       if (ex && ex.cost <= nc) continue;
       dist.set(ni, { cost: nc, prev: cur });
-      open.push(ni);
+      open.push(nc, ni);
     }
   }
-  for (const [i, v] of dist) v.canStop = !occ[i] || occ[i] === u;
+  for (const [i, v] of dist) {
+    const o = occ[i];
+    v.canStop = !o || o === u;
+    if (o && o !== u && canLoad(o, u)) { v.canStop = true; v.load = o.id; }
+  }
   return dist;
 }
+// 移動命令用：忽略控制區、可穿過友軍，求整張地圖上到目標的最短路徑
+function orderPath(u, target) {
+  const d = UNITS[u.type], W = G.w, N = W * G.h, occ = occGrid();
+  if (moveCost(G.terrain[target], d.mt) === Infinity) return null;
+  const to = occ[target];
+  if (to && to.side !== u.side) return null;
+  const dist = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), start = u.y * W + u.x;
+  const open = new MinHeap();
+  dist[start] = 0; open.push(0, start);
+  while (open.size) {
+    const cur = open.pop();
+    if (cur === target) break;
+    const [cx, cy] = ixy(cur);
+    for (const [nx, ny] of neighbors(cx, cy)) {
+      const ni = ny * W + nx, c = moveCost(G.terrain[ni], d.mt);
+      if (c === Infinity) continue;
+      const o = occ[ni];
+      if (o && o.side !== u.side) continue;
+      const nd = dist[cur] + c;
+      if (nd < dist[ni]) { dist[ni] = nd; prev[ni] = cur; open.push(nd, ni); }
+    }
+  }
+  if (dist[target] === Infinity) return null;
+  const p = [];
+  for (let c = target; c !== -1; c = prev[c]) p.push(c);
+  return p.reverse();
+}
+// 沿命令路徑在本回合可達範圍內能走到的最遠一格
+function orderStep(u, reach) {
+  const p = orderPath(u, u.order), start = u.y * G.w + u.x;
+  if (!p) return start;
+  let best = start;
+  for (const i of p) { const r = reach.get(i); if (r && r.canStop) best = i; }
+  return best;
+}
+
+// ----- 搭載 -----
+function canLoad(t, u) {
+  const c = UNITS[t.type].carry, d = UNITS[u.type];
+  if (!c || t.side !== u.side || d.carry || d.cat === 'sea') return false;
+  if ((t.cargo || []).length >= c.cap || !c.allow.includes(d.mt)) return false;
+  if (c.light && (BASE_UNITS[d.base] || d).cost > 500) return false;
+  return true;
+}
+function loadInto(u, t) {
+  G.units = G.units.filter(e => e !== u);
+  u.done = u.moved = true;
+  t.cargo = t.cargo || [];
+  t.cargo.push(u);
+  addLog(`${SIDES[u.side].name}${UNITS[u.type].name} 搭上 ${UNITS[t.type].name}`, u.side);
+}
+// 可卸載的相鄰格
+function unloadTiles(t, c) {
+  const tc = UNITS[t.type].carry;
+  if (!tc) return [];
+  const ti = idxOf(t.x, t.y);
+  if (tc.runway && !TERRAIN[G.terrain[ti]].prop) return [];
+  if (UNITS[t.type].cat === 'air' && moveCost(G.terrain[ti], UNITS[c.type].mt) === Infinity && UNITS[c.type].cat !== 'air') return [];
+  const out = [];
+  for (const [nx, ny] of neighbors(t.x, t.y)) {
+    const i = idxOf(nx, ny);
+    if (!unitAt(nx, ny) && moveCost(G.terrain[i], UNITS[c.type].mt) !== Infinity) out.push(i);
+  }
+  return out;
+}
+function unloadAt(t, c, i) {
+  t.cargo = t.cargo.filter(e => e !== c);
+  const [x, y] = ixy(i);
+  c.x = x; c.y = y; c.done = c.moved = true;
+  G.units.push(c);
+  addLog(`${SIDES[c.side].name}${UNITS[c.type].name} 自 ${UNITS[t.type].name} 卸載`, c.side);
+}
+
+// ----- 鐵路鋪設 -----
+const isRailNode = i => G.terrain[i] === 'rail' || ['city', 'capital', 'factory'].includes(G.terrain[i]);
+// 可鋪設：平原/道路/森林、相鄰既有鐵路網，且在己方部隊 2 格內
+function canLayRail(i, side) {
+  if (!['plain', 'road', 'forest'].includes(G.terrain[i]) || G.funds[side] < RAIL_COST) return false;
+  const [x, y] = ixy(i);
+  if (!neighbors(x, y).some(([nx, ny]) => { const j = idxOf(nx, ny); return G.terrain[j] === 'rail' || (isRailNode(j) && G.owner[j] === side); })) return false;
+  return G.units.some(u => u.side === side && hexDist(u.x, u.y, x, y) <= 2);
+}
+function layRail(i, side) {
+  G.funds[side] -= RAIL_COST;
+  G.terrain[i] = 'rail';
+  const [x, y] = ixy(i);
+  for (const [nx, ny] of neighbors(x, y)) { const j = idxOf(nx, ny); if (isRailNode(j)) G.rails.push([i, j]); }
+  addLog(`${SIDES[side].name}鋪設了一段鐵路`, side);
+}
+
 function reachPath(reach, i) {
   const p = [];
   while (i !== -1) { p.push(i); i = reach.get(i).prev; }
@@ -111,11 +237,13 @@ function targetsFrom(u, x, y) {
   return out;
 }
 // 未取整的期望傷害；防守方站在 (dx,dy)
-function baseDamage(attType, attHp, def, dx, dy) {
+function baseDamage(attType, attHp, def, dx, dy, attRank = 0) {
   const a = UNITS[attType].atk[CLASSES.indexOf(UNITS[def.type].cls)];
   if (!a) return 0;
-  const td = UNITS[def.type].cat === 'land' ? TERRAIN[G.terrain[dy * G.w + dx]].def : 0;
-  return a * (attHp / 10) * (100 - td) / 100 * (UNITS[def.type].armor || 1);
+  const dd = UNITS[def.type], tk = G.terrain[dy * G.w + dx];
+  let td = dd.cat === 'land' ? TERRAIN[tk].def : 0;
+  if (dd.jungle && (tk === 'forest' || tk === 'hills' || tk === 'mountain')) td += dd.jungle;
+  return a * (attHp / 10) * (100 - td) / 100 * (UNITS[def.type].armor || 1) * RANKS[attRank].atk;
 }
 function canCounter(def, att, ax, ay) {
   if (UNITS[att.type].stealth) return false;
@@ -123,11 +251,11 @@ function canCounter(def, att, ax, ay) {
 }
 // 攻擊方從 (ax,ay) 出手時的預估結果
 function forecast(att, def, ax, ay) {
-  const dmg = Math.min(def.hp, Math.round(baseDamage(att.type, att.hp, def, def.x, def.y)));
+  const dmg = Math.min(def.hp, Math.round(baseDamage(att.type, att.hp, def, def.x, def.y, rankOf(att))));
   let counter = 0;
   const left = def.hp - dmg;
   if (left > 0 && canCounter(def, att, ax, ay)) {
-    counter = Math.min(att.hp, Math.round(baseDamage(def.type, left, att, ax, ay)));
+    counter = Math.min(att.hp, Math.round(baseDamage(def.type, left, att, ax, ay, rankOf(def))));
   }
   return { dmg, counter };
 }
@@ -136,23 +264,35 @@ function rollDamage(base, maxHp) {
   return Math.max(0, Math.min(maxHp, Math.round(base * (0.9 + Math.random() * 0.2))));
 }
 function resolveAttack(att, def) {
-  const dmg = rollDamage(baseDamage(att.type, att.hp, def, def.x, def.y), def.hp);
+  const evaded = Math.random() < RANKS[rankOf(def)].evade;
+  const dmg = evaded ? 0 : rollDamage(baseDamage(att.type, att.hp, def, def.x, def.y, rankOf(att)), def.hp);
   def.hp -= dmg;
-  let counter = 0, countered = false;
+  let counter = 0, countered = false, cEvaded = false;
   if (def.hp > 0 && canCounter(def, att, att.x, att.y)) {
     countered = true;
-    counter = rollDamage(baseDamage(def.type, def.hp, att, att.x, att.y), att.hp);
+    cEvaded = Math.random() < RANKS[rankOf(att)].evade;
+    counter = cEvaded ? 0 : rollDamage(baseDamage(def.type, def.hp, att, att.x, att.y, rankOf(def)), att.hp);
     att.hp -= counter;
   }
+  // 經驗值：造成傷害、擊破、反擊與承受攻擊都會累積
+  const r0 = [rankOf(att), rankOf(def)];
+  att.xp = (att.xp || 0) + dmg * 6 + (def.hp <= 0 ? 20 : 0) + counter * 2;
+  def.xp = (def.xp || 0) + counter * 6 + (att.hp <= 0 ? 20 : 0) + dmg * 2;
+  const promoted = [att, def].filter((u, k) => u.hp > 0 && rankOf(u) > r0[k]);
+  for (const u of promoted) addLog(`${SIDES[u.side].name}${UNITS[u.type].name} 升級為${RANKS[rankOf(u)].name}！`, u.side);
   const an = `${SIDES[att.side].name}${UNITS[att.type].name}`, dn = `${SIDES[def.side].name}${UNITS[def.type].name}`;
   let msg = `${an} 攻擊 ${dn}，造成 ${dmg} 傷害`;
   if (def.hp <= 0) msg += '，擊破！';
   else if (countered) msg += `；反擊 ${counter}` + (att.hp <= 0 ? '，攻擊方被擊破！' : '');
+  if (evaded) msg += '（迴避！）';
   addLog(msg, att.side);
-  return { dmg, counter, countered };
+  return { dmg, counter, countered, evaded, cEvaded, promoted };
 }
 function removeDead() {
-  for (const u of G.units) if (u.hp <= 0) clearCapture(u);
+  for (const u of G.units) if (u.hp <= 0) {
+    clearCapture(u);
+    if (u.cargo && u.cargo.length) addLog(`搭載的 ${u.cargo.length} 支部隊隨 ${UNITS[u.type].name} 一同損失`, u.side);
+  }
   G.units = G.units.filter(u => u.hp > 0);
 }
 
@@ -195,6 +335,20 @@ function clearCapture(u) {
     if (c.uid === u.id && (u.hp <= 0 || +k !== idxOf(u.x, u.y))) delete G.capture[k];
   }
 }
+// 可進化的型號：需達到階級，且停在己方可補給的據點上
+function evoOptions(u) {
+  const d = UNITS[u.type];
+  if (!d.next || !d.next.length || u.done) return [];
+  const i = idxOf(u.x, u.y), t = TERRAIN[G.terrain[i]];
+  if (G.owner[i] !== u.side || !t.heal || !t.heal.includes(d.cat)) return [];
+  return d.next.filter(k => rankOf(u) >= UNITS[k].tier);
+}
+function evolve(u, key) {
+  const from = UNITS[u.type].name;
+  u.type = key;
+  if (UNITS[key].fuel !== undefined) u.fuel = UNITS[key].fuel;
+  addLog(`${SIDES[u.side].name}${from} 進化為 ${UNITS[key].name}！`, u.side);
+}
 function markDone(u) {
   u.done = true;
   u.moved = true;
@@ -204,12 +358,13 @@ function markDone(u) {
 // ----- 生產 -----
 function makeUnit(type, side, x, y, extra) {
   type = ftype(type, side);
-  return Object.assign({ id: G.nextId++, type, side, x, y, hp: 10, fuel: UNITS[type].fuel, moved: false, done: false }, extra || {});
+  return Object.assign({ id: G.nextId++, type, side, x, y, hp: 10, fuel: UNITS[type].fuel, moved: false, done: false, xp: 0 }, extra || {});
 }
 function buildOptions(x, y, side) {
   const i = idxOf(x, y), t = TERRAIN[G.terrain[i]];
   if (!t.build || G.owner[i] !== side || unitAt(x, y)) return [];
-  return Object.keys(UNITS).filter(k => UNITS[k].side === side && t.build.includes(UNITS[k].cat));
+  return Object.keys(UNITS).filter(k => UNITS[k].side === side && !UNITS[k].tier && t.build.includes(UNITS[k].cat)
+    && (UNITS[k].base !== 'train' || (G.rails && G.rails.length)));
 }
 function produce(type, x, y, side) {
   const d = UNITS[type];
@@ -235,7 +390,14 @@ function startTurn() {
   G.funds[s] += incomeOf(s);
   for (const u of G.units) {
     if (u.side !== s) continue;
-    u.moved = u.done = false;
+    u.moved = u.done = u.autoMoved = false;
+    for (const c of u.cargo || []) {
+      c.moved = c.done = false;
+      if (UNITS[u.type].carry && UNITS[u.type].carry.deck) {
+        if (UNITS[c.type].fuel !== undefined) c.fuel = UNITS[c.type].fuel;
+        c.hp = Math.min(10, c.hp + 2);
+      }
+    }
     const d = UNITS[u.type], i = idxOf(u.x, u.y), t = TERRAIN[G.terrain[i]];
     const onBase = G.owner[i] === s && t.heal && t.heal.includes(d.cat);
     if (d.fuel !== undefined) {
@@ -279,21 +441,26 @@ function initState(m, opts) {
   gameToken++;
   G = {
     w: m.w, h: m.h, seed: opts.seed,
-    terrain: m.terrain, owner: m.owner, caps: m.caps, roads: m.roads,
+    terrain: m.terrain, owner: m.owner, caps: m.caps, roads: m.roads, rails: m.rails || [],
     units: [], turn: 1, cur: 0, funds: opts.funds || [START_FUNDS, START_FUNDS],
     players: opts.players, capture: {}, winner: null, winReason: '',
-    nextId: 1, log: [], missionId: opts.missionId || null, result: null,
+    nextId: 1, log: [], missionId: opts.missionId || null, result: null, nations: opts.nations || ['TW', 'CN'],
     firedEvents: [], pendingDialogs: [],
   };
+  applyNations(G.nations);
   for (const [type, i, side, extra] of m.start) {
     const [x, y] = ixy(i);
-    G.units.push(makeUnit(type, side, x, y, extra));
+    const { load, ...rest } = extra || {};
+    const u = makeUnit(type, side, x, y, rest);
+    if (load) u.cargo = load.map(t => makeUnit(t, side, x, y));
+    G.units.push(u);
   }
 }
 function newGame(opts) {
   const m = generateMap(opts.w, opts.h, opts.seed);
   m.w = opts.w; m.h = opts.h;
-  initState(m, opts);
+  const f = Math.round(START_FUNDS * Math.sqrt(opts.w * opts.h / 360) / 100) * 100;
+  initState(m, Object.assign({ funds: [f, f] }, opts));
   addLog('作戰開始！攻陷敵方首都或殲滅全部敵軍即可獲勝。');
   startTurn();
 }

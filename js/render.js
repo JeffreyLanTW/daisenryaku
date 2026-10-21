@@ -3,7 +3,7 @@
 
 const R = 32;               // 六角格外接圓半徑
 const HW = R * SQ3 / 2;     // 半寬
-const TS = 2;               // 地形底圖解析度倍率
+let TS = 2;                 // 地形底圖解析度倍率（大地圖自動降低）
 const cam = { x: 0, y: 0, z: 1 };
 const FX = [];
 let cvs, ctx, mini, mctx, terrainCvs = null, dpr = 1;
@@ -49,13 +49,14 @@ const circle = (c, x, y, r) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); 
 
 // ----- 地形底圖（開局時繪製一次） -----
 const TCOLOR = {
-  plain: '#a7c66c', road: '#a7c66c', forest: '#88b05b', hills: '#c4b674', mountain: '#a8987c',
+  plain: '#a7c66c', road: '#a7c66c', rail: '#a7c66c', forest: '#88b05b', hills: '#c4b674', mountain: '#a8987c',
   sea: '#4683c2', bridge: '#4683c2', city: '#b9c98e', capital: '#bccb92', factory: '#b9c98e',
   airport: '#b9c98e', port: '#b9c98e',
 };
 
 function buildTerrain() {
   const [ww, wh] = worldSize();
+  TS = Math.max(0.8, Math.min(2, Math.sqrt(14e6 / (ww * wh))));
   terrainCvs = document.createElement('canvas');
   terrainCvs.width = Math.ceil(ww * TS); terrainCvs.height = Math.ceil(wh * TS);
   const c = terrainCvs.getContext('2d');
@@ -85,6 +86,17 @@ function buildTerrain() {
   for (let i = 0; i < N; i++) {
     const [cx, cy] = idxCenter(i);
     drawDeco(c, G.terrain[i], cx, cy, i);
+  }
+  // 鐵路：枕木＋雙軌
+  for (const [a2, b2] of G.rails || []) {
+    const [ax, ay] = idxCenter(a2), [bx, by] = idxCenter(b2), len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+    c.strokeStyle = '#5a4630'; c.lineWidth = 2;
+    for (let t = 3; t < len; t += 5) {
+      const px = ax + ux * t, py = ay + uy * t;
+      c.beginPath(); c.moveTo(px - uy * 4, py + ux * 4); c.lineTo(px + uy * 4, py - ux * 4); c.stroke();
+    }
+    c.strokeStyle = '#3b3b3b'; c.lineWidth = 1.3;
+    for (const off of [-2.2, 2.2]) { c.beginPath(); c.moveTo(ax - uy * off, ay + ux * off); c.lineTo(bx - uy * off, by + ux * off); c.stroke(); }
   }
   c.strokeStyle = 'rgba(0,0,0,0.16)'; c.lineWidth = 1;
   for (let i = 0; i < N; i++) { const [cx, cy] = idxCenter(i); hexPath(c, cx, cy, R); c.stroke(); }
@@ -185,183 +197,292 @@ function drawDeco(c, t, cx, cy, i) {
   c.restore();
 }
 
-// ----- 部隊圖示（剪影，車頭朝右） -----
-function drawIcon(c, type, dk, side = 0) {
-  const W = '#fff';
-  const rr = (x, y, w, h, r) => { roundRect(c, x, y, w, h, r); c.fill(); };
-  const poly = pts => { c.beginPath(); pts.forEach(([x, y], k) => k ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); };
-  const dot = (x, y, r) => { circle(c, x, y, r); c.fill(); };
-  const bar = (x1, y1, x2, y2, w) => { c.lineWidth = w; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); };
-  c.fillStyle = W; c.strokeStyle = W; c.lineCap = 'round'; c.lineJoin = 'round';
-  const tracks = () => {
-    c.fillStyle = W; rr(-15, 3, 30, 8, 4);
-    c.fillStyle = dk; for (let x = -10; x <= 10; x += 5) dot(x, 7, 1.7);
-    c.fillStyle = W;
+// ----- 部隊圖示（寫實風，車頭朝右） -----
+function lgrad(c, x0, y0, x1, y1, stops) {
+  const g = c.createLinearGradient(x0, y0, x1, y1);
+  for (const [o, col] of stops) g.addColorStop(o, col);
+  return g;
+}
+function drawIcon(c, type, camo, style) {
+  const east = style === 'east';
+  const poly = (pts, fill, stroke) => {
+    c.beginPath(); pts.forEach(([x, y], k) => k ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath();
+    c.fillStyle = fill; c.fill();
+    if (stroke) { c.strokeStyle = stroke; c.lineWidth = 0.8; c.stroke(); }
   };
-  const truck = () => {
-    c.fillStyle = W; c.fillRect(-15, 1, 30, 4); rr(8, -6, 8, 9, 2);
-    c.fillStyle = dk; c.fillRect(11, -4, 4, 3);
-    for (const x of [-10, -3.5, 11]) { c.fillStyle = W; dot(x, 7, 3.4); c.fillStyle = dk; dot(x, 7, 1.3); }
-    c.fillStyle = W;
+  const rr = (x, y, w, h, r, fill, stroke) => {
+    roundRect(c, x, y, w, h, r); c.fillStyle = fill; c.fill();
+    if (stroke) { c.strokeStyle = stroke; c.lineWidth = 0.8; c.stroke(); }
   };
-  const soldier = (ox, s, launcher) => {
-    c.save(); c.translate(ox, 0); c.scale(s, s);
-    c.fillStyle = W; c.strokeStyle = W;
-    dot(0, -7, 3.2);
-    if (side === 1) {
-      // 帝國：外擴帽緣鋼盔、長大衣
-      poly([[-6, -6], [-4.5, -8], [-3.5, -11], [3.5, -11], [4.5, -8], [6, -6]]);
-      poly([[-2.5, -3], [2.5, -3], [5, 7], [-5, 7]]);
-      bar(-2, 6, -3.5, 11, 2.6); bar(2, 6, 3.5, 11, 2.6);
-    } else {
-      // 聯邦：圓形戰術頭盔、戰術背心
-      c.beginPath(); c.arc(0, -8, 4.3, Math.PI, 0); c.closePath(); c.fill();
-      c.fillRect(-4.6, -8.6, 2, 3.4);
-      bar(0, -3, 0, 4, 4.5);
-      bar(0, 4, -4, 11, 3); bar(0, 4, 4, 11, 3);
+  const dot = (x, y, r, fill) => { circle(c, x, y, r); c.fillStyle = fill; c.fill(); };
+  const line = (x1, y1, x2, y2, w, col) => { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.lineWidth = w; c.strokeStyle = col; c.lineCap = 'round'; c.stroke(); };
+  const hi = shade(camo, 0.28), lo = shade(camo, -0.38), mid = camo, edge = shade(camo, -0.6);
+  const body = (y0, y1) => lgrad(c, 0, y0, 0, y1, [[0, hi], [0.45, mid], [1, lo]]);
+  const metal = (y0, y1) => lgrad(c, 0, y0, 0, y1, [[0, '#9a9a92'], [0.5, '#5d5d58'], [1, '#2e2e2b']]);
+  const shadowE = (w, y) => { c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.ellipse(0, y, w, 2.6, 0, 0, 7); c.fill(); };
+  const tracks = (x0 = -17, w = 34, nw = 6) => {
+    rr(x0, 2.5, w, 8.5, 4.2, lgrad(c, 0, 2.5, 0, 11, [[0, '#4a4a46'], [1, '#1d1d1b']]));
+    const step = (w - 8) / (nw - 1);
+    for (let k = 0; k < nw; k++) {
+      const x = x0 + 4 + k * step;
+      dot(x, 7, 2.6, '#262624'); dot(x, 7, 1.7, '#55554f'); dot(x, 7, 0.6, '#222');
     }
+  };
+  const wheel = (x, y, r) => { dot(x, y, r, '#1c1c1a'); dot(x, y, r * 0.55, '#6a6a62'); dot(x, y, r * 0.2, '#222'); };
+  const soldier = (ox, s, kneel, launcher) => {
+    c.save(); c.translate(ox, 0); c.scale(s, s);
+    const uni = body(-10, 10);
+    // 腿
+    if (kneel) { poly([[-3, 3], [3, 3], [6, 10], [3, 10.5], [0, 6], [-2, 10.5], [-5, 10.5]], lo); }
+    else { poly([[-3, 2], [0, 2], [-1, 10.5], [-4, 10.5]], lo); poly([[0, 2], [3, 2], [4.5, 10.5], [1.5, 10.5]], lo); }
+    // 軀幹與背包
+    rr(-4, -4, 7.5, 8, 2, uni, edge);
+    rr(-6.5, -3.5, 3, 6, 1.2, shade(camo, -0.2));
+    // 頭與鋼盔
+    dot(0, -6.6, 2.5, '#d9b48f');
+    c.beginPath();
+    if (east) { c.moveTo(-4.2, -6.4); c.quadraticCurveTo(0, -12.5, 4.2, -6.4); c.closePath(); }
+    else { c.ellipse(0, -7.6, 3.8, 3.1, 0, Math.PI, 0); c.closePath(); }
+    c.fillStyle = lgrad(c, 0, -11, 0, -6, [[0, hi], [1, lo]]); c.fill();
     if (launcher) {
-      bar(-11, -2, 11, -7.5, 5);
-      poly([[11, -10.5], [17, -8.6], [12.4, -4.6]]);
-      c.fillStyle = dk; dot(-11, -2, 1.4);
+      rr(-12, -7.5, 25, 3.6, 1.6, lgrad(c, 0, -7.5, 0, -4, [[0, '#7c8455'], [1, '#3c4128']]), '#1e2114');
+      poly([[13, -8.4], [17.5, -5.7], [13, -3]], '#2e3320');
     } else {
-      bar(-5, 1.5, 12, -3, 2.2);
-      bar(0, -1, 6, -0.5, 2.6);
+      line(-4, 1.5, 12, -2.5, 1.6, '#1b1b18');
+      line(9, -1.8, 9.5, 1, 1.4, '#1b1b18');
+      line(0, -1, 6, -0.6, 2.4, uni);
     }
     c.restore();
   };
   switch (type) {
     case 'inf':
-      c.globalAlpha = 0.6; soldier(-7, 0.85, false); c.globalAlpha = 1; soldier(3, 1, false);
+      c.globalAlpha = 0.85; soldier(-7, 0.85, false, false); c.globalAlpha = 1; soldier(3.5, 1, false, false);
       break;
     case 'atinf':
-      soldier(-1, 1, true);
+      soldier(-1, 1.05, true, true);
       break;
-    case 'recon':
-      poly([[-15, 4], [-13, -3], [-5, -4], [-2, -9], [7, -9], [10, -3], [15, -2], [15, 4]]);
-      c.fillStyle = dk; c.fillRect(0, -7, 6, 3);
-      for (const x of [-9, 9]) { c.fillStyle = W; dot(x, 6, 4.3); c.fillStyle = dk; dot(x, 6, 1.6); }
-      c.fillStyle = W; bar(-10, -3, -14, -12, 1.3);
+    case 'marine': {
+      // 兩棲突擊車破浪
+      c.fillStyle = 'rgba(80,140,200,0.55)'; c.beginPath(); c.ellipse(0, 8, 18, 3.5, 0, 0, 7); c.fill();
+      poly([[-16, 6], [-16, -3], [-12, -6], [11, -6], [17, 0], [15, 6]], body(-6, 6), edge);
+      rr(-7, -10, 9, 4.5, 1.2, body(-10, -6), edge);
+      line(2, -8, 9, -8.5, 1.6, '#2a2a26');
+      c.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const x of [14, 16.5, 12]) { c.beginPath(); c.arc(x, 6.5, 1.4, 0, 7); c.fill(); }
+      line(-16, 8.3, 16, 8.3, 1, 'rgba(255,255,255,0.7)');
       break;
-    case 'tank':
+    }
+    case 'recon': {
+      shadowE(17, 10.5);
+      const n = east ? [-11, -3.5, 4, 11.5] : [-10, 0, 10];
+      poly([[-16, 4], [-15, -2], [-8, -4.5], [-3, -9], [6, -9], [9, -4], [16, -2.5], [16.5, 4]], body(-9, 4), edge);
+      rr(-3, -7.5, 8, 2.6, 1, 'rgba(30,40,50,0.65)');
+      if (!east) { rr(-2, -12, 8, 3.6, 1.2, body(-12, -8), edge); line(5, -10.3, 15, -10.8, 1.8, '#2b2b27'); }
+      else line(-12, -4, -15, -13, 0.9, '#222');
+      for (const x of n) wheel(x, 6, 4);
+      break;
+    }
+    case 'tank': {
+      shadowE(18, 10.8);
       tracks();
-      if (side === 1) {
-        // 帝國：圓頂砲塔、短車體
-        poly([[-14, 3], [-12, -2], [11, -2], [14, 3]]);
-        c.beginPath(); c.ellipse(-1, -2, 8, 6.5, 0, Math.PI, 0); c.closePath(); c.fill();
-        c.fillRect(5, -6, 11, 3); c.fillRect(14, -6.8, 3, 4.6);
-        c.fillStyle = dk; dot(-2, -5, 1.2);
+      if (east) {
+        poly([[-17, 3], [-13, -2], [13, -2], [17.5, 3]], body(-2, 3), edge);
+        c.beginPath(); c.ellipse(-1.5, -2, 9.5, 7, 0, Math.PI, 0); c.closePath();
+        c.fillStyle = lgrad(c, 0, -9, 0, -2, [[0, hi], [1, lo]]); c.fill(); c.strokeStyle = edge; c.lineWidth = 0.8; c.stroke();
+        rr(6, -6.6, 13, 2.8, 1, metal(-6.6, -3.8));
+        dot(-3, -6.6, 1.4, edge);
       } else {
-        // 聯邦：楔形平砲塔、長砲管
-        poly([[-14, 3], [-11, -2], [12, -2], [15, 3]]);
-        poly([[-9, -2], [-8, -7.5], [5, -7.5], [9, -2]]);
-        c.fillRect(6, -6.2, 12, 2.4);
-        c.fillStyle = dk; c.fillRect(-6, -6, 5, 1.6);
+        poly([[-17, 3], [-14, -2.5], [13, -2.5], [17.5, 3]], body(-2.5, 3), edge);
+        poly([[-11, -2.5], [-10, -8.5], [6, -8.5], [10, -2.5]], lgrad(c, 0, -8.5, 0, -2.5, [[0, hi], [1, lo]]), edge);
+        rr(8, -7.2, 12, 2.6, 1, metal(-7.2, -4.6));
+        rr(18.5, -7.6, 2.2, 3.4, 0.6, '#3a3a36');
+        rr(-7, -10.5, 5, 2.2, 1, edge);
       }
       break;
-    case 'heavy':
-      // 猛獁：雙砲管巨型戰車
-      c.fillStyle = W; rr(-17, 3, 34, 9, 4);
-      c.fillStyle = dk; for (let x = -12; x <= 12; x += 4) dot(x, 7.5, 1.6);
-      c.fillStyle = W;
-      poly([[-16, 3], [-13, -3], [13, -3], [16, 3]]);
-      poly([[-10, -3], [-8, -11], [6, -11], [9, -3]]);
-      c.fillRect(5, -10, 13, 2.4); c.fillRect(5, -6.5, 13, 2.4);
-      c.fillStyle = dk; c.fillRect(-7, -8, 9, 1.6);
-      break;
-    case 'arty':
+    }
+    case 'arty': {
+      shadowE(18, 10.8);
       tracks();
-      poly([[-14, 3], [-12, -2], [12, -2], [14, 3]]);
-      rr(-11, -10, 15, 9, 1.5);
-      c.save(); c.translate(2, -7); c.rotate(-0.5); c.fillRect(0, -1.7, 15, 3.4); c.fillRect(13, -2.6, 3.5, 5.2); c.restore();
-      break;
-    case 'rocket':
-      truck();
-      c.save(); c.translate(-3, -1.5); c.rotate(-0.36);
-      rr(-11, -8, 19, 8, 1.5);
-      c.fillStyle = dk; c.fillRect(-10, -5.6, 17, 1); c.fillRect(-10, -3, 17, 1);
+      poly([[-17, 3], [-15, -2], [14, -2], [17, 3]], body(-2, 3), edge);
+      rr(-13, -11, 16, 9.5, 1.6, lgrad(c, 0, -11, 0, -1.5, [[0, hi], [1, lo]]), edge);
+      c.save(); c.translate(2, -8); c.rotate(-0.48);
+      rr(0, -1.8, 17, 3.6, 1, metal(-1.8, 1.8)); rr(15, -2.6, 3.6, 5.2, 1, '#2f2f2b');
       c.restore();
       break;
-    case 'aa':
-      tracks();
-      poly([[-14, 3], [-11, -2], [12, -2], [14, 3]]);
-      rr(-6, -8, 11, 6.5, 1.5);
-      c.save(); c.translate(3, -6.5); c.rotate(-0.95); c.fillRect(0, -3.2, 15, 1.9); c.fillRect(0, 1.3, 15, 1.9); c.restore();
-      c.lineWidth = 1.8; c.beginPath(); c.arc(-9, -9, 4.5, Math.PI * 0.85, Math.PI * 1.95); c.stroke();
-      bar(-9, -9, -8, -3, 1.6);
+    }
+    case 'rocket': {
+      shadowE(18, 10.8);
+      rr(-16, 0, 32, 4.5, 1, '#2f302a');
+      poly([[8, 1], [8, -7], [13, -7], [17, -2], [17, 2]], body(-7, 2), edge);
+      rr(12, -5.6, 3.6, 2.6, 0.6, 'rgba(150,190,220,0.85)');
+      c.save(); c.translate(-4, -1.5); c.rotate(-0.33);
+      rr(-12, -8.5, 20, 8.5, 1.4, body(-8.5, 0), edge);
+      c.fillStyle = '#1b1b19';
+      for (let r = 0; r < 2; r++) for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(7.2, -6.8 + k * 1.9 + r * 0.01, 0.75, 0, 7); c.fill(); }
+      c.restore();
+      for (const x of [-11, -4, 12]) wheel(x, 7, 3.6);
       break;
-    case 'sam':
-      truck();
-      c.save(); c.translate(-6, -1.5); c.rotate(-0.55);
-      for (const oy of [-7, -2.5]) {
-        c.fillRect(-3, oy, 15, 3);
-        poly([[12, oy], [17.5, oy + 1.5], [12, oy + 3]]);
-        poly([[-3, oy - 1.5], [0, oy], [0, oy + 3], [-3, oy + 4.5]]);
+    }
+    case 'aa': {
+      shadowE(18, 10.8);
+      tracks();
+      poly([[-17, 3], [-14, -2], [14, -2], [17, 3]], body(-2, 3), edge);
+      rr(-7, -9, 13, 7.5, 2, lgrad(c, 0, -9, 0, -1.5, [[0, hi], [1, lo]]), edge);
+      c.save(); c.translate(4, -7); c.rotate(-0.95);
+      rr(0, -3.2, 15, 1.9, 0.6, metal(-3.2, -1.3)); rr(0, 1.3, 15, 1.9, 0.6, metal(1.3, 3.2));
+      c.restore();
+      c.beginPath(); c.ellipse(-9, -12, 5, 2.2, -0.3, 0, 7); c.fillStyle = '#c9ccc5'; c.fill(); c.strokeStyle = '#555'; c.lineWidth = 0.7; c.stroke();
+      line(-9, -12, -7, -9, 1.2, '#444');
+      break;
+    }
+    case 'sam': {
+      shadowE(18, 10.8);
+      rr(-16, 0, 32, 4.5, 1, '#2f302a');
+      poly([[9, 1], [9, -6], [13, -6], [17, -2], [17, 2]], body(-6, 2), edge);
+      rr(12.5, -4.8, 3.4, 2.4, 0.6, 'rgba(150,190,220,0.85)');
+      c.save(); c.translate(-6, -2); c.rotate(-0.55);
+      for (const oy of [-7.5, -3]) {
+        rr(-3, oy, 16, 3.2, 1.5, lgrad(c, 0, oy, 0, oy + 3.2, [[0, '#ffffff'], [1, '#b9bdb8']]), '#777');
+        poly([[13, oy], [18, oy + 1.6], [13, oy + 3.2]], '#c43d32');
+        poly([[-3, oy - 1.4], [0.5, oy], [0.5, oy + 3.2], [-3, oy + 4.6]], '#888');
       }
       c.restore();
+      for (const x of [-11, -4, 12]) wheel(x, 7, 3.6);
       break;
-    case 'heli':
-      if (side === 1) {
-        // 帝國：粗壯機身、短翼掛載火箭莢
-        c.beginPath(); c.ellipse(2, 1, 11, 6.5, 0, 0, 7); c.fill();
-        poly([[-6, -1.5], [-17, -2], [-17, 1.5], [-6, 3.5]]);
-        poly([[-17.5, -2], [-15, -9], [-13, -2]]);
-        c.fillStyle = dk; c.beginPath(); c.ellipse(8.5, -1, 3.6, 2.6, 0, 0, 7); c.fill(); dot(4, -1, 1.6);
-        c.fillStyle = W; c.fillRect(-4, 4, 12, 2.4); rr(-5, 5.5, 5, 4, 1.5); rr(4, 5.5, 5, 4, 1.5);
-        bar(2, -5, 2, -9, 2.4); bar(-15, -9, 18, -9, 2.4);
-        break;
+    }
+    case 'heli': {
+      const g = east ? '#6f7a5a' : camo;
+      shadowE(14, 13);
+      c.fillStyle = 'rgba(40,40,40,0.25)'; c.beginPath(); c.ellipse(1, -9.5, 19, 2.2, 0, 0, 7); c.fill();
+      line(1, -9.5, 1, -5, 2, '#2a2a28');
+      poly([[-4, -2], [-18, -3], [-18, 0.5], [-4, 3]], lgrad(c, 0, -3, 0, 3, [[0, shade(g, 0.25)], [1, shade(g, -0.35)]]));
+      poly([[-18.5, -3], [-16, -9.5], [-13.5, -3]], shade(g, -0.2));
+      c.beginPath(); c.ellipse(east ? 2 : 3, 0.5, east ? 11 : 9.5, east ? 6.6 : 5.6, 0, 0, 7);
+      c.fillStyle = lgrad(c, 0, -6, 0, 6, [[0, shade(g, 0.3)], [0.5, g], [1, shade(g, -0.4)]]); c.fill();
+      c.strokeStyle = shade(g, -0.6); c.lineWidth = 0.8; c.stroke();
+      c.beginPath(); c.ellipse(east ? 8.5 : 8, -1.4, 4.2, 2.8, 0.2, 0, 7);
+      c.fillStyle = lgrad(c, 0, -4, 0, 1.5, [[0, '#d9eefc'], [1, '#3d6a8c']]); c.fill();
+      rr(-2, 3.5, 10, 2, 0.8, '#2d2d2a');
+      rr(east ? -5 : -1, 5, 5, 2.6, 1.2, '#454540');
+      line(-4, 9.5, 11, 9.5, 1.3, '#2b2b28'); line(-1, 6, -1, 9.5, 1, '#2b2b28'); line(8, 6, 8, 9.5, 1, '#2b2b28');
+      break;
+    }
+    case 'fighter': case 'attacker': case 'bomber': case 'stealth': {
+      const g = type === 'stealth' ? '#2a2c30' : east ? '#9aa6ab' : '#8c949a';
+      const gg = lgrad(c, 0, -14, 0, 14, [[0, shade(g, 0.3)], [0.5, g], [1, shade(g, -0.35)]]);
+      c.fillStyle = 'rgba(0,0,0,0.22)';
+      c.save(); c.translate(3, 5); c.scale(0.9, 0.5);
+      c.beginPath(); c.ellipse(0, 0, 16, 12, 0, 0, 7); c.fill(); c.restore();
+      let pts;
+      if (type === 'fighter') {
+        pts = east
+          ? [[17, 0], [12, -2], [3, -2.5], [-5, -13], [-9, -13], [-6, -2.5], [-12, -2.5], [-15, -8], [-17, -8], [-16, 0], [-17, 8], [-15, 8], [-12, 2.5], [-6, 2.5], [-9, 13], [-5, 13], [3, 2.5], [12, 2]]
+          : [[17, 0], [8, -2.6], [2, -3], [-4, -13], [-9, -13], [-6, -3], [-12, -3], [-13, -8.5], [-16.5, -8.5], [-15, -1.5], [-15, 1.5], [-16.5, 8.5], [-13, 8.5], [-12, 3], [-6, 3], [-9, 13], [-4, 13], [2, 3], [8, 2.6]];
+      } else if (type === 'attacker') {
+        pts = [[15, 0], [10, -2.6], [4, -2.6], [2, -15], [-3, -15], [-4, -2.6], [-12, -2.6], [-13, -7], [-16.5, -7], [-15.5, 0], [-16.5, 7], [-13, 7], [-12, 2.6], [-4, 2.6], [-3, 15], [2, 15], [4, 2.6], [10, 2.6]];
+      } else if (type === 'bomber') {
+        pts = [[18, 0], [12, -2.6], [4, -3], [-8, -16], [-12, -16], [-6, -3.2], [-13, -3], [-16, -8], [-18, -8], [-17, 0], [-18, 8], [-16, 8], [-13, 3], [-6, 3.2], [-12, 16], [-8, 16], [4, 3], [12, 2.6]];
+      } else {
+        pts = [[14, 0], [-8, -14], [-12, -14], [-9, -6], [-14, -3.5], [-12, 0], [-14, 3.5], [-9, 6], [-12, 14], [-8, 14]];
       }
-      c.beginPath(); c.ellipse(3, 1, 9, 5.5, 0, 0, 7); c.fill();
-      poly([[-4, -1.5], [-17, -2.5], [-17, 1], [-4, 3]]);
-      poly([[-17.5, -2.5], [-15, -9], [-13, -2.5]]);
-      c.fillStyle = dk; c.beginPath(); c.ellipse(7.5, -0.8, 4, 2.6, 0, 0, 7); c.fill(); c.fillStyle = W;
-      bar(3, -4, 3, -8.5, 2.2); bar(-14, -9, 18, -9, 2.2);
-      bar(-4, 9.5, 11, 9.5, 1.7); bar(-1, 6, -1, 9.5, 1.4); bar(8, 6, 8, 9.5, 1.4);
-      c.fillRect(-1, 2, 8, 2); c.fillStyle = dk; dot(7, 3, 1.1);
-      break;
-    case 'fighter':
-      if (side === 1) {
-        // 帝國：後掠翼、機鼻進氣口
-        poly([[16, 0], [12, -2.4], [2, -2.6], [-6, -12], [-10, -12], [-6, -2.6], [-12, -2.6], [-15, -9], [-17, -9], [-16, 0],
-          [-17, 9], [-15, 9], [-12, 2.6], [-6, 2.6], [-10, 12], [-6, 12], [2, 2.6], [12, 2.4]]);
-        c.fillStyle = dk; dot(15, 0, 1.3); c.beginPath(); c.ellipse(7, 0, 2.6, 1.2, 0, 0, 7); c.fill();
-        break;
+      poly(pts, gg, shade(g, -0.6));
+      if (type === 'attacker') {
+        for (const y of [-4.6, 4.6]) rr(-10, y - 1.6, 6, 3.2, 1.5, shade(g, -0.25));
+        for (const y of [-11, -7.5, 7.5, 11]) { c.beginPath(); c.ellipse(-0.5, y, 3.2, 1.1, 0, 0, 7); c.fillStyle = '#3c3f33'; c.fill(); }
       }
-      poly([[17, 0], [5, -2.6], [-3, -13], [-8, -13], [-4, -2.6], [-11, -2.6], [-14, -8], [-17, -8], [-15, 0],
-        [-17, 8], [-14, 8], [-11, 2.6], [-4, 2.6], [-8, 13], [-3, 13], [5, 2.6]]);
-      c.fillStyle = dk; c.beginPath(); c.ellipse(8, 0, 3, 1.3, 0, 0, 7); c.fill();
+      if (type === 'bomber') for (const y of [-6.5, 6.5]) rr(-5, y - 1.5, 7, 3, 1.4, shade(g, -0.3));
+      if (type !== 'stealth') {
+        c.beginPath(); c.ellipse(8, 0, 3.6, 1.4, 0, 0, 7);
+        c.fillStyle = lgrad(c, 0, -1.4, 0, 1.4, [[0, '#e6f4ff'], [1, '#3a6585']]); c.fill();
+      } else {
+        line(-10, 0, 10, 0, 0.6, '#55585e'); line(-5, -6, 5, -1.5, 0.5, '#4a4d52'); line(-5, 6, 5, 1.5, 0.5, '#4a4d52');
+      }
       break;
-    case 'stealth':
-      // 幽靈：飛翼
-      poly([[13, 0], [-9, -15], [-13, -15], [-9, -8], [-14, -4], [-11, 0], [-14, 4], [-9, 8], [-13, 15], [-9, 15]]);
-      c.fillStyle = dk; c.beginPath(); c.ellipse(5, 0, 3, 1.4, 0, 0, 7); c.fill();
-      c.fillRect(-7, -6, 6, 1.2); c.fillRect(-7, 4.8, 6, 1.2);
+    }
+    case 'truck': {
+      shadowE(17, 10.5);
+      poly([[-16, 3], [-16, -8], [6, -8], [6, 3]], lgrad(c, 0, -8, 0, 3, [[0, shade(camo, 0.15)], [1, shade(camo, -0.3)]]), edge);
+      line(-15, -5, 5, -5, 0.6, 'rgba(0,0,0,0.3)'); line(-15, -2, 5, -2, 0.6, 'rgba(0,0,0,0.3)');
+      poly([[7, 3], [7, -6], [12, -6], [16, -1], [16, 3]], body(-6, 3), edge);
+      rr(11, -4.8, 3.6, 2.8, 0.6, 'rgba(150,190,220,0.85)');
+      for (const x of [-11, -4, 11]) wheel(x, 6, 3.6);
       break;
-    case 'attacker':
-      poly([[15, 0], [10, -3], [4, -3], [2, -14], [-4, -14], [-4, -3], [-12, -3], [-14, -7], [-17, -7], [-16, 0],
-        [-17, 7], [-14, 7], [-12, 3], [-4, 3], [-4, 14], [2, 14], [4, 3], [10, 3]]);
-      for (const y of [-10, -6.5, 6.5, 10]) { c.fillStyle = dk; c.beginPath(); c.ellipse(-1, y, 3.4, 1.3, 0, 0, 7); c.fill(); }
-      c.fillStyle = dk; c.beginPath(); c.ellipse(9, 0, 2.6, 1.3, 0, 0, 7); c.fill();
+    }
+    case 'thelico': {
+      const g = camo;
+      shadowE(15, 13);
+      c.fillStyle = 'rgba(40,40,40,0.25)'; c.beginPath(); c.ellipse(-6, -9.5, 13, 2, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(8, -9.5, 13, 2, 0, 0, 7); c.fill();
+      rr(-15, -5, 29, 11, 5, lgrad(c, 0, -5, 0, 6, [[0, shade(g, 0.3)], [0.5, g], [1, shade(g, -0.4)]]), shade(g, -0.6));
+      c.beginPath(); c.ellipse(11, -1.5, 4, 3, 0.2, 0, 7); c.fillStyle = lgrad(c, 0, -4, 0, 1.5, [[0, '#d9eefc'], [1, '#3d6a8c']]); c.fill();
+      for (const x of [-8, -3, 2]) rr(x, -2.5, 3, 2.5, 0.6, 'rgba(30,40,50,0.7)');
+      line(-8, -5, -8, -9, 1.6, '#2a2a28'); line(6, -5, 6, -9, 1.6, '#2a2a28');
+      line(-10, 8.5, 10, 8.5, 1.2, '#2b2b28');
       break;
-    case 'destroyer':
-      poly([[-17, 1], [17, 1], [12, 8], [-14, 8]]);
-      poly([[-9, 1], [-9, -4], [-4, -4], [-4, -8], [3, -8], [3, -4], [6, 1]]);
-      bar(-0.5, -8, -0.5, -14, 1.7); bar(-4, -11.5, 3, -11.5, 1.5);
-      rr(8, -3, 5, 4, 1); c.fillRect(11, -2.2, 6, 1.7);
-      rr(-15, -2, 4, 3, 1);
-      c.fillStyle = dk; for (const x of [-11, -5, 1, 7]) dot(x, 4.5, 1);
+    }
+    case 'airlift': {
+      const g = '#8e989c';
+      c.fillStyle = 'rgba(0,0,0,0.22)'; c.save(); c.translate(3, 5); c.scale(0.9, 0.5); c.beginPath(); c.ellipse(0, 0, 17, 13, 0, 0, 7); c.fill(); c.restore();
+      const gg = lgrad(c, 0, -15, 0, 15, [[0, shade(g, 0.3)], [0.5, g], [1, shade(g, -0.35)]]);
+      poly([[16, 0], [12, -3.2], [-12, -3.2], [-15, -7], [-17.5, -7], [-16, 0], [-17.5, 7], [-15, 7], [-12, 3.2], [12, 3.2]], gg, shade(g, -0.6));
+      poly([[3, -3.2], [1, -16], [-3, -16], [-3, -3.2]], gg, shade(g, -0.6)); poly([[3, 3.2], [1, 16], [-3, 16], [-3, 3.2]], gg, shade(g, -0.6));
+      for (const y of [-12, -7, 7, 12]) rr(1, y - 1.2, 4, 2.4, 1, shade(g, -0.35));
+      c.beginPath(); c.ellipse(12, 0, 2.6, 1.4, 0, 0, 7); c.fillStyle = '#3a6585'; c.fill();
       break;
+    }
+    case 'carrier': {
+      const g = '#8d979e';
+      c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.moveTo(-19, 7); c.lineTo(17, 7); c.lineTo(19, 8.6); c.lineTo(-18, 9); c.closePath(); c.fill();
+      poly([[-18, 1], [16, 1], [19, -1], [18, 3], [13, 7], [-15, 7]], lgrad(c, 0, -1, 0, 7, [[0, shade(g, 0.15)], [1, shade(g, -0.45)]]), '#3b4045');
+      poly([[-19, -1.5], [19, -1.5], [19, 1], [-19, 1]], '#5a5e62', '#33373a');
+      line(-17, -0.3, 17, -0.3, 0.5, 'rgba(255,255,255,0.7)');
+      rr(4, -8, 5, 6.5, 1, lgrad(c, 0, -8, 0, -1.5, [[0, shade(g, 0.3)], [1, shade(g, -0.2)]]), '#3b4045');
+      line(6.5, -8, 6.5, -12, 1, '#3b4045');
+      c.fillStyle = '#2f3336';
+      for (const x of [-14, -8]) { c.beginPath(); c.moveTo(x, -2.6); c.lineTo(x + 4, -1.6); c.lineTo(x, -0.6); c.closePath(); c.fill(); }
+      break;
+    }
+    case 'train': {
+      rr(-17, 5, 34, 2, 0.5, '#3b3b3b');
+      rr(-17, -7, 14, 11, 1.5, lgrad(c, 0, -7, 0, 4, [[0, shade(camo, 0.2)], [1, shade(camo, -0.4)]]), edge);
+      poly([[-1, 4], [-1, -9], [12, -9], [16, -4], [16, 4]], lgrad(c, 0, -9, 0, 4, [[0, '#c94a3a'], [1, '#6b2018']]), '#3a1410');
+      rr(10, -7.5, 4, 3, 0.6, 'rgba(150,190,220,0.85)');
+      for (const x of [-14, -7, 2, 8, 13]) wheel(x, 6, 2.4);
+      break;
+    }
+    case 'lst': {
+      const g = '#8d979e';
+      c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.moveTo(-18, 7.5); c.lineTo(16, 7.5); c.lineTo(18, 9); c.lineTo(-17, 9.5); c.closePath(); c.fill();
+      poly([[-17, 0], [13, 0], [17, 3], [14, 7.5], [-14, 7.5]], lgrad(c, 0, 0, 0, 7.5, [[0, shade(g, 0.15)], [1, shade(g, -0.45)]]), '#3b4045');
+      rr(-16, -7, 8, 7, 1, lgrad(c, 0, -7, 0, 0, [[0, shade(g, 0.3)], [1, shade(g, -0.2)]]), '#3b4045');
+      line(-12, -7, -12, -12, 1.2, '#3b4045');
+      for (const x of [-5, 0, 5]) rr(x, -3, 4, 3, 0.8, camo, '#2a2a26');
+      line(13, 0, 17, -4, 1.4, '#3b4045');
+      break;
+    }
+    case 'destroyer': {
+      const g = '#8d979e';
+      c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.moveTo(-18, 7.5); c.lineTo(17, 7.5); c.lineTo(19, 9); c.lineTo(-17, 9.5); c.closePath(); c.fill();
+      poly([[-17, 1], [18, 1], [13, 7.5], [-14, 7.5]], lgrad(c, 0, 1, 0, 7.5, [[0, shade(g, 0.15)], [1, shade(g, -0.45)]]), '#3b4045');
+      line(-14, 5, 14, 5, 0.6, 'rgba(0,0,0,0.25)');
+      poly([[-9, 1], [-9, -4], [-4, -4], [-4, -8], [3, -8], [3, -4], [7, 1]], lgrad(c, 0, -8, 0, 1, [[0, shade(g, 0.3)], [1, shade(g, -0.2)]]), '#3b4045');
+      line(-0.5, -8, -0.5, -15, 1.3, '#3b4045'); line(-4, -12.5, 3, -12.5, 1.1, '#3b4045');
+      c.fillStyle = '#c7cdd1'; c.beginPath(); c.arc(-0.5, -15.5, 1.5, 0, 7); c.fill();
+      rr(9, -2.4, 5, 3.4, 1.2, shade(g, -0.15), '#3b4045'); line(13, -1, 18, -1.6, 1.4, '#3b4045');
+      rr(-15, -2, 4, 3, 1, shade(g, -0.15), '#3b4045');
+      c.fillStyle = '#2d3236'; for (const x of [-7, -3, 1]) { c.beginPath(); c.arc(x, -6, 0.6, 0, 7); c.fill(); }
+      break;
+    }
   }
 }
 
 // 繪製一枚部隊棋子
 function drawCounter(c, cx, cy, type, side, o = {}) {
   const d = UNITS[type], S = SIDES[side];
+  const N = NATIONS[d.nation] || NATIONS.TW;
   const air = d.cat === 'air';
-  const oy = air ? -6 : -2, w = 44, h = 32, rad = air ? 13 : 6;
-  if (air) { c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.ellipse(cx, cy + 13, 16, 4, 0, 0, 7); c.fill(); }
+  const oy = air ? -6 : -2, w = 46, h = 34, rad = air ? 12 : 6;
+  if (air) { c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.ellipse(cx, cy + 14, 16, 4, 0, 0, 7); c.fill(); }
   const top = cy - h / 2 + oy;
-  // 聯邦：圓角；帝國：切角八邊形
   const shape = () => {
     if (side === 1 && !air) {
       const k = 8, x0 = cx - w / 2, x1 = cx + w / 2, y1 = top + h;
@@ -369,31 +490,28 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
       c.lineTo(x1 - k, y1); c.lineTo(x0 + k, y1); c.lineTo(x0, y1 - k); c.lineTo(x0, top + k); c.closePath();
     } else roundRect(c, cx - w / 2, top, w, h, side === 1 ? 4 : rad);
   };
-  const g = c.createLinearGradient(0, top, 0, top + h);
-  g.addColorStop(0, S.color); g.addColorStop(1, S.dark);
-  shape(); c.fillStyle = g; c.fill();
-  c.strokeStyle = o.highlight ? '#ffe27a' : S.trim; c.lineWidth = o.highlight ? 2.6 : 1.6; c.stroke();
-  c.save(); c.translate(cx, cy + oy);
+  // 淺色底（依兵種環境：天空、海面、地面）
+  const bg = air ? ['#dbe9f7', '#9fbfdc'] : d.cat === 'sea' || d.base === 'marine' ? ['#cfe2ef', '#7fa3bf'] : ['#e8e6d6', '#b9b59a'];
+  shape();
+  c.fillStyle = lgrad(c, 0, top, 0, top + h, [[0, bg[0]], [1, bg[1]]]); c.fill();
+  c.save(); shape(); c.clip();
+  c.translate(cx, cy + oy + 1);
   if (side === 1) c.scale(-1, 1);
-  drawIcon(c, d.base, S.dark, side);
+  drawIcon(c, d.base, N.camo, N.style);
   c.restore();
-  // 陣營徽記（左下）
-  c.save(); c.translate(cx - w / 2 + 6, top + h - 6);
-  if (side === 0) {
-    c.beginPath();
-    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 1.5 : 3.6; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
-    c.closePath(); c.fillStyle = '#fff'; c.fill();
-  } else {
-    c.beginPath(); c.moveTo(0, -4); c.lineTo(4, 0); c.lineTo(0, 4); c.lineTo(-4, 0); c.closePath();
-    c.fillStyle = S.trim; c.fill(); c.fillStyle = S.dark; circle(c, 0, 0, 1.4); c.fill();
-  }
-  c.restore();
-  if (o.done) { shape(); c.fillStyle = 'rgba(10,10,10,0.45)'; c.fill(); }
+  shape();
+  c.strokeStyle = o.highlight ? '#ffe27a' : S.color; c.lineWidth = o.highlight ? 3.2 : 2.6; c.stroke();
+  // 國碼標籤
+  c.font = 'bold 8px sans-serif';
+  const cw = c.measureText(N.code).width + 5;
+  roundRect(c, cx - w / 2 + 1.5, top + 1.5, cw, 9, 2); c.fillStyle = S.color; c.fill();
+  c.fillStyle = '#fff'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(N.code, cx - w / 2 + 4, top + 6.3);
+  if (o.done) { shape(); c.fillStyle = 'rgba(20,20,20,0.5)'; c.fill(); }
   if (o.label) {
     c.font = 'bold 10px -apple-system, "PingFang TC", sans-serif';
     const tw = c.measureText(d.name).width + 8;
     roundRect(c, cx - tw / 2, top + h - 1, tw, 12, 3);
-    c.fillStyle = 'rgba(8,12,16,0.82)'; c.fill();
+    c.fillStyle = 'rgba(8,12,16,0.85)'; c.fill();
     c.fillStyle = o.done ? '#9aa6b2' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(d.name, cx, top + h + 5);
   }
@@ -413,7 +531,40 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
   if (o.fuelLow) {
     c.font = 'bold 10px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'top';
     c.strokeStyle = '#000'; c.lineWidth = 2.5; c.fillStyle = '#ffcc33';
-    c.strokeText('⛽', cx - w / 2 + 1, top + 1); c.fillText('⛽', cx - w / 2 + 1, top + 1);
+    c.strokeText('⛽', cx - w / 2 + 2, top + h - 12); c.fillText('⛽', cx - w / 2 + 2, top + h - 12);
+  }
+  if (o.cargo) {
+    c.font = 'bold 9px sans-serif';
+    roundRect(c, cx - 11, top + h - 11, 22, 10, 3); c.fillStyle = 'rgba(20,90,40,0.92)'; c.fill();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('載' + o.cargo, cx, top + h - 5.5);
+  }
+  if (o.rank) {
+    // 階級：金色 V 形臂章；王牌另加星
+    const bx = cx + w / 2 - 7, by = top + h - 5;
+    c.strokeStyle = '#000'; c.lineWidth = 3.4; c.lineJoin = 'miter';
+    for (let k = 0; k < Math.min(o.rank, 2); k++) {
+      c.beginPath(); c.moveTo(bx - 4, by - 4 - k * 4); c.lineTo(bx, by - 1 - k * 4); c.lineTo(bx + 4, by - 4 - k * 4); c.stroke();
+    }
+    c.strokeStyle = '#ffd34d'; c.lineWidth = 1.8;
+    for (let k = 0; k < Math.min(o.rank, 2); k++) {
+      c.beginPath(); c.moveTo(bx - 4, by - 4 - k * 4); c.lineTo(bx, by - 1 - k * 4); c.lineTo(bx + 4, by - 4 - k * 4); c.stroke();
+    }
+    if (o.rank >= 3) {
+      c.save(); c.translate(bx, by - 13);
+      c.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 2 : 4.6; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+      c.closePath(); c.fillStyle = '#ffd34d'; c.fill(); c.strokeStyle = '#000'; c.lineWidth = 1; c.stroke();
+      c.restore();
+    }
+  }
+  if (o.tier) {
+    c.font = 'bold 8px sans-serif'; c.textAlign = 'right'; c.textBaseline = 'top';
+    c.strokeStyle = '#000'; c.lineWidth = 2.5; c.fillStyle = '#8fe3ff';
+    c.strokeText('改' + (o.tier > 1 ? o.tier : ''), cx + w / 2 - 12, top + 1.5); c.fillText('改' + (o.tier > 1 ? o.tier : ''), cx + w / 2 - 12, top + 1.5);
+  }
+  if (o.order) {
+    c.fillStyle = '#ffd34d'; c.strokeStyle = '#000'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(cx + w / 2 - 9, top + h - 2); c.lineTo(cx + w / 2 - 9, top + h - 12); c.lineTo(cx + w / 2 - 2, top + h - 9.5); c.lineTo(cx + w / 2 - 9, top + h - 7); c.stroke(); c.fill();
   }
 }
 
@@ -511,6 +662,15 @@ function fillHex(i, color) { const [cx, cy] = idxCenter(i); hexPath(ctx, cx, cy,
 function drawOverlays(now) {
   const sel = UIS.sel;
   if (UIS.inspectSet) for (const i of UIS.inspectSet) fillHex(i, 'rgba(255,150,30,0.28)');
+  if (UIS.mode === 'deploy' && UIS.deployZone) {
+    for (const i of UIS.deployZone) fillHex(i, 'rgba(90,220,120,0.22)');
+    if (UIS.deploySel) {
+      const ds = UIS.deploySel, mt = UNITS[ds.type].mt;
+      for (const i of UIS.deployZone) if (!unitAt(...ixy(i)) && moveCost(G.terrain[i], mt) !== Infinity) fillHex(i, 'rgba(90,220,120,0.35)');
+      const [cx, cy] = tileCenter(ds.x, ds.y);
+      hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = '#7dff9a'; ctx.lineWidth = 3; ctx.stroke();
+    }
+  }
   if (UIS.mode === 'selected' && UIS.reach) {
     for (const [i, v] of UIS.reach) fillHex(i, v.canStop ? 'rgba(70,160,255,0.5)' : 'rgba(70,160,255,0.2)');
     if (isIndirect(sel.type)) {
@@ -522,6 +682,7 @@ function drawOverlays(now) {
     }
     for (const u of G.units) if (UIS.attackSet && UIS.attackSet.has(u.id)) fillHex(idxOf(u.x, u.y), 'rgba(255,40,40,0.45)');
   }
+  if (UIS.mode === 'unload' && UIS.unload) for (const i of UIS.unload.tiles) fillHex(i, `rgba(90,220,120,${0.35 + 0.15 * Math.sin(now / 150)})`);
   if (UIS.mode === 'target' && UIS.targets) {
     const p = 0.35 + 0.25 * Math.sin(now / 150);
     for (const u of UIS.targets) fillHex(idxOf(u.x, u.y), `rgba(255,40,40,${p})`);
@@ -536,6 +697,23 @@ function drawOverlays(now) {
     const e = pts[pts.length - 1];
     circle(ctx, e[0], e[1], 6); ctx.fillStyle = '#fff5c2'; ctx.fill();
   }
+  // 移動命令：預覽與已設定的目的地（虛線＋旗）
+  const dashPath = (path, col) => {
+    if (!path || path.length < 2) return;
+    const pts = path.map(idxCenter);
+    ctx.setLineDash([7, 6]); ctx.lineDashOffset = -now / 60;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (const p of pts.slice(1)) ctx.lineTo(p[0], p[1]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 6; ctx.stroke();
+    ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+    ctx.setLineDash([]);
+    const [ex, ey] = pts[pts.length - 1];
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(ex - 4, ey + 10); ctx.lineTo(ex - 4, ey - 12); ctx.stroke();
+    ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.moveTo(ex - 4, ey - 12); ctx.lineTo(ex + 9, ey - 8); ctx.lineTo(ex - 4, ey - 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  if (UIS.mode === 'selected' && UIS.orderPreview) dashPath(UIS.orderPreview, '#ffd34d');
+  const showOrder = sel || (UIS.hover && unitAt(UIS.hover[0], UIS.hover[1]));
+  if (showOrder && showOrder.side === G.cur && showOrder.order != null && !UIS.orderPreview) dashPath(orderPath(showOrder, showOrder.order), 'rgba(255,211,77,0.75)');
   if (sel) {
     const [cx, cy] = tileCenter(sel.x, sel.y);
     hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
@@ -558,6 +736,10 @@ function drawUnits() {
       highlight: UIS.inspect === u,
       label: SETTINGS.labels,
       vip: u.vip,
+      order: u.side === G.cur && u.order != null,
+      cargo: u.cargo && u.cargo.length,
+      rank: rankOf(u),
+      tier: UNITS[u.type].tier || 0,
     });
   }
 }

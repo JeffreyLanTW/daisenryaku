@@ -12,13 +12,14 @@ try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETT
 let modalDismissable = false;
 let lastPointerType = 'mouse';
 const isTouch = () => lastPointerType === 'touch' || lastPointerType === 'pen';
-const SIZES = { s: [18, 13], m: [24, 15], l: [30, 19] };
+const SIZES = { s: [18, 13, '小'], m: [24, 15, '中'], l: [30, 19, '大'], xl: [40, 25, '超大'], xxl: [54, 33, '終極大'] };
 
 const isHumanTurn = () => G && G.winner == null && !G.players[G.cur].ai;
 
 // ----- 選取與移動 -----
 function clearSel() {
   UIS.pendingTarget = null;
+  UIS.orderPreview = null;
   UIS.mode = 'idle';
   UIS.sel = UIS.reach = UIS.attackSet = UIS.path = UIS.origin = UIS.targets = null;
   hideMenu();
@@ -40,8 +41,10 @@ function setInspect(u) {
 }
 function selectUnit(u) {
   clearSel(); setInspect(null);
-  UIS.sel = u; UIS.mode = 'selected';
+  UIS.sel = u;
   UIS.origin = { x: u.x, y: u.y, fuel: u.fuel };
+  if (u.autoMoved) { UIS.mode = 'menu'; showMenu(u); refreshPanel(); return; }
+  UIS.mode = 'selected';
   UIS.reach = computeReach(u);
   UIS.attackSet = new Set();
   if (isIndirect(u.type)) for (const t of targetsFrom(u, u.x, u.y)) UIS.attackSet.add(t.id);
@@ -73,13 +76,49 @@ function attackTileFor(target) {
 }
 async function doMove(u, path, cost, stepMs) {
   if (path.length < 2) return;
+  sfxMove(u);
   await animateMove(u, path, stepMs);
   const [x, y] = ixy(path[path.length - 1]);
   u.x = x; u.y = y;
   if (UNITS[u.type].fuel !== undefined) u.fuel -= cost;
   u.moved = true;
 }
-async function moveSelectedTo(i) {
+// 設定跨回合移動命令，並立即走到本回合能到的最遠處
+function setMoveOrder(u, target) {
+  UIS.prevOrder = u.order; UIS.newOrder = true;
+  u.order = target;
+  const step = orderStep(u, UIS.reach);
+  if (step === target) u.order = null;
+  showToast('🚩 已設定移動命令');
+  moveSelectedTo(step, true);
+}
+// 回合開始時，有移動命令的部隊自動前進
+async function runMoveOrders() {
+  const token = gameToken;
+  for (const u of G.units.filter(e => e.side === G.cur && e.order != null && !e.done)) {
+    if (token !== gameToken || G.winner != null) return;
+    if (idxOf(u.x, u.y) === u.order) { u.order = null; continue; }
+    const reach = computeReach(u), step = orderStep(u, reach);
+    if (step === idxOf(u.x, u.y)) continue;
+    ensureVisible(u.x, u.y);
+    await doMove(u, reachPath(reach, step), reach.get(step).cost, 70);
+    u.autoMoved = true;
+    if (step === u.order) u.order = null;
+  }
+}
+async function moveSelectedTo(i, keepOrder = false) {
+  const lv = UIS.reach && UIS.reach.get(i);
+  if (lv && lv.load) {
+    const u = UIS.sel, t = unitById(lv.load), reach = UIS.reach;
+    UIS.mode = 'busy'; UIS.path = null;
+    await doMove(u, reachPath(reach, i), reach.get(i).cost, 85);
+    u.order = null;
+    loadInto(u, t);
+    sfx('build'); showToast(`已搭載至 ${UNITS[t.type].name}`);
+    clearSel(); refreshPanel();
+    return;
+  }
+  if (!keepOrder) { UIS.newOrder = false; if (UIS.sel.order != null) { UIS.prevOrder = UIS.sel.order; UIS.newOrder = true; UIS.sel.order = null; } }
   const u = UIS.sel, reach = UIS.reach;
   UIS.mode = 'busy'; UIS.path = null;
   await doMove(u, reachPath(reach, i), reach.get(i).cost, 85);
@@ -98,12 +137,14 @@ async function attackFromSelected(target) {
 }
 function cancelMove() {
   const u = UIS.sel, o = UIS.origin;
-  if (!u) return clearSel();
+  if (!u || u.autoMoved) { clearSel(); return refreshPanel(); }
+  if (UIS.newOrder) { u.order = UIS.prevOrder; UIS.newOrder = false; }
   u.x = o.x; u.y = o.y; u.fuel = o.fuel; u.moved = false;
   selectUnit(u);
 }
 function cancelAction() {
   if (UIS.mode === 'busy') return;
+  if (UIS.mode === 'unload') { const t = UIS.unload.t; UIS.unload = null; UIS.mode = 'menu'; showMenu(t); return refreshPanel(); }
   if (UIS.mode === 'target') { UIS.mode = 'menu'; UIS.targets = null; showMenu(UIS.sel); }
   else if (UIS.mode === 'menu') cancelMove();
   else { clearSel(); setInspect(null); }
@@ -111,18 +152,26 @@ function cancelAction() {
 }
 async function performAttack(att, def, speed = 1) {
   const [ax, ay] = tileCenter(att.x, att.y), [dx, dy] = tileCenter(def.x, def.y);
+  sfxFire(UNITS[att.type].base);
   if (isIndirect(att.type)) {
     FX.push({ kind: 'flash', x: ax, y: ay - 6, t0: performance.now(), dur: 300 });
     await sleep(260 * speed);
   } else await animLunge(att, dx, dy, 220 * speed);
   const res = resolveAttack(att, def);
+  if (res.dmg > 0 || def.hp <= 0) sfx('explode', { big: def.hp <= 0 });
   fxBoom(dx, dy, def.hp <= 0);
-  fxText(dx, dy, def.hp <= 0 ? '擊破!' : `-${res.dmg}`, '#ffd166');
+  fxText(dx, dy, res.evaded ? '迴避!' : def.hp <= 0 ? '擊破!' : `-${res.dmg}`, res.evaded ? '#8fe3ff' : '#ffd166');
   await sleep(420 * speed);
   if (res.countered) {
+    sfxFire(UNITS[def.type].base);
+    if (res.counter > 0) setTimeout(() => sfx('explode', { big: att.hp <= 0 }), 120);
     fxBoom(ax, ay, att.hp <= 0);
-    fxText(ax, ay, att.hp <= 0 ? '擊破!' : `-${res.counter}`, '#ff9b8a');
+    fxText(ax, ay, res.cEvaded ? '迴避!' : att.hp <= 0 ? '擊破!' : `-${res.counter}`, res.cEvaded ? '#8fe3ff' : '#ff9b8a');
     await sleep(420 * speed);
+  }
+  for (const u of res.promoted || []) {
+    const [px, py] = tileCenter(u.x, u.y);
+    fxText(px, py - 14, `升級：${RANKS[rankOf(u)].name}`, '#ffd34d');
   }
   removeDead();
   checkVictory();
@@ -144,6 +193,7 @@ function finishUnit(u) {
 function doCaptureAction(u) {
   const [cx, cy] = tileCenter(u.x, u.y);
   const took = doCapture(u);
+  sfx(took ? 'capture' : 'foot');
   fxText(cx, cy, took ? '佔領！' : `佔領中 ${G.capture[idxOf(u.x, u.y)].pts}`, SIDES[u.side].light);
   finishUnit(u);
 }
@@ -151,6 +201,7 @@ function doCaptureAction(u) {
 // ----- 點擊處理 -----
 function handleClick(x, y) {
   if (!G || !inMap(x, y) || UIS.mode === 'busy') return;
+  if (UIS.mode === 'deploy') return deployClick(x, y);
   const u = unitAt(x, y);
   if (!isHumanTurn()) { setInspect(u && UIS.inspect !== u ? u : null); refreshPanel(); return; }
   switch (UIS.mode) {
@@ -159,6 +210,7 @@ function handleClick(x, y) {
       if (u) { setInspect(UIS.inspect === u ? null : u); return refreshPanel(); }
       setInspect(null);
       if (buildOptions(x, y, G.cur).length) return openProduction(x, y);
+      if (canLayRail(idxOf(x, y), G.cur)) return openRailConfirm(x, y);
       return refreshPanel();
     case 'selected': {
       const s = UIS.sel, i = idxOf(x, y);
@@ -169,12 +221,22 @@ function handleClick(x, y) {
       if (u === s) return moveSelectedTo(i);
       const r = UIS.reach.get(i);
       if (r && r.canStop) return moveSelectedTo(i);
+      if (!u && orderPath(s, i)) return setMoveOrder(s, i);
       clearSel();
       if (u && u.side === G.cur && !u.done) return selectUnit(u);
       if (u) setInspect(u);
       return refreshPanel();
     }
     case 'menu': return cancelMove();
+    case 'unload': {
+      const ul = UIS.unload, i = idxOf(x, y);
+      if (ul.tiles.has(i)) {
+        unloadAt(ul.t, ul.c, i); sfx('foot');
+        ul.t.moved = true; UIS.origin = { x: ul.t.x, y: ul.t.y, fuel: ul.t.fuel }; ul.t.autoMoved = true;
+      }
+      UIS.unload = null; UIS.mode = 'menu'; showMenu(ul.t); refreshPanel();
+      return;
+    }
     case 'target':
       if (u && UIS.targets.includes(u)) {
         if (isTouch() && UIS.pendingTarget !== u) { UIS.pendingTarget = u; showToast('再點一次確認攻擊'); return refreshPanel(); }
@@ -194,7 +256,13 @@ function handleHover(x, y) {
     else if (u && UIS.attackSet.has(u.id)) {
       const ai = attackTileFor(u);
       UIS.path = ai >= 0 ? reachPath(UIS.reach, ai) : null;
+    } else if (!u) {
+      const op = orderPath(UIS.sel, i);
+      UIS.path = null;
+      UIS.orderPreview = op;
+      return refreshPanel();
     } else UIS.path = null;
+    UIS.orderPreview = null;
   }
   refreshPanel();
 }
@@ -203,7 +271,7 @@ function handleHover(x, y) {
 function showMenu(u) {
   const m = $('#actionMenu');
   m.innerHTML = '';
-  const movedAway = u.x !== UIS.origin.x || u.y !== UIS.origin.y;
+  const movedAway = u.autoMoved || u.x !== UIS.origin.x || u.y !== UIS.origin.y;
   const tg = !isIndirect(u.type) || !movedAway ? targetsFrom(u, u.x, u.y) : [];
   const add = (label, fn, cls = '') => {
     const b = document.createElement('button');
@@ -212,12 +280,31 @@ function showMenu(u) {
     m.appendChild(b);
   };
   if (tg.length) add('⚔️ 攻擊', () => { UIS.mode = 'target'; UIS.targets = tg; hideMenu(); refreshPanel(); }, 'atk');
+  for (const c of u.cargo || []) {
+    if (c.done) continue;
+    const tiles = unloadTiles(u, c);
+    if (!tiles.length) continue;
+    add(`${UNITS[c.type].cat === 'air' ? '🛫 起飛' : '⬇ 卸載'}：${UNITS[c.type].name}`, () => {
+      UIS.mode = 'unload'; UIS.unload = { t: u, c, tiles: new Set(tiles) }; hideMenu(); refreshPanel();
+    }, 'cap');
+  }
+  if ((u.cargo || []).length && UNITS[u.type].carry.runway && !TERRAIN[G.terrain[idxOf(u.x, u.y)]].prop) {
+    add('<small>運輸機須停在據點上才能卸載</small>', () => {}, 'muted');
+  }
+  for (const k of evoOptions(u)) {
+    add(`⬆ 進化：${UNITS[k].name} <small>${UNITS[k].model}</small>`, () => {
+      evolve(u, k); sfx('capture');
+      const [cx, cy] = tileCenter(u.x, u.y); fxText(cx, cy, '進化！', '#ffd34d');
+      finishUnit(u);
+    }, 'cap');
+  }
   if (canCapture(u)) {
     const p = capturePointsLeft(u);
     add(`🚩 佔領 <small>${p}→${Math.max(0, p - u.hp)}</small>`, () => doCaptureAction(u), 'cap');
   }
+  if (u.order != null) add('🚩 取消移動命令', () => { u.order = null; UIS.newOrder = false; showToast('已取消移動命令'); showMenu(u); refreshPanel(); }, 'muted');
   add('⏸ 待機', () => finishUnit(u));
-  add('↩ 取消', () => cancelMove(), 'muted');
+  add(u.autoMoved ? '↩ 關閉' : '↩ 取消', () => cancelMove(), 'muted');
   m.classList.remove('hidden');
   positionMenu();
 }
@@ -238,16 +325,26 @@ function atkTable(type) {
   const a = UNITS[type].atk;
   return `<div class="atk">${a.map((v, k) => `<span class="${v ? '' : 'zero'}"><b>${CLASS_SHORT[k]}</b>${v}</span>`).join('')}</div>`;
 }
+function xpHTML(u) {
+  const r = rankOf(u), R = RANKS[r], nx = RANKS[r + 1], xp = u.xp || 0;
+  const pct = nx ? Math.round((xp - R.xp) / (nx.xp - R.xp) * 100) : 100;
+  const d = UNITS[u.type];
+  const evo = (d.next || []).map(k => `${UNITS[k].name}（需${RANKS[UNITS[k].tier].name}）`).join('、');
+  return `<div class="xpbar r${r}"><i style="width:${pct}%"></i><span>${'★'.repeat(r)}${R.name}　經驗 ${xp}${nx ? ` / ${nx.xp}` : ''}　攻+${Math.round((R.atk - 1) * 100)}% 迴避${Math.round(R.evade * 100)}%</span></div>
+    ${evo ? `<div class="desc">⬆ 可進化：${evo}</div>` : d.tier ? '' : '<div class="desc">此型號沒有後繼進化</div>'}`;
+}
 function unitHTML(u) {
   const d = UNITS[u.type], S = SIDES[u.side];
   const rng = d.range[0] === d.range[1] ? d.range[0] : `${d.range[0]}-${d.range[1]}`;
-  return `<div class="uhead"><span class="dot" style="background:${S.color}"></span><b>${d.name}</b><span class="fac">${FACTIONS[u.side].short}</span>
+  return `<div class="uhead"><span class="dot" style="background:${S.color}"></span><b>${d.name}</b><span class="fac">${NATIONS[d.nation].name}</span>
     <span class="tag">${CLASS_NAME[d.cls]}</span></div>
     <div class="hpbar"><i style="width:${u.hp * 10}%;background:${u.hp <= 3 ? '#e2574c' : u.hp <= 6 ? '#e0b54a' : '#5cc26b'}"></i><span>HP ${u.hp}/10</span></div>
+    ${xpHTML(u)}
     <div class="stats"><span>移動 ${d.move}</span><span>射程 ${rng}</span>
     ${d.fuel !== undefined ? `<span class="${u.fuel <= d.upkeep * 3 ? 'warn' : ''}">燃料 ${u.fuel}/${d.fuel}</span>` : ''}
     <span>價值 ${d.cost}</span></div>
-    ${atkTable(u.type)}<div class="desc">${d.desc}${isIndirect(u.type) ? '' : ''}</div>`;
+    ${d.carry ? `<div class="desc">🚚 搭載 ${(u.cargo || []).length}/${d.carry.cap}：${(u.cargo || []).map(c => UNITS[c.type].name).join('、') || '空'}</div>` : ''}
+    ${atkTable(u.type)}<div class="desc">${d.model}・${d.desc}${d.armor ? `・承受傷害 ×${d.armor.toFixed(2)}` : ''}${d.jungle ? `・叢林防禦 +${d.jungle}%` : ''}${d.stealth ? '・攻擊時不受反擊' : ''}${u.order != null ? '<br>🚩 已設定移動命令' : ''}</div>`;
 }
 function refreshPanel() {
   if (!G) return;
@@ -255,7 +352,7 @@ function refreshPanel() {
   $('#turnInfo').innerHTML = `第 <b>${G.turn}</b> 回合 · <span style="color:${S.light}">${S.name}${G.players[G.cur].ai ? '（電腦）' : ''}</span>`;
   $('#funds').innerHTML = SIDES.map((s, k) =>
     `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${s.name} 💰${G.funds[k]} <small>+${incomeOf(k)}</small> · ${G.units.filter(u => u.side === k).length}隊</span>`).join('');
-  $('#btnEnd').disabled = !isHumanTurn() || UIS.mode === 'busy';
+  $('#btnEnd').disabled = !isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy';
   $('#btnNext').disabled = !isHumanTurn();
 
   // 任務目標
@@ -332,7 +429,7 @@ function openProduction(x, y) {
         <canvas width="96" height="72" data-k="${k}"></canvas>
         <div class="pinfo"><div class="pname">${d.name}<span class="pcost">💰${d.cost}</span></div>
         <div class="stats small"><span>移動 ${d.move}</span><span>射程 ${rng}</span><span>${CLASS_NAME[d.cls]}</span>${d.fuel ? `<span>燃料 ${d.fuel}</span>` : ''}</div>
-        ${atkTable(k)}<div class="desc">${d.desc}</div></div></button>`;
+        ${atkTable(k)}<div class="desc">${d.model}</div></div></button>`;
     }).join('')}</div>
     <div class="row"><button class="close">取消</button></div>`, box => {
     box.querySelectorAll('canvas[data-k]').forEach(c => {
@@ -342,24 +439,47 @@ function openProduction(x, y) {
     });
     box.querySelectorAll('.prod').forEach(b => b.onclick = () => {
       produce(b.dataset.k, x, y, G.cur);
+      sfx('build');
       closeModal(); refreshPanel();
     });
     box.querySelector('.close').onclick = closeModal;
   }, true);
 }
 
+const nationOptions = sel => NATION_IDS.map(id => `<option value="${id}" ${id === sel ? 'selected' : ''}>${NATIONS[id].name}・${NATIONS[id].doctrine}</option>`).join('');
+const UNIQUE_BASES = ['marine', 'bomber', 'stealth'];
+function nationCard(id, side) {
+  const N = NATIONS[id];
+  const miss = Object.keys(BASE_UNITS).filter(b => !N.units[b] && !UNIQUE_BASES.includes(b)).map(b => BASE_DESC[b] ? ({ rocket: '火箭', sam: '長程防空', marine: '陸戰隊' }[b] || b) : b);
+  const uniq = UNIQUE_BASES.filter(b => N.units[b]).map(b => N.units[b][0]);
+  return `<div class="fac-card" style="--c:${SIDES[side].color}"><b>${N.full}</b><small>作戰偏好：${N.doctrine}</small><p>${N.desc}</p>
+    <div class="desc">${uniq.length ? `特殊兵種：${uniq.join('、')}　` : ''}${miss.length ? `缺少：${miss.join('、')}` : ''}</div></div>`;
+}
+function openRailConfirm(x, y) {
+  openModal(`<h2>🛤 鋪設鐵路</h2><div class="sub">在此格延伸鐵路網，花費 💰${RAIL_COST}（目前資金 💰${G.funds[G.cur]}）。列車可沿鐵路快速運兵。</div>
+    <div class="row"><button class="close">取消</button><button class="primary" id="railGo">鋪設</button></div>`, box => {
+    box.querySelector('.close').onclick = closeModal;
+    box.querySelector('#railGo').onclick = () => { layRail(idxOf(x, y), G.cur); sfx('build'); closeModal(); buildTerrain(); refreshPanel(); };
+  }, true);
+}
 function openNewGame() {
   const p = G ? G.players : [{ ai: false }, { ai: true }];
+  const nat = G && G.nations && !G.missionId ? G.nations : ['TW', 'CN'];
   openModal(`<h2>新遊戲</h2>
     <div class="form">
-      <label>地圖大小<select id="ngSize"><option value="s">小（18×13）</option><option value="m" selected>中（24×15）</option><option value="l">大（30×19）</option></select></label>
+      <label>地圖大小<select id="ngSize">${Object.entries(SIZES).map(([k, [w, h, n]]) => `<option value="${k}" ${k === 'm' ? 'selected' : ''}>${n}（${w}×${h}）</option>`).join('')}</select></label>
       <label>地圖種子<span class="inline"><input id="ngSeed" type="number" value="${Math.floor(Math.random() * 99999)}"><button id="ngRand" type="button">🎲</button></span></label>
-      <label><span><span class="dot" style="background:${SIDES[0].color}"></span>${FACTIONS[0].name}（先攻）</span><select id="ngP0"><option value="h">玩家</option><option value="ai" ${p[0].ai ? 'selected' : ''}>電腦</option></select></label>
-      <label><span><span class="dot" style="background:${SIDES[1].color}"></span>${FACTIONS[1].name}</span><select id="ngP1"><option value="h">玩家</option><option value="ai" ${p[1].ai ? 'selected' : ''}>電腦</option></select></label>
+      <label><span><span class="dot" style="background:${SIDES[0].color}"></span>藍方（先攻）</span><select id="ngN0">${nationOptions(nat[0])}</select></label>
+      <label>操作<select id="ngP0"><option value="h">玩家</option><option value="ai" ${p[0].ai ? 'selected' : ''}>電腦</option></select></label>
+      <label><span><span class="dot" style="background:${SIDES[1].color}"></span>紅方</span><select id="ngN1">${nationOptions(nat[1])}</select></label>
+      <label>操作<select id="ngP1"><option value="h">玩家</option><option value="ai" ${p[1].ai ? 'selected' : ''}>電腦</option></select></label>
       <label>電腦速度<select id="ngSpeed"><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option></select></label>
     </div>
-    <div class="facs">${FACTIONS.map((f, k) => `<div class="fac-card" style="--c:${SIDES[k].color}"><b>${f.name}</b><small>${f.motto}</small><p>${f.desc}</p></div>`).join('')}</div>
+    <div class="facs" id="ngCards"></div>
     <div class="row"><button class="close">取消</button><button id="ngStart" class="primary">開始作戰</button></div>`, box => {
+    const cards = () => { box.querySelector('#ngCards').innerHTML = nationCard(box.querySelector('#ngN0').value, 0) + nationCard(box.querySelector('#ngN1').value, 1); };
+    cards();
+    box.querySelector('#ngN0').onchange = cards; box.querySelector('#ngN1').onchange = cards;
     box.querySelector('#ngSpeed').value = String(SETTINGS.aiStep);
     box.querySelector('#ngRand').onclick = () => box.querySelector('#ngSeed').value = Math.floor(Math.random() * 99999);
     box.querySelector('.close').onclick = closeModal;
@@ -369,18 +489,37 @@ function openNewGame() {
       closeModal();
       startGame({
         w, h, seed: +box.querySelector('#ngSeed').value || 1,
+        nations: [box.querySelector('#ngN0').value, box.querySelector('#ngN1').value],
         players: [{ ai: box.querySelector('#ngP0').value === 'ai' }, { ai: box.querySelector('#ngP1').value === 'ai' }],
       });
     };
   });
 }
 
+// 國家圖鑑
+function openNations(sel) {
+  sel = sel || (G && G.nations ? G.nations[0] : 'TW');
+  const N = NATIONS[sel];
+  const rows = Object.keys(N.units).map(b => nationUnit(sel, b, 0)).filter(Boolean);
+  openModal(`<h2>國家圖鑑</h2>
+    <div class="form"><label>國家<select id="nsSel">${nationOptions(sel)}</select></label></div>
+    <div class="facs one">${nationCard(sel, 0)}</div>
+    <div class="tablewrap"><table class="ut"><tr><th>兵種</th><th>型號</th><th>價格</th><th>移動</th><th>射程</th><th>步</th><th>甲</th><th>直</th><th>空</th><th>艦</th></tr>
+    ${rows.map(d => `<tr class="${UNIQUE_BASES.includes(d.base) ? 'uniq' : ''}"><td>${d.name}</td><td class="model">${d.model}${d.armor ? `<small>（承傷×${d.armor.toFixed(2)}）</small>` : ''}${d.jungle ? `<small>（叢林+${d.jungle}%）</small>` : ''}</td><td>${d.cost}</td><td>${d.move}</td><td>${d.range.join('-')}</td>${d.atk.map(v => `<td class="${v ? '' : 'zero'}">${v}</td>`).join('')}</tr>`).join('')}</table></div>
+    <div class="desc">裝備以 1990 年代初期為準，數值為遊戲平衡後的抽象化表現。</div>
+    <div class="row"><button class="close primary">關閉</button></div>`, box => {
+    box.querySelector('#nsSel').onchange = e => openNations(e.target.value);
+    box.querySelector('.close').onclick = closeModal;
+  }, true);
+}
+
 function openHelp() {
   openModal(`<h2>作戰說明</h2><div class="help">
-    <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。</p>
+    <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
       <li>點擊目的地後選擇行動：攻擊、佔領、待機或取消。直接點擊紅色敵軍可自動移動並攻擊。</li>
+      <li><b>移動命令</b>：點擊範圍外的地點，部隊會設定該處為最終目的地，之後每回合開始自動前進（右下角黃旗）。選取部隊後可取消命令。</li>
       <li>拖曳平移地圖、滾輪/雙指縮放；右鍵或 Esc 取消；Tab 切換下一個未行動部隊。</li>
       <li>點擊敵軍可查看其威脅範圍（橘色）。</li></ul>
     <h4>經濟與生產</h4><ul>
@@ -390,16 +529,19 @@ function openHelp() {
     <h4>戰鬥</h4><ul>
       <li>傷害 = 攻擊力 × (HP/10) × (1 − 地形防禦)，±10% 浮動。受損部隊攻擊力下降。</li>
       <li>相鄰的直接攻擊會遭到反擊；<b>自走砲、火箭、防空飛彈</b>為間接攻擊，不會被反擊，但移動後不能射擊。</li>
+      <li><b>陸戰隊</b>可以渡海（海上移動消耗 2）並登陸佔領，但在海上沒有地形掩護。</li>
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
-      <li>佔領：步兵/反戰車兵每回合扣除等同 HP 的佔領點（總共 20），離開或陣亡則重置。</li></ul>
-    ${FACTIONS.map((f, side) => `<h4 style="color:${SIDES[side].light}">${f.name}・${f.motto}</h4><p>${f.desc}</p>
-    <div class="tablewrap"><table class="ut"><tr><th>兵種</th><th>價格</th><th>移動</th><th>射程</th><th>步</th><th>甲</th><th>直</th><th>空</th><th>艦</th></tr>
-    ${Object.values(UNITS).filter(d => d.side === side).map(d => `<tr class="${BASE_UNITS[d.base] ? '' : 'uniq'}"><td>${d.name}</td><td>${d.cost}</td><td>${d.move}</td><td>${d.range.join('-')}</td>${d.atk.map(v => `<td class="${v ? '' : 'zero'}">${v}</td>`).join('')}</tr>`).join('')}</table></div>`).join('')}
-    </div><div class="row"><button class="close primary">了解</button></div>`, box => box.querySelector('.close').onclick = closeModal, true);
+      <li>佔領：步兵類部隊每回合扣除等同 HP 的佔領點（總共 20），離開或陣亡則重置。</li></ul>
+    <h4>國家</h4><p>16 個國家各有 1990 年代的真實裝備與作戰偏好，詳見國家圖鑑。</p>
+    </div><div class="row"><button id="hNations">📚 國家圖鑑</button><span class="spacer"></span><button class="close primary">了解</button></div>`, box => {
+    box.querySelector('.close').onclick = closeModal;
+    box.querySelector('#hNations').onclick = () => openNations();
+  }, true);
 }
 
 function showVictory() {
   if (G.winner == null) return;
+  if (!G.victorySfx) { G.victorySfx = true; sfx(G.players[G.winner] && !G.players[G.winner].ai ? 'win' : 'lose'); }
   if (G.missionId) { refreshPanel(); return showDebrief(); }
   const S = SIDES[G.winner];
   openModal(`<div class="victory" style="--c:${S.color}"><div class="big">${S.name} 勝利！</div>
@@ -421,6 +563,8 @@ function openMoreMenu() {
     <button id="moCamp">📖 劇情</button><button id="moNew">⚔️ 新遊戲</button>
     <button id="moSave">💾 存檔</button><button id="moLoad">📂 讀檔</button>
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
+    <button id="moMusic">🎵 音樂：${AUDIO.on.music ? '開' : '關'}</button><button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button>
+    <button id="moNations">📚 國家圖鑑</button>
     <button id="moMain">🏠 主選單</button><button class="close">✕ 關閉</button></div>`, box => {
     box.querySelector('#moCamp').onclick = () => openCampaignMenu();
     box.querySelector('#moNew').onclick = openNewGame;
@@ -428,6 +572,9 @@ function openMoreMenu() {
     box.querySelector('#moLoad').onclick = openLoadDialog;
     box.querySelector('#moFull').onclick = () => { closeModal(); toggleFullscreen(); };
     box.querySelector('#moHelp').onclick = openHelp;
+    box.querySelector('#moNations').onclick = () => openNations();
+    box.querySelector('#moMusic').onclick = () => { $('#zMusic').click(); openMoreMenu(); };
+    box.querySelector('#moSfx').onclick = () => { $('#zSfx').click(); openMoreMenu(); };
     box.querySelector('#moMain').onclick = openMainMenu;
     box.querySelector('.close').onclick = closeModal;
   }, true);
@@ -440,9 +587,9 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略</div><div class="tagline">聯邦戰記 · 六角格現代戰爭</div>
-    <button class="primary big" id="mmCamp">📖 劇情模式<small>聯邦篇 · 帝國篇</small></button>
-    <button class="big" id="mmFree">⚔️ 自由對戰<small>隨機地圖 · 對電腦或雙人</small></button>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略</div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+    <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
+    <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
     <button class="big" id="mmHelp">❓ 作戰說明</button></div>`, box => {
     box.querySelector('#mmCamp').onclick = () => openCampaignMenu();
@@ -464,6 +611,8 @@ async function turnIntro() {
   const token = gameToken;
   refreshPanel();
   showBanner(`第 ${G.turn} 回合　${SIDES[G.cur].name}`, SIDES[G.cur].color);
+  sfx('turn');
+  setMusicTense(!!G.players[G.cur].ai);
   if (G.winner != null) return showVictory();
   if (G.pendingDialogs && G.pendingDialogs.length) {
     UIS.mode = 'busy';
@@ -480,8 +629,14 @@ async function turnIntro() {
     endTurn();
     return turnIntro();
   }
-  UIS.mode = 'idle';
   if (G.players.every(p => !p.ai)) { const [cx, cy] = idxCenter(G.caps[G.cur]); centerOn(cx, cy); }
+  if (G.units.some(u => u.side === G.cur && u.order != null)) {
+    UIS.mode = 'busy';
+    await sleep(500);
+    await runMoveOrders();
+    if (token !== gameToken) return;
+  }
+  UIS.mode = 'idle';
   autoSave();
   refreshPanel();
 }
@@ -595,6 +750,7 @@ function setupInput() {
   $('#btnLoad').onclick = loadGame;
   $('#btnHelp').onclick = openHelp;
   $('#btnCampaign').onclick = () => openCampaignMenu();
+  $('#deployGo').onclick = endDeploy;
   $('#btnMore').onclick = openMoreMenu;
   $('#btnPanel').onclick = () => {
     $('#app').classList.toggle('panel-off');
@@ -604,6 +760,12 @@ function setupInput() {
   $('#rotateOk').onclick = () => document.body.classList.add('rotate-ok');
   document.addEventListener('gesturestart', e => e.preventDefault());
   $('#btnMenu').onclick = openMainMenu;
+  const mb = $('#zMusic'), sb = $('#zSfx');
+  const syncAudioBtns = () => { mb.classList.toggle('on', AUDIO.on.music); sb.classList.toggle('on', AUDIO.on.sfx); sb.textContent = AUDIO.on.sfx ? '🔊' : '🔇'; };
+  syncAudioBtns();
+  mb.onclick = () => { setAudio('music', !AUDIO.on.music); syncAudioBtns(); showToast(AUDIO.on.music ? '背景音樂：開' : '背景音樂：關'); };
+  sb.onclick = () => { setAudio('sfx', !AUDIO.on.sfx); syncAudioBtns(); showToast(AUDIO.on.sfx ? '音效：開' : '音效：關'); };
+  document.addEventListener('click', e => { if (e.target.closest('button')) sfx('click'); });
   const lb = $('#zLabel');
   lb.classList.toggle('on', SETTINGS.labels);
   lb.onclick = () => {

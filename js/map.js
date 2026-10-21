@@ -109,6 +109,7 @@ function generateMap(w, h, seed) {
   for (let i = 0; i < N; i++) if (isLand(i) && blueSide(i)) cand.push(i);
   for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(rand() * (k + 1)); [cand[k], cand[j]] = [cand[j], cand[k]]; }
   const farFromProps = i => { for (let j = 0; j < N; j++) if (isProp(j) && dist(i, j) < 3) return false; return true; };
+  const scale = Math.sqrt(N / 360);
   for (const i of cand) {
     if (cities.length >= nCity) break;
     if (isLand(i) && farFromProps(i)) { setSym(i, 'city'); cities.push(i); }
@@ -128,18 +129,17 @@ function generateMap(w, h, seed) {
   function cheapPath(from, to) {
     const d = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
     d[from] = 0;
-    const open = [from];
-    while (open.length) {
-      let bi = 0;
-      for (let k = 1; k < open.length; k++) if (d[open[k]] < d[open[bi]]) bi = k;
-      const cur = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+    const open = new MinHeap();
+    open.push(0, from);
+    while (open.size) {
+      const cur = open.pop();
       if (done[cur]) continue;
       done[cur] = 1;
       if (cur === to) break;
       for (const n of nbs(cur)) {
         if (done[n]) continue;
         const nd = d[cur] + (roadCost[terrain[n]] ?? 1);
-        if (nd < d[n]) { d[n] = nd; prev[n] = cur; open.push(n); }
+        if (nd < d[n]) { d[n] = nd; prev[n] = cur; open.push(nd, n); }
       }
     }
     const p = [];
@@ -169,6 +169,46 @@ function generateMap(w, h, seed) {
     }
   }
 
+  // 鐵路：大地圖連接首都、工廠與主要城市
+  const railEdges = new Set();
+  if (N >= 900) {
+    const railCost = { rail: 0.3, road: 1, plain: 1, forest: 2, hills: 3, bridge: 4, mountain: 8, sea: 50 };
+    function railPath(from, to) {
+      const d = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N), open = new MinHeap();
+      d[from] = 0; open.push(0, from);
+      while (open.size) {
+        const cur = open.pop();
+        if (done[cur]) continue;
+        done[cur] = 1;
+        if (cur === to) break;
+        for (const n of nbs(cur)) {
+          if (done[n]) continue;
+          const nd = d[cur] + (isProp(n) ? 1 : railCost[terrain[n]] ?? 1);
+          if (nd < d[n]) { d[n] = nd; prev[n] = cur; open.push(nd, n); }
+        }
+      }
+      const p = [];
+      for (let c = to; c !== -1; c = prev[c]) p.push(c);
+      return p;
+    }
+    const layRail = path => {
+      if (path.some(i => terrain[i] === 'sea')) return;
+      for (let k = 1; k < path.length; k++) {
+        railEdges.add(edgeKey(path[k - 1], path[k]));
+        railEdges.add(edgeKey(mir(path[k - 1]), mir(path[k])));
+      }
+      for (const i of path) {
+        if (isProp(i) || terrain[i] === 'bridge') continue;
+        terrain[i] = 'rail'; if (!isProp(mir(i))) terrain[mir(i)] = 'rail';
+      }
+    };
+    layRail(railPath(bc, rc));
+    const hubs = [];
+    for (let i = 0; i < N; i++) if (blueSide(i) && (terrain[i] === 'factory' || terrain[i] === 'city')) hubs.push(i);
+    hubs.sort((a, b) => dist(a, bc) - dist(b, bc));
+    for (const hub of hubs.slice(0, 4)) layRail(railPath(bc, hub));
+  }
+
   // 初始所有權
   const owner = new Array(N).fill(-1);
   for (let i = 0; i < N; i++) {
@@ -184,6 +224,8 @@ function generateMap(w, h, seed) {
   }
   spots.sort((a, b) => dist(a, bc) - dist(b, bc));
   const roster = ['inf', 'inf', 'inf', 'tank', 'tank', 'arty', 'recon', 'aa'];
+  if (scale > 1.3) roster.push('inf', 'tank', 'atinf', 'arty');
+  if (scale > 1.8) roster.push('inf', 'inf', 'tank', 'tank', 'aa', 'rocket');
   const start = [];
   roster.forEach((type, k) => {
     if (k >= spots.length) return;
@@ -191,5 +233,6 @@ function generateMap(w, h, seed) {
   });
 
   const roads = [...roadEdges].map(k => [Math.floor(k / N), k % N]);
-  return { terrain, owner, caps: [bc, rc], start, roads };
+  const rails = [...railEdges].map(k => [Math.floor(k / N), k % N]);
+  return { terrain, owner, caps: [bc, rc], start, roads, rails };
 }

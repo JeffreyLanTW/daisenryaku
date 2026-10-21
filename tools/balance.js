@@ -19,12 +19,12 @@ const ctx = {
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
 };
 vm.createContext(ctx);
-for (const f of ['data', 'game', 'map', 'ai', 'campaign', 'campaign_emp']) {
+for (const f of ['data', 'game', 'map', 'ai', 'campaign', 'campaign_tw']) {
   vm.runInContext(fs.readFileSync(path.join(root, 'js', f + '.js'), 'utf8'), ctx, { filename: f + '.js' });
 }
 vm.runInContext(`
   var SETTINGS = { aiStep: 0 };
-  var refreshPanel = () => {}, ensureVisible = () => {}, fxText = () => {}, tileCenter = () => [0, 0];
+  var refreshPanel = () => {}, ensureVisible = () => {}, fxText = () => {}, tileCenter = () => [0, 0], sfx = () => {};
   async function doMove(u, path, cost) {
     if (path.length < 2) return;
     const [x, y] = ixy(path[path.length - 1]);
@@ -52,7 +52,7 @@ const problems = vm.runInContext(`(() => {
       if (r.length !== w) out.push(id + ' 第' + y + '列長度 ' + r.length + ' ≠ ' + w);
       for (const ch of r) if (!LEGEND[ch]) out.push(id + ' 未知字元 ' + ch);
     });
-    const flagSets = [{}, { truth: true }, { truth: false }, { line: true }, { blitz: true, fleet: true }, { navy: true }, { air: true }, { intel: true }, { intel: false }, { bridge: true }];
+    const flagSets = [{}, { kinmen: true, lieyu: true }, { kinmen: false }, { fleet: true }, { fleet: false, penghu: false }, { taichung: 'lost' }, { us: true, kr: true }, { de: false, us: false }];
     for (const f of flagSets) {
       const m = parseMission(M, f, P);
       G = { w: m.w, h: m.h, terrain: m.terrain };
@@ -65,11 +65,15 @@ const problems = vm.runInContext(`(() => {
         for (const [x, y] of o.at ? [o.at] : o.tiles || []) {
           const t = m.terrain[y * m.w + x];
           if ((o.type === 'capture' || o.type === 'captureAll') && !TERRAIN[t].prop) out.push(id + ' 佔領目標不是據點：' + t);
-          const foot = m.start.filter(e => e[2] === P && UNITS[ftype(e[0], P)].mt === 'foot');
-          if (!foot.length) continue;
-          const seen = new Set([foot[0][1]]), q = [foot[0][1]];
-          while (q.length) { const c = q.shift(); for (const [nx, ny] of neighbors(c % m.w, (c / m.w) | 0, m.w, m.h)) { const n = ny * m.w + nx; if (!seen.has(n) && moveCost(m.terrain[n], 'foot') !== Infinity) { seen.add(n); q.push(n); } } }
-          if (!seen.has(y * m.w + x)) out.push(id + ' 目標 ' + x + ',' + y + ' 步兵無法抵達');
+          // 任一能佔領的部隊（步兵或陸戰隊）抵達即可
+          const caps = m.start.filter(e => e[2] === P && UNITS[ftype(e[0], P)].capture);
+          if (!caps.length || o.type === 'hold') continue;
+          const ok = caps.some(e => {
+            const mt = UNITS[ftype(e[0], P)].mt, seen = new Set([e[1]]), q = [e[1]];
+            while (q.length) { const c = q.shift(); for (const [nx, ny] of neighbors(c % m.w, (c / m.w) | 0, m.w, m.h)) { const n = ny * m.w + nx; if (!seen.has(n) && moveCost(m.terrain[n], mt) !== Infinity) { seen.add(n); q.push(n); } } }
+            return seen.has(y * m.w + x);
+          });
+          if (!ok) out.push(id + ' 目標 ' + x + ',' + y + ' 佔領部隊無法抵達');
         }
       }
       for (const ev of M.events || []) for (const [s, type, x, y] of ev.spawn || []) {
@@ -82,11 +86,45 @@ const problems = vm.runInContext(`(() => {
 console.log(problems.length ? '地圖問題：\n  ' + problems.join('\n  ') : '地圖檢查：全部通過');
 if (CHECK_ONLY) process.exit(problems.length ? 1 : 0);
 
+// ----- 國家平衡：自由對戰循環賽 -----
+if (args.includes('--nations')) {
+  const games = +(opt('--games') || 2), turns = +(opt('--turns') || 30);
+  vm.runInContext(`
+    async function simFree(a, b, seed, maxTurn) {
+      newGame({ w: 18, h: 13, seed, players: [{ ai: true }, { ai: true }], nations: [a, b] });
+      while (G.winner == null && G.turn <= maxTurn) { await aiTurn(); if (G.winner != null) break; endTurn(); }
+      if (G.winner != null) return G.winner;
+      const score = s => G.owner.filter(o => o === s).length * 300 + G.units.filter(u => u.side === s).reduce((t, u) => t + UNITS[u.type].cost * u.hp / 10, 0) + G.funds[s] * 0.5;
+      return score(0) >= score(1) ? 0 : 1;
+    }
+  `, ctx);
+  (async () => {
+    const ids = vm.runInContext('NATION_IDS', ctx), win = {}, n = {};
+    ids.forEach(i => { win[i] = 0; n[i] = 0; });
+    let seed = 1000;
+    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+      for (let g = 0; g < games; g++) {
+        const [a, b] = g % 2 ? [ids[j], ids[i]] : [ids[i], ids[j]];
+        const w = await ctx.simFree(a, b, seed++, turns);
+        win[w === 0 ? a : b]++; n[a]++; n[b]++;
+      }
+    }
+    console.log('\n國家     勝率   場數');
+    ids.map(i => [i, win[i] / n[i]]).sort((x, y) => y[1] - x[1]).forEach(([i, r]) =>
+      console.log(`${i} ${vm.runInContext('NATIONS', ctx)[i].name.padEnd(5, '　')} ${String(Math.round(r * 100)).padStart(3)}%   ${n[i]}`));
+  })();
+  return;
+}
+
 // ----- 自動對戰 -----
 // 各任務預設測試的旗標組合（代表不同路線）
 const DEFAULT_FLAGS = {
-  m3c: [{}, { bridge: true }], m4: [{}, { navy: true }, { air: true }, { intel: true }, { intel: false }],
-  e3b: [{}, { line: true }], e4: [{}, { blitz: true }, { fleet: true }, { line: true }, { truth: true }, { blitz: true, truth: true }],
+  t2: [{ kinmen: true }, { kinmen: true, lieyu: true }, { kinmen: false }],
+  t3: [{ kinmen: true, fleet: true }, { kinmen: true, fleet: false }, { kinmen: false, fleet: false, penghu: false }],
+  c2: [{ taichung: 'held' }, { taichung: 'lost' }],
+  c3: [{ us: true }, { us: false }],
+  c4: [{ kr: true }, { kr: false }],
+  c5: [{ us: true, kr: true, de: true, taichung: 'held' }, { us: false, kr: false, de: false, taichung: 'held' }, { us: true, kr: true, de: false, taichung: 'lost' }],
 };
 vm.runInContext(`
   async function simulate(id, flags) {
@@ -106,7 +144,7 @@ vm.runInContext(`
 `, ctx);
 
 (async () => {
-  const list = ids.length ? ids : vm.runInContext('Object.keys(MISSIONS)', ctx).filter(id => id.startsWith('e'));
+  const list = ids.length ? ids : vm.runInContext('Object.keys(MISSIONS)', ctx);
   console.log(`\n每種組合模擬 ${RUNS} 場（AI 扮演玩家方；真人通常比 AI 強）\n`);
   console.log('任務   旗標                     勝率    平均回合  結果分布');
   for (const id of list) {
