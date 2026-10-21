@@ -353,6 +353,10 @@ function refreshPanel() {
   $('#funds').innerHTML = SIDES.map((s, k) =>
     `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${s.name} 💰${G.funds[k]} <small>+${incomeOf(k)}</small> · ${G.units.filter(u => u.side === k).length}隊</span>`).join('');
   $('#btnEnd').disabled = !isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy';
+  // 作戰結束後關閉結算畫面時，保留回到結算的入口
+  const over = G.winner != null && $('#modal').classList.contains('hidden');
+  $('#resultBar').classList.toggle('hidden', !over);
+  if (over) $('#resultText').textContent = G.missionId ? (G.result && G.result.win ? '作戰成功' : '作戰失敗') : `${SIDES[G.winner].name} 勝利`;
   $('#btnNext').disabled = !isHumanTurn();
 
   // 任務目標
@@ -414,11 +418,12 @@ function refreshPanel() {
 // ----- 對話框 -----
 function openModal(html, onReady, dismissable = false) {
   modalDismissable = dismissable;
+  $('#resultBar').classList.add('hidden');
   $('#modalBox').innerHTML = html;
   $('#modal').classList.remove('hidden');
   onReady && onReady($('#modalBox'));
 }
-function closeModal() { $('#modal').classList.add('hidden'); }
+function closeModal() { $('#modal').classList.add('hidden'); if (G) refreshPanel(); }
 
 function openProduction(x, y) {
   const opts = buildOptions(x, y, G.cur), f = G.funds[G.cur], t = TERRAIN[G.terrain[idxOf(x, y)]];
@@ -751,6 +756,7 @@ function setupInput() {
   $('#btnHelp').onclick = openHelp;
   $('#btnCampaign').onclick = () => openCampaignMenu();
   $('#deployGo').onclick = endDeploy;
+  $('#resultGo').onclick = () => { if (G) { G.debriefShown = false; showVictory(); } };
   $('#btnMore').onclick = openMoreMenu;
   $('#btnPanel').onclick = () => {
     $('#app').classList.toggle('panel-off');

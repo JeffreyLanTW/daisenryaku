@@ -380,3 +380,9 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 }
 #deployBar span { font-size: 13px; }
 @media (max-height: 520px) and (orientation: landscape) { #deployBar { top: 6px; padding: 5px 8px; } #deployBar span { font-size: 11px; } }
+#resultBar {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; display: flex; gap: 10px; align-items: center;
+  background: rgba(30,24,10,.94); border: 1px solid var(--gold); border-radius: 10px; padding: 8px 12px; max-width: calc(100% - 80px);
+}
+#resultBar span { font-size: 13px; }
+@media (max-height: 520px) and (orientation: landscape) { #resultBar { top: 6px; padding: 5px 8px; } #resultBar span { font-size: 11px; } }
