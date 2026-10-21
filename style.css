@@ -363,10 +363,14 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 .facs.one { grid-template-columns: 1fr; }
 .ut td.model { text-align: left; font-size: 11px; color: #c8d2dc; }
 .ut td.model small { color: var(--gold); margin-left: 4px; }
-.xpbar { position: relative; height: 14px; background: #0d1217; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.xprow { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.rankbadge { flex: none; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #2b3947; color: #c8d2dc; white-space: nowrap; }
+.rankbadge.r1 { background: #4a5a2e; color: #e2efc4; } .rankbadge.r2 { background: #6e5420; color: #ffe2a0; }
+.rankbadge.r3 { background: linear-gradient(90deg, #b8892a, #e0b54a); color: #1a1205; }
+.xpbar { position: relative; flex: 1; min-width: 40px; height: 8px; background: #0d1217; border-radius: 4px; overflow: hidden; }
 .xpbar i { position: absolute; inset: 0 auto 0 0; background: #6b7c8f; }
 .xpbar.r1 i { background: #8a9a5b; } .xpbar.r2 i { background: #b08a3e; } .xpbar.r3 i { background: linear-gradient(90deg, #d4a94a, #ffe27a); }
-.xpbar span { position: relative; font-size: 10.5px; padding-left: 6px; line-height: 14px; font-weight: 700; text-shadow: 0 1px 1px #000; }
+.xpnum { flex: none; font-size: 11px; color: var(--muted); white-space: nowrap; }
 .carry { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 55vh; overflow-y: auto; margin-top: 8px; }
 .citem { display: flex; align-items: center; gap: 8px; background: #1c2631; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
 .citem canvas { width: 48px; height: 36px; flex: none; }

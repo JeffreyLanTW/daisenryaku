@@ -330,7 +330,11 @@ function xpHTML(u) {
   const pct = nx ? Math.round((xp - R.xp) / (nx.xp - R.xp) * 100) : 100;
   const d = UNITS[u.type];
   const evo = (d.next || []).map(k => `${UNITS[k].name}（需${RANKS[UNITS[k].tier].name}）`).join('、');
-  return `<div class="xpbar r${r}"><i style="width:${pct}%"></i><span>${'★'.repeat(r)}${R.name}　經驗 ${xp}${nx ? ` / ${nx.xp}` : ''}　攻+${Math.round((R.atk - 1) * 100)}% 迴避${Math.round(R.evade * 100)}%</span></div>
+  return `<div class="xprow"><span class="rankbadge r${r}">${r ? '★'.repeat(r) + ' ' : ''}${R.name}</span>
+      <div class="xpbar r${r}"><i style="width:${pct}%"></i></div>
+      <span class="xpnum">${nx ? `${xp} / ${nx.xp}` : `${xp}・最高階`}</span></div>
+    <div class="stats small"><span>攻擊 +${Math.round((R.atk - 1) * 100)}%</span><span>迴避 ${Math.round(R.evade * 100)}%</span>
+      ${nx ? `<span>下一階：${nx.name}</span>` : ''}</div>
     ${evo ? `<div class="desc">⬆ 可進化：${evo}</div>` : d.tier ? '' : '<div class="desc">此型號沒有後繼進化</div>'}`;
 }
 function unitHTML(u) {
