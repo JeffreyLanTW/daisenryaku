@@ -422,7 +422,7 @@ function openMoreMenu() {
     <button id="moSave">💾 存檔</button><button id="moLoad">📂 讀檔</button>
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
     <button id="moMain">🏠 主選單</button><button class="close">✕ 關閉</button></div>`, box => {
-    box.querySelector('#moCamp').onclick = openCampaignMenu;
+    box.querySelector('#moCamp').onclick = () => openCampaignMenu();
     box.querySelector('#moNew').onclick = openNewGame;
     box.querySelector('#moSave').onclick = openSaveDialog;
     box.querySelector('#moLoad').onclick = openLoadDialog;
@@ -441,11 +441,11 @@ function showToast(text) {
 function openMainMenu() {
   loadCamp();
   openModal(`<div class="mainmenu"><div class="logo">大戰略</div><div class="tagline">聯邦戰記 · 六角格現代戰爭</div>
-    <button class="primary big" id="mmCamp">📖 劇情模式${CAMP.current ? `<small>繼續：${MISSIONS[CAMP.current].title}</small>` : ''}</button>
+    <button class="primary big" id="mmCamp">📖 劇情模式<small>聯邦篇 · 帝國篇</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
     <button class="big" id="mmHelp">❓ 作戰說明</button></div>`, box => {
-    box.querySelector('#mmCamp').onclick = openCampaignMenu;
+    box.querySelector('#mmCamp').onclick = () => openCampaignMenu();
     box.querySelector('#mmFree').onclick = openNewGame;
     box.querySelector('#mmLoad').onclick = openLoadDialog;
     box.querySelector('#mmHelp').onclick = openHelp;
@@ -594,7 +594,7 @@ function setupInput() {
   $('#btnSave').onclick = saveGame;
   $('#btnLoad').onclick = loadGame;
   $('#btnHelp').onclick = openHelp;
-  $('#btnCampaign').onclick = openCampaignMenu;
+  $('#btnCampaign').onclick = () => openCampaignMenu();
   $('#btnMore').onclick = openMoreMenu;
   $('#btnPanel').onclick = () => {
     $('#app').classList.toggle('panel-off');

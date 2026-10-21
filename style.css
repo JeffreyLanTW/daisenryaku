@@ -326,3 +326,35 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   .slot img, .slot .nothumb { width: 56px; height: 34px; }
   .savenew { margin: 6px 0 8px; }
 }
+
+/* ----- iPhone 安全區域（主畫面全螢幕時避開狀態列、瀏海、Home 條） ----- */
+#app {
+  padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+#topbar { padding-top: calc(6px + env(safe-area-inset-top)); }
+#modal {
+  padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right));
+}
+#modalBox { max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+@media (max-height: 520px) and (orientation: landscape) {
+  #topbar { padding-top: calc(4px + env(safe-area-inset-top)); }
+  #modal {
+    padding-top: calc(8px + env(safe-area-inset-top)); padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    padding-left: calc(8px + env(safe-area-inset-left)); padding-right: calc(8px + env(safe-area-inset-right));
+  }
+  #modalBox { max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+}
+
+/* ----- 劇情選擇 ----- */
+.campcards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 4px; }
+.campcard { text-align: left; padding: 14px; border: 1px solid var(--c); border-top-width: 4px; background: linear-gradient(#1f2a36, #18212b); }
+.campcard .ctitle { font-size: 20px; font-weight: 900; letter-spacing: 2px; }
+.campcard .ctitle small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: 1px; }
+.campcard p { color: #c8d2dc; font-size: 13px; line-height: 1.6; margin: 8px 0; }
+.campcard .cprog { font-size: 12px; color: var(--gold); }
+@media (max-height: 520px) and (orientation: landscape) {
+  .campcard { padding: 10px; }
+  .campcard p { font-size: 12px; margin: 4px 0; }
+}

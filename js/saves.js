@@ -25,7 +25,7 @@ function defaultSaveName() {
   return `${d.title} 第${G.turn}回合`;
 }
 function serializeGame() {
-  const camp = G.missionId ? { flags: CAMP.flags, current: CAMP.current } : null;
+  const camp = G.missionId ? { id: campOf(MISSIONS[G.missionId]), flags: CAMP.flags, current: CAMP.current } : null;
   return JSON.stringify({ v: 2, G, camp }, (k, v) => k === '_anim' ? undefined : v);
 }
 
@@ -121,7 +121,7 @@ function applySave(obj) {
   G = g;
   for (const u of G.units) u.type = ftype(u.type, u.side);
   if (obj.camp) {
-    loadCamp();
+    loadCamp(obj.camp.id || (G.missionId ? campOf(MISSIONS[G.missionId]) : 'fed'));
     CAMP.flags = obj.camp.flags || {};
     CAMP.current = obj.camp.current || G.missionId;
     saveCamp();

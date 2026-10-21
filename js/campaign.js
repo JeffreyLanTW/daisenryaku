@@ -357,18 +357,28 @@ const MISSION_TREE = [
   ['第一章', ['m1']], ['第二章', ['m2a', 'm2b']], ['第三章', ['m3a', 'm3b', 'm3c']], ['終章', ['m4']], ['結局', ['E1', 'E2', 'E3', 'E4']],
 ];
 
-// ----- 戰役進度（localStorage） -----
-const CAMP_KEY = 'daisenryaku_campaign_v1';
-let CAMP = null;
-function loadCamp() {
-  try { CAMP = JSON.parse(localStorage.getItem(CAMP_KEY)); } catch (e) { CAMP = null; }
+// 劇情登錄表（其他劇情檔案會再加入）
+const CAMPAIGNS = {
+  fed: {
+    title: '聯邦戰記', sub: '亞斯特聯邦篇', player: 0, start: 'm1', key: 'daisenryaku_campaign_v1', tree: MISSION_TREE,
+    desc: '帝國大軍越境入侵。指揮聯邦第 3 機動旅，從邊境一路反攻到瓦爾德堡。',
+  },
+};
+const campOf = M => M.camp || 'fed';
+const winOf = (M, flags) => typeof M.win === 'function' ? M.win(flags || {}) : M.win;
+
+// ----- 戰役進度（localStorage，每套劇情分開） -----
+let CAMP = null, CAMP_ID = 'fed';
+function loadCamp(cid = CAMP_ID) {
+  CAMP_ID = cid;
+  try { CAMP = JSON.parse(localStorage.getItem(CAMPAIGNS[cid].key)); } catch (e) { CAMP = null; }
   if (!CAMP) CAMP = { current: null, flags: {}, visited: [], endings: [] };
   return CAMP;
 }
-function saveCamp() { try { localStorage.setItem(CAMP_KEY, JSON.stringify(CAMP)); } catch (e) { /* 忽略 */ } }
+function saveCamp() { try { localStorage.setItem(CAMPAIGNS[CAMP_ID].key, JSON.stringify(CAMP)); } catch (e) { /* 忽略 */ } }
 
 // ----- 地圖解析 -----
-function parseMission(M, flags) {
+function parseMission(M, flags, player = 0) {
   const rows = M.map, h = rows.length, w = rows[0].length, N = w * h;
   const terrain = new Array(N), owner = new Array(N).fill(-1);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -402,7 +412,7 @@ function parseMission(M, flags) {
     const u = start.find(e => e[2] === s);
     return u ? u[1] : 0;
   });
-  const hq = terrain.map((t, i) => t === 'capital' && owner[i] === 0 ? i : -1).filter(i => i >= 0);
+  const hq = terrain.map((t, i) => t === 'capital' && owner[i] === player ? i : -1).filter(i => i >= 0);
   return { w, h, terrain, owner, roads, start, caps, hq };
 }
 // 找最近一格可站立的空地
@@ -427,30 +437,88 @@ function placeFree(terrain, w, h, x, y, mt, taken) {
 // ----- 勝敗判定 -----
 function setResult(win, obj, reason) {
   if (G.winner != null) return;
-  G.winner = win ? 0 : 1;
+  const P = G.pside || 0;
+  G.winner = win ? P : 1 - P;
   G.result = { win, obj, reason, turn: G.turn };
   G.winReason = reason;
-  addLog(win ? `作戰成功：${reason}` : `作戰失敗：${reason}`, win ? 0 : 1);
+  addLog(win ? `作戰成功：${reason}` : `作戰失敗：${reason}`, G.winner);
 }
 function evalMission() {
-  const M = MISSIONS[G.missionId];
-  if (!G.units.some(u => u.side === 0)) return setResult(false, 'annihilated', '我軍全軍覆沒');
+  const M = MISSIONS[G.missionId], P = G.pside || 0;
+  if (!G.units.some(u => u.side === P)) return setResult(false, 'annihilated', '我軍全軍覆沒');
   for (const c of M.lose || []) {
-    if (c.type === 'hq' && G.hq.some(i => G.owner[i] !== 0)) return setResult(false, 'hq', c.text);
-    if (c.type === 'vip' && !G.units.some(u => u.vip && u.side === 0)) return setResult(false, 'vip', c.text);
+    if (c.type === 'hq' && G.hq.some(i => G.owner[i] !== P)) return setResult(false, 'hq', c.text);
+    if (c.type === 'vip' && !G.units.some(u => u.vip && u.side === P)) return setResult(false, 'vip', c.text);
+    if (c.type === 'loseCount' && c.tiles.filter(([x, y]) => G.owner[idxOf(x, y)] !== P).length >= c.max) return setResult(false, 'line', c.text);
   }
-  for (const o of M.win) {
-    if (o.type === 'destroyAll' && !G.units.some(u => u.side === 1)) return setResult(true, o.id, o.text);
-    if (o.type === 'capture' && G.owner[idxOf(o.at[0], o.at[1])] === 0) return setResult(true, o.id, o.text);
-    if (o.type === 'reach' && G.units.some(u => u.vip && u.side === 0 && u.x === o.at[0] && u.y === o.at[1])) return setResult(true, o.id, o.text);
+  for (const o of winOf(M, G.campFlags)) {
+    if (o.type === 'destroyAll' && !G.units.some(u => u.side !== P)) return setResult(true, o.id, o.text);
+    if (o.type === 'capture' && G.owner[idxOf(o.at[0], o.at[1])] === P) return setResult(true, o.id, o.text);
+    if (o.type === 'captureAll' && o.tiles.every(([x, y]) => G.owner[idxOf(x, y)] === P)) return setResult(true, o.id, o.text);
+    if (o.type === 'reach' && G.units.some(u => u.vip && u.side === P && u.x === o.at[0] && u.y === o.at[1])) return setResult(true, o.id, o.text);
     if (o.type === 'destroyTag' && !G.units.some(u => u.tag === o.tag)) return setResult(true, o.id, o.text);
   }
+}
+// AI 用：任務目標轉成移動目標 [idx, 偏移]（越小越優先）
+function missionAIGoals(u) {
+  if (!G || !G.missionId) return [];
+  const M = MISSIONS[G.missionId], P = G.pside || 0, d = UNITS[u.type], out = [];
+  for (const o of winOf(M, G.campFlags)) {
+    const tiles = o.type === 'capture' ? [o.at] : o.type === 'captureAll' ? o.tiles : [];
+    for (const [x, y] of tiles) {
+      const i = idxOf(x, y);
+      if (u.side === P && G.owner[i] !== P) out.push([i, d.capture ? -8 : -1 - 4 * (aiAggression(P) - 1)]);
+      if (u.side !== P && G.owner[i] !== P && !d.capture) out.push([i, 2]);
+    }
+    if (o.type === 'destroyTag' && u.side === P) {
+      for (const e of G.units) if (e.tag === o.tag && canHit(u.type, e)) out.push([idxOf(e.x, e.y), -4]);
+    }
+    if (o.type === 'reach' && u.side === P && u.vip) out.push([idxOf(o.at[0], o.at[1]), -12]);
+  }
+  for (const c of M.lose || []) {
+    if (c.type !== 'loseCount') continue;
+    for (const [x, y] of c.tiles) {
+      const i = idxOf(x, y);
+      if (u.side !== P && G.owner[i] === P) out.push([i, d.capture ? -8 : -1]);
+      if (u.side === P && !d.capture) out.push([i, G.owner[i] === P ? 1 : -3]);
+    }
+  }
+  return out;
+}
+// 守方站在護送目標格上的加分（擋住特使）
+function missionHoldBonus(u, i) {
+  if (!G || !G.missionId || u.side === (G.pside || 0)) return 0;
+  const [x, y] = ixy(i);
+  let b = 0;
+  for (const o of winOf(MISSIONS[G.missionId], G.campFlags)) {
+    if (o.type === 'reach' && o.at[0] === x && o.at[1] === y) b += 600;
+  }
+  return b;
+}
+// 作戰急迫度：任務中負責進攻的一方隨時限逼近而更積極（1 = 一般）
+function aiAggression(side) {
+  if (!G || !G.missionId) return 1;
+  const M = MISSIONS[G.missionId], P = G.pside || 0, wins = winOf(M, G.campFlags);
+  const surv = wins.find(o => o.type === 'survive');
+  if (side === P && !surv && M.turnLimit) return 1.2 + 1.3 * Math.min(1, G.turn / M.turnLimit);
+  if (side !== P && surv) return 1.2 + 1.3 * Math.min(1, G.turn / surv.turn);
+  return 1;
+}
+function missionCaptureBonus(u, i) {
+  if (!G || !G.missionId) return 0;
+  const [x, y] = ixy(i), M = MISSIONS[G.missionId];
+  if (u.side !== (G.pside || 0)) {
+    return (M.lose || []).some(c => c.type === 'loseCount' && c.tiles.some(t => t[0] === x && t[1] === y)) ? 2500 : 0;
+  }
+  return winOf(MISSIONS[G.missionId], G.campFlags).some(o =>
+    (o.type === 'capture' && o.at[0] === x && o.at[1] === y) ||
+    (o.type === 'captureAll' && o.tiles.some(t => t[0] === x && t[1] === y))) ? 2500 : 0;
 }
 // 每回合開始時：存活目標、時間限制、劇情事件
 function missionTurnStart() {
   const M = MISSIONS[G.missionId];
-  if (G.cur !== 0) return;
-  for (const o of M.win) {
+  if (G.cur !== (G.pside || 0)) return;
+  for (const o of winOf(M, G.campFlags)) {
     if (o.type === 'survive' && G.turn > o.turn) return setResult(true, o.id, o.text);
   }
   if (M.turnLimit && G.turn > M.turnLimit) return setResult(false, 'time', `超過 ${M.turnLimit} 回合時限`);
@@ -470,23 +538,25 @@ function missionTurnStart() {
   }
 }
 function bonusMet(b) {
-  if (b.type === 'hold') return G.owner[idxOf(b.at[0], b.at[1])] === 0;
+  if (b.type === 'hold') return G.owner[idxOf(b.at[0], b.at[1])] === (G.pside || 0);
   return false;
 }
 function missionTargets() {
   if (!G || !G.missionId) return null;
   const M = MISSIONS[G.missionId], tiles = [], tags = [];
-  for (const o of [...M.win, ...(M.bonus || [])]) {
+  for (const o of [...winOf(M, G.campFlags), ...(M.bonus || [])]) {
     if (o.at) tiles.push({ i: idxOf(o.at[0], o.at[1]), bonus: !!o.flag });
+    if (o.tiles) for (const [x, y] of o.tiles) tiles.push({ i: idxOf(x, y), bonus: false });
     if (o.tag) tags.push(o.tag);
   }
+  for (const c of M.lose || []) if (c.tiles) for (const [x, y] of c.tiles) tiles.push({ i: idxOf(x, y), bonus: false });
   return { tiles, tags };
 }
 function objectivesHTML() {
   const M = MISSIONS[G.missionId];
   const left = M.turnLimit ? `<span class="${M.turnLimit - G.turn <= 2 ? 'warn' : ''}">第 ${G.turn} / ${M.turnLimit} 回合</span>` : `<span>第 ${G.turn} 回合</span>`;
   const tagLeft = t => G.units.filter(u => u.tag === t).length;
-  const win = M.win.map(o => `<li>🎯 ${o.text}${o.type === 'destroyTag' ? `（剩 ${tagLeft(o.tag)}）` : ''}${o.type === 'survive' ? `（剩 ${Math.max(0, o.turn - G.turn + 1)} 回合）` : ''}</li>`).join('');
+  const win = winOf(M, G.campFlags).map(o => `<li>🎯 ${o.text}${o.type === 'destroyTag' ? `（剩 ${tagLeft(o.tag)}）` : ''}${o.type === 'survive' ? `（剩 ${Math.max(0, o.turn - G.turn + 1)} 回合）` : ''}</li>`).join('');
   const bonus = (M.bonus || []).map(b => `<li class="bonus">${bonusMet(b) ? '✅' : '⭐'} ${b.text}</li>`).join('');
   const lose = (M.lose || []).map(c => `<li class="lose">✖ ${c.text}</li>`).join('');
   return `<h3>${M.chapter}・${M.title}</h3><div class="stats small">${left}<span>${M.place}</span></div>
@@ -496,33 +566,40 @@ function objectivesHTML() {
 // ----- 流程 -----
 function startMission(id) {
   const M = MISSIONS[id];
+  if (CAMP_ID !== campOf(M) || !CAMP) loadCamp(campOf(M));
   CAMP.current = id;
   if (!CAMP.visited.includes(id)) CAMP.visited.push(id);
   saveCamp();
   playDialog(M.briefing(CAMP.flags), `${M.chapter}・${M.title}`).then(() => {
     openModal(`<div class="mtitle"><div class="chap">${M.chapter}</div><h2>${M.title}</h2><div class="sub">📍 ${M.place}</div></div>
-      <ul class="obj big">${M.win.map(o => `<li>🎯 ${o.text}</li>`).join('')}
+      <ul class="obj big">${winOf(M, CAMP.flags).map(o => `<li>🎯 ${o.text}</li>`).join('')}
       ${(M.bonus || []).map(b => `<li class="bonus">⭐ ${b.text}</li>`).join('')}
       ${(M.lose || []).map(c => `<li class="lose">✖ ${c.text}</li>`).join('')}
       ${M.turnLimit ? `<li class="lose">⏱ 時限 ${M.turnLimit} 回合</li>` : ''}</ul>
       ${M.hint ? `<div class="desc">💡 ${M.hint}</div>` : ''}
       <div class="row"><button class="close">返回</button><button class="primary" id="goMission">開始作戰</button></div>`, box => {
-      box.querySelector('.close').onclick = openCampaignMenu;
+      box.querySelector('.close').onclick = () => openCampaignMenu(CAMP_ID);
       box.querySelector('#goMission').onclick = () => { closeModal(); launchMission(id); };
     });
   });
 }
-function launchMission(id) {
-  const M = MISSIONS[id], f = CAMP.flags;
-  const m = parseMission(M, f);
-  const funds = typeof M.funds === 'function' ? M.funds(f) : [...M.funds];
-  clearSel(); setInspect(null); FX.length = 0;
-  initState(m, { players: [{ ai: false }, { ai: true }], funds, missionId: id, seed: 0 });
+// 建立任務遊戲狀態（不含畫面）；aiBoth 用於自動平衡測試
+function setupMission(id, flags, aiBoth = false) {
+  const M = MISSIONS[id], P = CAMPAIGNS[campOf(M)].player;
+  const m = parseMission(M, flags, P);
+  const funds = typeof M.funds === 'function' ? M.funds(flags) : [...M.funds];
+  initState(m, { players: [0, 1].map(s => ({ ai: aiBoth || s !== P })), funds, missionId: id, seed: 0 });
   G.hq = m.hq;
+  G.pside = P;
+  G.campFlags = Object.assign({}, flags);
   addLog(`${M.chapter}「${M.title}」作戰開始`);
   startTurn();
+}
+function launchMission(id) {
+  clearSel(); setInspect(null); FX.length = 0;
+  setupMission(id, CAMP.flags);
   buildTerrain(); resize(); fitView();
-  const [cx, cy] = idxCenter(G.caps[0]); centerOn(cx, cy);
+  const [cx, cy] = idxCenter(G.caps[G.pside]); centerOn(cx, cy);
   turnIntro();
 }
 
@@ -572,14 +649,31 @@ function applyBranch(br) {
 function showEnding(id) {
   const E = ENDINGS[id];
   openModal(`<div class="ending" style="--c:${E.color}"><div class="rank">${E.rank}</div><div class="big">${E.title}</div>
-    <p>${E.text}</p><div class="desc">已收集結局 ${CAMP.endings.length} / ${Object.keys(ENDINGS).length}</div></div>
+    <p>${E.text}</p><div class="desc">已收集結局 ${CAMP.endings.length} / ${CAMPAIGNS[CAMP_ID].tree.at(-1)[1].length}</div></div>
     <div class="row"><button class="primary" id="eMenu">回到戰役選單</button></div>`, box => {
-    box.querySelector('#eMenu').onclick = openCampaignMenu;
+    box.querySelector('#eMenu').onclick = () => openCampaignMenu(CAMP_ID);
   });
 }
 
-function openCampaignMenu() {
-  loadCamp();
+// 劇情選擇
+function openCampaignMenu(cid) {
+  if (!cid) {
+    const ids = Object.keys(CAMPAIGNS);
+    openModal(`<h2>劇情模式</h2><div class="sub">兩套劇情，各有不同的主角陣營、分支與結局。</div>
+      <div class="campcards">${ids.map(id => {
+        const C = CAMPAIGNS[id], st = (loadCamp(id), CAMP), total = C.tree.at(-1)[1].length;
+        return `<button class="campcard" data-id="${id}" style="--c:${SIDES[C.player].color}">
+          <div class="ctitle">${C.title}<small>${C.sub}</small></div><p>${C.desc}</p>
+          <div class="cprog">結局 ${st.endings.length} / ${total}${st.current ? `　·　進行中：${MISSIONS[st.current].title}` : ''}</div></button>`;
+      }).join('')}</div>
+      <div class="row"><button class="close">關閉</button></div>`, box => {
+      box.querySelector('.close').onclick = closeModal;
+      box.querySelectorAll('.campcard').forEach(b => b.onclick = () => openCampaignMenu(b.dataset.id));
+    }, true);
+    return;
+  }
+  const C = CAMPAIGNS[cid];
+  loadCamp(cid);
   const node = id => {
     const isEnd = id[0] === 'E';
     const name = isEnd ? ENDINGS[id].title : MISSIONS[id].title;
@@ -587,20 +681,20 @@ function openCampaignMenu() {
     const cur = CAMP.current === id;
     return `<div class="node ${seen ? 'seen' : ''} ${cur ? 'cur' : ''} ${isEnd ? 'end' : ''}">${seen ? name : '？？？'}${cur ? ' ▶' : ''}</div>`;
   };
-  openModal(`<h2>劇情模式・聯邦戰記</h2>
-    <div class="sub">你的選擇與戰果將改變戰爭的走向。共 4 種結局。</div>
-    <div class="tree">${MISSION_TREE.map(([ch, ids]) => `<div class="tier"><span class="tlabel">${ch}</span><div class="tnodes">${ids.map(node).join('')}</div></div>`).join('')}</div>
-    <div class="row"><button class="close">關閉</button>
+  openModal(`<h2>${C.title}・${C.sub}</h2>
+    <div class="sub">你的選擇與戰果將改變戰爭的走向。共 ${C.tree.at(-1)[1].length} 種結局。</div>
+    <div class="tree">${C.tree.map(([ch, ids]) => `<div class="tier"><span class="tlabel">${ch}</span><div class="tnodes">${ids.map(node).join('')}</div></div>`).join('')}</div>
+    <div class="row"><button class="close">返回</button>
       ${CAMP.visited.length ? '<button id="cReset">從頭開始</button>' : ''}
       <button class="primary" id="cGo">${CAMP.current ? `繼續：${MISSIONS[CAMP.current].title}` : '開始戰役'}</button></div>`, box => {
-    box.querySelector('.close').onclick = closeModal;
+    box.querySelector('.close').onclick = () => openCampaignMenu();
     const reset = box.querySelector('#cReset');
     if (reset) reset.onclick = () => {
-      CAMP.current = 'm1'; CAMP.flags = {}; saveCamp();
-      startMission('m1');
+      CAMP.current = C.start; CAMP.flags = {}; saveCamp();
+      startMission(C.start);
     };
     box.querySelector('#cGo').onclick = () => {
-      if (!CAMP.current) { CAMP.current = 'm1'; CAMP.flags = {}; }
+      if (!CAMP.current) { CAMP.current = C.start; CAMP.flags = {}; }
       startMission(CAMP.current);
     };
   });
