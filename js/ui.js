@@ -371,31 +371,34 @@ function refreshPanel() {
   oc.classList.toggle('hidden', !G.missionId);
   if (G.missionId) { const html = objectivesHTML(); if (oc._last !== html) { oc.innerHTML = html; oc._last = html; } }
 
-  // 地形
+  // 地形：游標（或觸控點選）所在格；沒有時顯示選取中／最後點選部隊的所在地
   const h = UIS.hover;
-  if (h && inMap(h[0], h[1])) {
-    const i = idxOf(h[0], h[1]), t = TERRAIN[G.terrain[i]];
-    let html = `<h3>${t.name}</h3><div class="stats"><span>防禦 +${t.def}%</span>`;
+  const last = UIS.lastUnit && UIS.lastUnit.hp > 0 && G.units.includes(UIS.lastUnit) ? UIS.lastUnit : null;
+  const focusU = UIS.sel || UIS.inspect || last;
+  const hasH = h && inMap(h[0], h[1]);
+  const th = hasH ? h : focusU ? [focusU.x, focusU.y] : null;
+  if (th) {
+    const i = idxOf(th[0], th[1]), t = TERRAIN[G.terrain[i]];
+    let html = `<h3>${t.name}${hasH ? '' : '<small class="tilesrc">部隊所在地</small>'}</h3><div class="stats"><span>防禦 +${t.def}%</span>`;
     if (t.prop) {
       const o = G.owner[i];
       html += `<span>收入 ${t.income}</span><span style="color:${o >= 0 ? SIDES[o].light : '#ccc'}">${o >= 0 ? SIDES[o].name : '中立'}</span>`;
       if (G.capture[i]) html += `<span class="warn">佔領中 剩 ${G.capture[i].pts}</span>`;
     }
     html += '</div>';
-    const mv = ['foot', 'tread', 'air', 'sea'].map(m => {
+    const mv = ['foot', 'tread', 'amph', 'air', 'sea'].map(m => {
       const c = t.cost[m];
-      return `<span>${{ foot: '步行', tread: '履帶', air: '飛行', sea: '海上' }[m]} ${c === undefined ? '✕' : c}</span>`;
+      return `<span>${{ foot: '步行', tread: '履帶', amph: '兩棲', air: '飛行', sea: '海上' }[m]} ${c === undefined ? '✕' : c}</span>`;
     }).join('');
     html += `<div class="stats small">${mv}</div>`;
     if (t.build) html += `<div class="desc">可生產：${t.build.map(b => ({ land: '地面', air: '航空', sea: '海軍' }[b])).join('、')}部隊</div>`;
     $('#tileInfo').innerHTML = html;
-  } else $('#tileInfo').innerHTML = '<h3>地形</h3><div class="desc">將游標移到地圖上查看資訊</div>';
+  } else $('#tileInfo').innerHTML = `<h3>地形</h3><div class="desc">${isTouch() ? '點選地圖上的格子查看資訊' : '將游標移到地圖上查看資訊'}</div>`;
 
   // 部隊
-  const hu = h && inMap(h[0], h[1]) ? unitAt(h[0], h[1]) : null;
+  const hu = hasH ? unitAt(h[0], h[1]) : null;
   // 滑鼠指著的部隊 > 選取中 > 查看中 > 最後點選的部隊（仍存活時）
-  const last = UIS.lastUnit && (UIS.lastUnit.hp > 0 && (G.units.includes(UIS.lastUnit))) ? UIS.lastUnit : null;
-  const show = hu || UIS.sel || UIS.inspect || last;
+  const show = hu || focusU;
   $('#unitInfo').innerHTML = show ? unitHTML(show) : '<h3>部隊</h3><div class="desc">點擊己方部隊以選取；點擊空的首都/工廠/機場/港口可生產部隊。</div>';
 
   // 戰鬥預測
@@ -703,7 +706,7 @@ function setupInput() {
   };
   cvs.addEventListener('pointerdown', e => {
     lastPointerType = e.pointerType;
-    cvs.setPointerCapture(e.pointerId);
+    try { cvs.setPointerCapture(e.pointerId); } catch (err) { /* 部分裝置不支援，忽略 */ }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, btn: e.button }; dragging = false; camStart = { ...cam }; }
     else if (pts.size === 2) {
@@ -743,7 +746,10 @@ function setupInput() {
   };
   cvs.addEventListener('pointerup', up);
   cvs.addEventListener('pointercancel', up);
-  cvs.addEventListener('pointerleave', () => { if (!down) { UIS.hover = null; UIS.orderPreview = null; refreshPanel(); } });
+  cvs.addEventListener('pointerleave', e => {
+    if (e.pointerType !== 'mouse' || down) return;   // 觸控抬起手指也會觸發，不清除點選的格子
+    UIS.hover = null; UIS.orderPreview = null; refreshPanel();
+  });
   cvs.addEventListener('wheel', e => {
     e.preventDefault();
     const r = cvs.getBoundingClientRect();
@@ -757,7 +763,7 @@ function setupInput() {
       centerOn((ev.clientX - r.left) / s, (ev.clientY - r.top) / s);
     };
     move(e);
-    mini.setPointerCapture(e.pointerId);
+    try { mini.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
     mini.onpointermove = ev => { if (ev.buttons) move(ev); };
   });
 

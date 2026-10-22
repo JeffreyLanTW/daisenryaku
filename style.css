@@ -400,3 +400,4 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 #cancelBtn:hover { background: #3a2626; border-color: #e2574c; }
 @media (max-height: 520px) and (orientation: landscape) { #cancelBtn { bottom: 8px; padding: 8px 20px; } }
 #toast { bottom: 66px; }
+.tilesrc { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 6px; }
