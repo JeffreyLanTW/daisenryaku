@@ -534,7 +534,7 @@ function openHelp() {
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
       <li>點擊目的地後選擇行動：攻擊、佔領、待機或取消。直接點擊紅色敵軍可自動移動並攻擊。</li>
       <li><b>移動命令</b>：點擊範圍外的地點，部隊會設定該處為最終目的地，之後每回合開始自動前進（右下角黃旗）。選取部隊後可取消命令。</li>
-      <li>拖曳平移地圖、滾輪/雙指縮放；右鍵或 Esc 取消；Tab 切換下一個未行動部隊。</li>
+      <li>拖曳平移地圖、滾輪/雙指縮放；取消選取可按地圖下方的「✕ 取消」、右鍵或 Esc；Tab 切換下一個未行動部隊。</li>
       <li>點擊敵軍可查看其威脅範圍（橘色）。</li></ul>
     <h4>經濟與生產</h4><ul>
       <li>每回合依據點獲得收入：首都 300、工廠 150、其他 100。</li>
@@ -774,6 +774,7 @@ function setupInput() {
   $('#btnHelp').onclick = openHelp;
   $('#btnCampaign').onclick = () => openCampaignMenu();
   $('#deployGo').onclick = endDeploy;
+  $('#cancelBtn').onclick = e => { e.stopPropagation(); cancelAction(); };
   $('#resultGo').onclick = () => { if (G) { G.debriefShown = false; showVictory(); } };
   $('#btnMore').onclick = openMoreMenu;
   $('#btnPanel').onclick = () => {
@@ -835,6 +836,9 @@ window.addEventListener('DOMContentLoaded', () => {
     draw(now);
     if (fc++ % 5 === 0) drawMini();
     positionMenu();
+    // 選取／選目標／選卸載位置時顯示取消按鈕（觸控沒有右鍵）
+    const cb = $('#cancelBtn'), showCancel = ['selected', 'target', 'unload'].includes(UIS.mode);
+    if (cb.classList.contains('hidden') === showCancel) cb.classList.toggle('hidden', !showCancel);
     requestAnimationFrame(frame);
   })(performance.now());
 });
