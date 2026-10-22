@@ -10,7 +10,7 @@ const opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null
 const RUNS = +(opt('--runs') || 8);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
-const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags'].includes(args[k - 1]));
+const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns'].includes(args[k - 1]));
 
 // 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫
 const ctx = {
@@ -19,7 +19,7 @@ const ctx = {
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
 };
 vm.createContext(ctx);
-for (const f of ['data', 'game', 'map', 'ai', 'campaign', 'campaign_tw']) {
+for (const f of ['data', 'game', 'map', 'ai', 'campaign', 'campaign_tw', 'campaign_fs']) {
   vm.runInContext(fs.readFileSync(path.join(root, 'js', f + '.js'), 'utf8'), ctx, { filename: f + '.js' });
 }
 vm.runInContext(`
@@ -52,7 +52,7 @@ const problems = vm.runInContext(`(() => {
       if (r.length !== w) out.push(id + ' 第' + y + '列長度 ' + r.length + ' ≠ ' + w);
       for (const ch of r) if (!LEGEND[ch]) out.push(id + ' 未知字元 ' + ch);
     });
-    const flagSets = [{}, { kinmen: true, lieyu: true }, { kinmen: false }, { fleet: true }, { fleet: false, penghu: false }, { taichung: 'lost' }, { us: true, kr: true }, { de: false, us: false }];
+    const flagSets = [{}, { beigan: true, yilanFast: true }, { kinmen: true, lieyu: true }, { kinmen: false }, { fleet: true }, { fleet: false, penghu: false }, { taichung: 'lost' }, { us: true, kr: true }, { de: false, us: false }];
     for (const f of flagSets) {
       const m = parseMission(M, f, P);
       G = { w: m.w, h: m.h, terrain: m.terrain };
@@ -76,8 +76,9 @@ const problems = vm.runInContext(`(() => {
           if (!ok) out.push(id + ' 目標 ' + x + ',' + y + ' 佔領部隊無法抵達');
         }
       }
-      for (const ev of M.events || []) for (const [s, type, x, y] of ev.spawn || []) {
-        if (moveCost(m.terrain[y * m.w + x], UNITS[ftype(type, s)].mt) === Infinity) out.push(id + ' 事件增援 ' + type + ' 在 ' + m.terrain[y * m.w + x]);
+      for (const ev of M.events || []) for (const [s, type, x, y, ex] of ev.spawn || []) {
+        const ut = ex && ex.ally ? atype(type, s, ex.ally) : ftype(type, s);
+        if (moveCost(m.terrain[y * m.w + x], UNITS[ut].mt) === Infinity) out.push(id + ' 事件增援 ' + type + ' 在 ' + m.terrain[y * m.w + x]);
       }
     }
   }
@@ -85,6 +86,62 @@ const problems = vm.runInContext(`(() => {
 })()`, ctx);
 console.log(problems.length ? '地圖問題：\n  ' + problems.join('\n  ') : '地圖檢查：全部通過');
 if (CHECK_ONLY) process.exit(problems.length ? 1 : 0);
+
+// ----- 整部戰役連續模擬：部隊與旗標延續、失敗最多重試 3 次 -----
+if (args.includes('--chain')) {
+  const cid = opt('--chain');
+  vm.runInContext(`
+    async function simMission(id, flags, inherit) {
+      setupMission(id, flags, true, inherit, true);
+      let guard = 0;
+      while (G.winner == null && guard++ < 160) { await aiTurn(); if (G.winner != null) break; endTurn(); }
+      return G.result || { win: false, obj: 'stuck', turn: G.turn };
+    }
+    async function simChain(cid) {
+      const C = CAMPAIGNS[cid]; let id = C.start, flags = {}, inherit = null;
+      const log = [];
+      for (let step = 0; step < 20; step++) {
+        const M = MISSIONS[id];
+        let r, tries = 0, army = inherit ? inherit.units.length : 0;
+        do { r = await simMission(id, flags, inherit); tries++; } while (!r.win && !M.onLose && tries < 3);
+        const gained = {};
+        if (r.win) for (const b of M.bonus || []) if (bonusMet(b)) gained[b.flag] = true;
+        log.push({ id, win: r.win, tries, turn: r.turn, army });
+        const br = r.win ? M.next(r, flags) : M.onLose ? M.onLose(r, flags) : null;
+        if (!br) { log.push({ end: '失敗（重試 3 次）' }); break; }
+        Object.assign(flags, br.flags || {}, gained);
+        if (r.win) {
+          const P = G.pside, cap = C.carryMax || CARRY_MAX;
+          const list = G.units.filter(u => u.side === P && !UNITS[u.type].ally).sort((a, b) => (b.xp || 0) - (a.xp || 0) || UNITS[b.type].cost - UNITS[a.type].cost).slice(0, cap);
+          inherit = { units: list.map(u => ({ base: UNITS[u.type].base, node: UNITS[u.type].node || null, xp: u.xp || 0 })), funds: Math.min(1500, Math.round(G.funds[P] * 0.3 / 10) * 10) };
+        }
+        if (ENDINGS[br.to]) { log.push({ end: br.to }); break; }
+        id = br.to;
+      }
+      return log;
+    }
+  `, ctx);
+  (async () => {
+    const stats = {}, ends = {};
+    for (let k = 0; k < RUNS; k++) {
+      const log = await ctx.simChain(cid);
+      for (const e of log) {
+        if (e.end) { ends[e.end] = (ends[e.end] || 0) + 1; continue; }
+        const st = stats[e.id] = stats[e.id] || { n: 0, first: 0, win: 0, tries: 0, army: 0, turn: 0 };
+        st.n++; st.tries += e.tries; st.army += e.army; st.turn += e.turn;
+        if (e.win) st.win++;
+        if (e.win && e.tries === 1) st.first++;
+      }
+    }
+    console.log(`\n整部戰役模擬 ${RUNS} 次（部隊延續；失敗重試最多 3 次）\n`);
+    console.log('任務   抵達  首次勝率  最終勝率  平均重試  帶入兵力  平均回合');
+    for (const [id, st] of Object.entries(stats)) {
+      console.log(`${id.padEnd(6)} ${String(st.n).padStart(4)}  ${String(Math.round(st.first / st.n * 100)).padStart(6)}%  ${String(Math.round(st.win / st.n * 100)).padStart(6)}%  ${(st.tries / st.n).toFixed(1).padStart(7)}  ${(st.army / st.n).toFixed(1).padStart(7)}  ${(st.turn / st.n).toFixed(1).padStart(7)}`);
+    }
+    console.log('\n結局分布：' + Object.entries(ends).map(([k, v]) => `${k}×${v}`).join('  '));
+  })();
+  return;
+}
 
 // ----- 國家平衡：自由對戰循環賽 -----
 if (args.includes('--nations')) {
@@ -116,6 +173,9 @@ if (args.includes('--nations')) {
   return;
 }
 
+const carryArg = (opt('--carry') || '0,0').split(',').map(Number);
+vm.runInContext(`var CARRY_N = ${carryArg[0] || 0}, CARRY_XP = ${carryArg[1] || 0};`, ctx);
+
 // ----- 自動對戰 -----
 // 各任務預設測試的旗標組合（代表不同路線）
 const DEFAULT_FLAGS = {
@@ -127,8 +187,14 @@ const DEFAULT_FLAGS = {
   c5: [{ us: true, kr: true, de: true, taichung: 'held' }, { us: false, kr: false, de: false, taichung: 'held' }, { us: true, kr: true, de: false, taichung: 'lost' }],
 };
 vm.runInContext(`
+  // 模擬繼承部隊：n 支、經驗 xp 的典型編組
+  function synthCarry(n, xp) {
+    if (!n) return null;
+    const mix = ['inf', 'tank', 'arty', 'aa', 'marine', 'atinf', 'fighter', 'sam', 'tank', 'inf', 'destroyer', 'heli', 'rocket', 'attacker', 'tank', 'marine', 'inf', 'arty', 'fighter', 'aa'];
+    return { units: mix.slice(0, n).map(base => ({ base, node: null, xp })), funds: 300 };
+  }
   async function simulate(id, flags) {
-    setupMission(id, flags, true);
+    setupMission(id, flags, true, synthCarry(CARRY_N, CARRY_XP));
     let guard = 0;
     while (G.winner == null && guard++ < 140) {
       await aiTurn();
@@ -145,6 +211,7 @@ vm.runInContext(`
 
 (async () => {
   const list = ids.length ? ids : vm.runInContext('Object.keys(MISSIONS)', ctx);
+  if (process.env.DBG) console.log('list', list, args);
   console.log(`\n每種組合模擬 ${RUNS} 場（AI 扮演玩家方；真人通常比 AI 強）\n`);
   console.log('任務   旗標                     勝率    平均回合  結果分布');
   for (const id of list) {

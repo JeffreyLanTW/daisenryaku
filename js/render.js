@@ -533,6 +533,11 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
     c.strokeStyle = '#000'; c.lineWidth = 2.5; c.fillStyle = '#ffcc33';
     c.strokeText('⛽', cx - w / 2 + 2, top + h - 12); c.fillText('⛽', cx - w / 2 + 2, top + h - 12);
   }
+  if (o.allyAI) {
+    c.font = 'bold 7px sans-serif';
+    roundRect(c, cx - w / 2 + 1.5, top + 11.5, 13, 8, 2); c.fillStyle = '#4a4f57'; c.fill();
+    c.fillStyle = '#fff'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('AI', cx - w / 2 + 3, top + 15.8);
+  }
   if (o.cargo) {
     c.font = 'bold 9px sans-serif';
     roundRect(c, cx - 11, top + h - 11, 22, 10, 3); c.fillStyle = 'rgba(20,90,40,0.92)'; c.fill();
@@ -738,6 +743,7 @@ function drawUnits() {
       vip: u.vip,
       order: u.side === G.cur && u.order != null,
       cargo: u.cargo && u.cargo.length,
+      allyAI: UNITS[u.type].ally && G.allyAI,
       rank: rankOf(u),
       tier: UNITS[u.type].tier || 0,
     });

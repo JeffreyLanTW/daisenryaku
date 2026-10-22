@@ -276,8 +276,8 @@ function resolveAttack(att, def) {
   }
   // 經驗值：造成傷害、擊破、反擊與承受攻擊都會累積
   const r0 = [rankOf(att), rankOf(def)];
-  att.xp = (att.xp || 0) + dmg * 6 + (def.hp <= 0 ? 20 : 0) + counter * 2;
-  def.xp = (def.xp || 0) + counter * 6 + (att.hp <= 0 ? 20 : 0) + dmg * 2;
+  att.xp = (att.xp || 0) + dmg * 5 + (def.hp <= 0 ? 15 : 0) + counter;
+  def.xp = (def.xp || 0) + counter * 5 + (att.hp <= 0 ? 15 : 0) + dmg;
   const promoted = [att, def].filter((u, k) => u.hp > 0 && rankOf(u) > r0[k]);
   for (const u of promoted) addLog(`${SIDES[u.side].name}${UNITS[u.type].name} 升級為${RANKS[rankOf(u)].name}！`, u.side);
   const an = `${SIDES[att.side].name}${UNITS[att.type].name}`, dn = `${SIDES[def.side].name}${UNITS[def.type].name}`;
@@ -341,10 +341,13 @@ function evoOptions(u) {
   if (!d.next || !d.next.length || u.done) return [];
   const i = idxOf(u.x, u.y), t = TERRAIN[G.terrain[i]];
   if (G.owner[i] !== u.side || !t.heal || !t.heal.includes(d.cat)) return [];
-  return d.next.filter(k => rankOf(u) >= UNITS[k].tier);
+  return d.next.filter(k => rankOf(u) >= UNITS[k].tier && G.funds[u.side] >= evoCost(u, k));
 }
+// 進化費用：新舊型號價差（至少 100）
+function evoCost(u, key) { return Math.max(100, UNITS[key].cost - UNITS[u.type].cost); }
 function evolve(u, key) {
   const from = UNITS[u.type].name;
+  G.funds[u.side] -= evoCost(u, key);
   u.type = key;
   if (UNITS[key].fuel !== undefined) u.fuel = UNITS[key].fuel;
   addLog(`${SIDES[u.side].name}${from} 進化為 ${UNITS[key].name}！`, u.side);
@@ -357,13 +360,20 @@ function markDone(u) {
 
 // ----- 生產 -----
 function makeUnit(type, side, x, y, extra) {
-  type = ftype(type, side);
+  type = extra && extra.ally ? atype(type, side, extra.ally) : ftype(type, side);
   return Object.assign({ id: G.nextId++, type, side, x, y, hp: 10, fuel: UNITS[type].fuel, moved: false, done: false, xp: 0 }, extra || {});
+}
+// 建立部隊：支援友軍（extra.ally）與預先搭載（extra.load）
+function spawnUnit(type, side, x, y, extra) {
+  const { load, ...rest } = extra || {};
+  const u = makeUnit(type, side, x, y, rest);
+  if (load) u.cargo = load.map(t => makeUnit(t, side, x, y, rest.ally ? { ally: rest.ally } : null));
+  return u;
 }
 function buildOptions(x, y, side) {
   const i = idxOf(x, y), t = TERRAIN[G.terrain[i]];
   if (!t.build || G.owner[i] !== side || unitAt(x, y)) return [];
-  return Object.keys(UNITS).filter(k => UNITS[k].side === side && !UNITS[k].tier && t.build.includes(UNITS[k].cat)
+  return Object.keys(UNITS).filter(k => UNITS[k].side === side && !UNITS[k].tier && !UNITS[k].ally && t.build.includes(UNITS[k].cat)
     && (UNITS[k].base !== 'train' || (G.rails && G.rails.length)));
 }
 function produce(type, x, y, side) {
@@ -445,15 +455,13 @@ function initState(m, opts) {
     units: [], turn: 1, cur: 0, funds: opts.funds || [START_FUNDS, START_FUNDS],
     players: opts.players, capture: {}, winner: null, winReason: '',
     nextId: 1, log: [], missionId: opts.missionId || null, result: null, nations: opts.nations || ['TW', 'CN'],
+    allies: opts.allies || [], allyAI: !!opts.allyAI,
     firedEvents: [], pendingDialogs: [],
   };
-  applyNations(G.nations);
+  applyNations(G.nations, G.allies);
   for (const [type, i, side, extra] of m.start) {
     const [x, y] = ixy(i);
-    const { load, ...rest } = extra || {};
-    const u = makeUnit(type, side, x, y, rest);
-    if (load) u.cargo = load.map(t => makeUnit(t, side, x, y));
-    G.units.push(u);
+    G.units.push(spawnUnit(type, side, x, y, extra));
   }
 }
 function newGame(opts) {

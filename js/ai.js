@@ -234,3 +234,14 @@ async function aiTurn() {
   refreshPanel();
   await sleep(SETTINGS.aiStep * 3);
 }
+
+// 友軍（電腦指揮）：玩家結束回合前，替同陣營的援軍行動
+async function aiAllyTurn() {
+  const token = gameToken;
+  for (const u of G.units.filter(e => e.side === G.cur && UNITS[e.type].ally && !e.done)) {
+    if (token !== gameToken || G.winner != null) return;
+    if (u.hp <= 0) continue;
+    await aiAct(u, token);
+    checkVictory();
+  }
+}

@@ -121,7 +121,7 @@ function applySave(obj) {
   clearSel(); setInspect(null); FX.length = 0;
   G = g;
   if (!G.nations) G.nations = ['TW', 'CN'];
-  applyNations(G.nations);
+  applyNations(G.nations, G.allies || []);
   for (const u of G.units) u.type = ftype(u.type, u.side);
   if (obj.camp) {
     loadCamp(obj.camp.id && CAMPAIGNS[obj.camp.id] ? obj.camp.id : campOf(MISSIONS[G.missionId]));

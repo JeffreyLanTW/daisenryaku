@@ -447,9 +447,9 @@ const EVOLUTION = {
 // 進化到第 n 階需要第 n 階級（一階＝老兵、二階＝精銳、三階＝王牌）
 const RANKS = [
   { name: '新兵', xp: 0, atk: 1, evade: 0 },
-  { name: '老兵', xp: 40, atk: 1.1, evade: 0.06 },
-  { name: '精銳', xp: 100, atk: 1.2, evade: 0.12 },
-  { name: '王牌', xp: 180, atk: 1.3, evade: 0.2 },
+  { name: '老兵', xp: 70, atk: 1.1, evade: 0.06 },
+  { name: '精銳', xp: 180, atk: 1.2, evade: 0.12 },
+  { name: '王牌', xp: 340, atk: 1.3, evade: 0.2 },
 ];
 const rankOf = u => { let r = 0; for (let k = 1; k < RANKS.length; k++) if ((u.xp || 0) >= RANKS[k].xp) r = k; return r; };
 
@@ -477,42 +477,52 @@ function nationUnit(nid, base, side) {
 
 // 實際使用的兵種表，鍵為「基礎_陣營」，例如 tank_0。開局時依雙方國家重建
 const UNITS = {};
-function applyNations(ids) {
+// 建立一國在某一方的兵種；suffix 用於友軍（例如 '@US'）
+function buildNationUnits(nid, side, suffix = '') {
+  const K = (base, node) => `${base}_${side}${node ? '_' + node : ''}${suffix}`;
+  for (const base of Object.keys(NATIONS[nid].units)) {
+    const d = nationUnit(nid, base, side);
+    if (!d) continue;
+    d.next = [];
+    if (suffix) d.ally = nid;
+    UNITS[K(base)] = d;
+  }
+  // 進化型號：在前一階之上套用調整
+  for (const [base, nodes] of Object.entries(EVOLUTION[nid] || {})) {
+    const root = UNITS[K(base)];
+    if (!root) continue;
+    for (const [id, from, name, model, m] of nodes) {
+      const parentKey = K(base, from), parent = UNITS[parentKey];
+      if (!parent) continue;
+      const tier = (parent.tier || 0) + 1;
+      const mm = Object.keys(m).length ? m : tier >= 2 ? { atk: 1, armor: 0.95 } : { atk: 1 };
+      const d = JSON.parse(JSON.stringify(parent));
+      if (mm.atk) d.atk = parent.atk.map(v => v > 0 ? Math.max(1, v + mm.atk) : 0);
+      if (mm.move) d.move = parent.move + mm.move;
+      if (mm.armor) d.armor = (parent.armor || 1) * mm.armor;
+      if (mm.range) d.range = [...mm.range];
+      if (mm.stealth) d.stealth = true;
+      Object.assign(d, { name, model, tier, from: parentKey, node: id, next: [], cost: Math.round(root.cost * (1 + 0.15 * tier) / 10) * 10 });
+      const key = K(base, id);
+      UNITS[key] = d;
+      parent.next.push(key);
+    }
+  }
+}
+// allies：[{ side, nid }] 同陣營的其他國家（援軍）
+function applyNations(ids, allies = []) {
   for (const k of Object.keys(UNITS)) delete UNITS[k];
   ids.forEach((nid, side) => {
-    for (const base of Object.keys(NATIONS[nid].units)) {
-      const d = nationUnit(nid, base, side);
-      if (!d) continue;
-      d.next = [];
-      UNITS[`${base}_${side}`] = d;
-    }
-    // 進化型號：在基本型（或前一階）之上套用調整
-    for (const [base, nodes] of Object.entries(EVOLUTION[nid] || {})) {
-      if (!UNITS[`${base}_${side}`]) continue;
-      for (const [id, from, name, model, m] of nodes) {
-        const parentKey = from ? `${base}_${side}_${from}` : `${base}_${side}`, parent = UNITS[parentKey];
-        if (!parent) continue;
-        const tier = (parent.tier || 0) + 1;
-        const root = UNITS[`${base}_${side}`];
-        const mm = Object.keys(m).length ? m : tier >= 2 ? { atk: 1, armor: 0.95 } : { atk: 1 };
-        const d = JSON.parse(JSON.stringify(parent));
-        if (mm.atk) d.atk = parent.atk.map(v => v > 0 ? Math.max(1, v + mm.atk) : 0);
-        if (mm.move) d.move = parent.move + mm.move;
-        if (mm.armor) d.armor = (parent.armor || 1) * mm.armor;
-        if (mm.range) d.range = [...mm.range];
-        if (mm.stealth) d.stealth = true;
-        Object.assign(d, { name, model, tier, from: parentKey, node: id, next: [], cost: Math.round(root.cost * (1 + 0.15 * tier) / 10) * 10 });
-        const key = `${base}_${side}_${id}`;
-        UNITS[key] = d;
-        parent.next.push(key);
-      }
-    }
+    buildNationUnits(nid, side);
     SIDES[side].name = NATIONS[nid].army;
     SIDES[side].nation = nid;
   });
+  for (const a of allies) buildNationUnits(a.nid, a.side, '@' + a.nid);
 }
 // 基礎名稱 + 陣營 → 實際兵種鍵（若該國沒有此兵種，退回步兵）
 const ftype = (type, side) => UNITS[type] ? type : UNITS[`${type}_${side}`] ? `${type}_${side}` : `inf_${side}`;
+// 友軍兵種鍵
+const atype = (type, side, nid) => UNITS[`${type}_${side}@${nid}`] ? `${type}_${side}@${nid}` : ftype(type, side);
 applyNations(['TW', 'CN']);
 
 const CAPTURE_POINTS = 20;

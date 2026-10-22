@@ -33,8 +33,9 @@ function loadCamp(cid = CAMP_ID) {
 function saveCamp() { try { localStorage.setItem(CAMPAIGNS[CAMP_ID].key, JSON.stringify(CAMP)); } catch (e) { /* 忽略 */ } }
 
 // ----- 地圖解析 -----
+const alliesOf = M => (M.allies || []).map(nid => ({ side: CAMPAIGNS[campOf(M)].player, nid }));
 function parseMission(M, flags, player = 0) {
-  applyNations(M.nations || CAMPAIGNS[campOf(M)].nations);
+  applyNations(M.nations || CAMPAIGNS[campOf(M)].nations, alliesOf(M));
   const rows = M.map, h = rows.length, w = rows[0].length, N = w * h;
   const terrain = new Array(N), owner = new Array(N).fill(-1);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -57,7 +58,7 @@ function parseMission(M, flags, player = 0) {
   const list = [...M.units, ...(M.extra ? M.extra(flags) : [])].filter(u => !(u[4] && removed.includes(u[4].tag)));
   const taken = new Set(), start = [];
   for (const [side, type, x, y, extra] of list) {
-    const i = placeFree(terrain, w, h, x, y, UNITS[ftype(type, side)].mt, taken);
+    const i = placeFree(terrain, w, h, x, y, UNITS[extra && extra.ally ? atype(type, side, extra.ally) : ftype(type, side)].mt, taken);
     if (i < 0) continue;
     taken.add(i);
     start.push([type, i, side, extra]);
@@ -184,12 +185,15 @@ function missionTurnStart() {
     G.firedEvents.push(k);
     const taken = new Set(G.units.map(u => idxOf(u.x, u.y)));
     for (const [side, type, x, y, extra] of ev.spawn || []) {
-      const i = placeFree(G.terrain, G.w, G.h, x, y, UNITS[ftype(type, side)].mt, taken);
+      const ut = extra && extra.ally ? atype(type, side, extra.ally) : ftype(type, side);
+      const i = placeFree(G.terrain, G.w, G.h, x, y, UNITS[ut].mt, taken);
       if (i < 0) continue;
       taken.add(i);
       const [px, py] = ixy(i);
-      G.units.push(makeUnit(type, side, px, py, extra));
-      addLog(`${SIDES[side].name}${UNITS[ftype(type, side)].name}抵達戰場`, side);
+      const nu = spawnUnit(type, side, px, py, extra);
+      if (M.enemyXp && side !== (G.pside || 0)) nu.xp = M.enemyXp;
+      G.units.push(nu);
+      addLog(`${extra && extra.ally ? NATIONS[extra.ally].army : SIDES[side].name}${UNITS[ut].name}抵達戰場`, side);
     }
     if (ev.lines) G.pendingDialogs.push(ev.lines);
   }
@@ -234,22 +238,31 @@ function startMission(id) {
       ${(M.lose || []).map(c => `<li class="lose">✖ ${c.text}</li>`).join('')}
       ${M.turnLimit ? `<li class="lose">⏱ 時限 ${M.turnLimit} 回合</li>` : ''}</ul>
       ${M.hint ? `<div class="desc">💡 ${M.hint}</div>` : ''}
+      ${M.allies && M.allies.length ? `<div class="allychoice"><b>🤝 援軍：${M.allies.map(n => NATIONS[n].army).join('、')}</b>
+        <label><input type="radio" name="allyc" value="ai" ${allyPref() ? 'checked' : ''}> 交給電腦指揮</label>
+        <label><input type="radio" name="allyc" value="me" ${allyPref() ? '' : 'checked'}> 由我指揮</label></div>` : ''}
       <div class="row"><button class="close">返回</button><button class="primary" id="goMission">開始作戰</button></div>`, box => {
       box.querySelector('.close').onclick = () => openCampaignMenu(CAMP_ID);
-      box.querySelector('#goMission').onclick = () => { closeModal(); launchMission(id); };
+      box.querySelector('#goMission').onclick = () => {
+        const r = box.querySelector('input[name=allyc]:checked'), ai = r ? r.value === 'ai' : true;
+        try { localStorage.setItem('daisenryaku_allyai', ai ? '1' : '0'); } catch (e) { /* 忽略 */ }
+        closeModal(); launchMission(id, ai);
+      };
     });
   });
 }
 // 建立任務遊戲狀態（不含畫面）；aiBoth 用於自動平衡測試
 // inherit：{ units: [{base, node, xp}], funds } 由上一場繼承（只在同國家時部署）
-function setupMission(id, flags, aiBoth = false, inherit = null) {
+function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = true) {
   const M = MISSIONS[id], P = CAMPAIGNS[campOf(M)].player;
   const m = parseMission(M, flags, P);
   const funds = typeof M.funds === 'function' ? M.funds(flags) : [...M.funds];
-  initState(m, { players: [0, 1].map(s => ({ ai: aiBoth || s !== P })), funds, missionId: id, seed: 0, nations: M.nations || CAMPAIGNS[campOf(M)].nations });
+  initState(m, { players: [0, 1].map(s => ({ ai: aiBoth || s !== P })), funds, missionId: id, seed: 0,
+    nations: M.nations || CAMPAIGNS[campOf(M)].nations, allies: alliesOf(M), allyAI });
   G.hq = m.hq;
   G.pside = P;
   G.campFlags = Object.assign({}, flags);
+  if (M.enemyXp) for (const u of G.units) if (u.side !== P) u.xp = M.enemyXp;
   addLog(`${M.chapter}「${M.title}」作戰開始`);
   if (inherit) {
     G.funds[P] += inherit.funds || 0;
@@ -266,6 +279,13 @@ function setupMission(id, flags, aiBoth = false, inherit = null) {
       G.units.push(u);
     }
     if ((inherit.units || []).length) addLog(`繼承部隊 ${inherit.units.length} 支抵達戰場`, P);
+    // 敵軍依繼承兵力增援（劇情可設定 scale）
+    const sc = CAMPAIGNS[campOf(M)].scale || 0;
+    if (sc) {
+      const val = G.units.filter(u => u.vet).reduce((t, u) => t + UNITS[u.type].cost, 0);
+      const bonus = Math.round(val * sc / 100) * 100;
+      if (bonus) { G.funds[1 - P] += bonus; addLog(`敵軍得知我軍兵力，增調預算 💰${bonus}`, 1 - P); }
+    }
   }
   startTurn();
 }
@@ -317,11 +337,11 @@ function deployClick(x, y) {
   } else UIS.deploySel = null;
   refreshPanel();
 }
-function launchMission(id) {
+function launchMission(id, allyAI = true) {
   clearSel(); setInspect(null); FX.length = 0;
   const nid = (MISSIONS[id].nations || CAMPAIGNS[campOf(MISSIONS[id])].nations)[CAMPAIGNS[campOf(MISSIONS[id])].player];
   const roster = (CAMP.roster || {})[nid];
-  setupMission(id, CAMP.flags, false, roster ? { units: roster, funds: CAMP.carryFunds || 0 } : null);
+  setupMission(id, CAMP.flags, false, roster ? { units: roster, funds: CAMP.carryFunds || 0 } : null, allyAI);
   CAMP.carryFunds = 0;
   saveCamp();
   buildTerrain(); resize(); fitView();
@@ -342,7 +362,7 @@ function showDebrief() {
   }
   const br = r.win ? M.next(r, f) : M.onLose ? M.onLose(r, f) : null;
   if (br) br.flags = Object.assign({}, br.flags, gained);
-  const dest = br ? (br.to[0] === 'E' ? `結局「${ENDINGS[br.to].title}」` : `${MISSIONS[br.to].chapter}「${MISSIONS[br.to].title}」`) : '';
+  const dest = br ? (ENDINGS[br.to] ? `結局「${ENDINGS[br.to].title}」` : `${MISSIONS[br.to].chapter}「${MISSIONS[br.to].title}」`) : '';
   openModal(`<div class="debrief ${r.win ? 'win' : 'lose'}">
       <div class="big">${r.win ? '作戰成功' : '作戰失敗'}</div>
       <p>${r.reason}　·　第 ${r.turn} 回合</p>
@@ -356,17 +376,18 @@ function showDebrief() {
     const retry = box.querySelector('#dRetry');
     if (retry) retry.onclick = () => { closeModal(); startMission(G.missionId); };
     const nx = box.querySelector('#dNext');
-    if (nx) nx.onclick = () => (r.win && br.to[0] !== 'E') ? chooseCarry(br) : applyBranch(br);
+    if (nx) nx.onclick = () => (r.win && !ENDINGS[br.to]) ? chooseCarry(br) : applyBranch(br);
   });
 }
 // 勝利後選擇帶入下一場的部隊
 function chooseCarry(br) {
   const P = G.pside, nid = G.nations[P];
-  const list = G.units.filter(u => u.side === P).sort((a, b) => (b.xp || 0) - (a.xp || 0) || UNITS[b.type].cost - UNITS[a.type].cost);
+  const cap = CAMPAIGNS[CAMP_ID].carryMax || CARRY_MAX;
+  const list = G.units.filter(u => u.side === P && !UNITS[u.type].ally).sort((a, b) => (b.xp || 0) - (a.xp || 0) || UNITS[b.type].cost - UNITS[a.type].cost);
   const carryFunds = Math.min(1500, Math.round(G.funds[P] * 0.3 / 10) * 10);
-  const pre = new Set(list.slice(0, CARRY_MAX).map(u => u.id));
+  const pre = new Set(list.slice(0, cap).map(u => u.id));
   openModal(`<h2>部隊繼承</h2>
-    <div class="sub">選擇最多 ${CARRY_MAX} 支部隊帶入下一場（修復至滿編，保留經驗與進化）。另繼承資金 💰${carryFunds}。</div>
+    <div class="sub">選擇最多 ${cap} 支部隊帶入下一場（修復至滿編，保留經驗與進化）。另繼承資金 💰${carryFunds}。</div>
     <div class="carry">${list.map(u => {
       const d = UNITS[u.type], r = rankOf(u);
       return `<label class="citem"><input type="checkbox" value="${u.id}" ${pre.has(u.id) ? 'checked' : ''}>
@@ -378,8 +399,8 @@ function chooseCarry(br) {
     const boxes = [...box.querySelectorAll('input[type=checkbox]')];
     const sync = () => {
       const n = boxes.filter(b => b.checked).length;
-      box.querySelector('#carryCount').textContent = `已選 ${n} / ${CARRY_MAX}`;
-      boxes.forEach(b => { b.disabled = !b.checked && n >= CARRY_MAX; });
+      box.querySelector('#carryCount').textContent = `已選 ${n} / ${cap}`;
+      boxes.forEach(b => { b.disabled = !b.checked && n >= cap; });
     };
     boxes.forEach(b => b.onchange = sync); sync();
     box.querySelector('#carryGo').onclick = () => {
@@ -393,7 +414,7 @@ function chooseCarry(br) {
 }
 function applyBranch(br) {
   Object.assign(CAMP.flags, br.flags || {});
-  if (br.to[0] === 'E') {
+  if (ENDINGS[br.to]) {
     if (!CAMP.endings.includes(br.to)) CAMP.endings.push(br.to);
     if (!CAMP.visited.includes(br.to)) CAMP.visited.push(br.to);
     CAMP.current = null;
@@ -412,6 +433,8 @@ function showEnding(id) {
     box.querySelector('#eMenu').onclick = () => openCampaignMenu(CAMP_ID);
   });
 }
+
+function allyPref() { try { return localStorage.getItem('daisenryaku_allyai') !== '0'; } catch (e) { return true; } }
 
 // 劇情選擇
 function openCampaignMenu(cid) {
@@ -433,7 +456,7 @@ function openCampaignMenu(cid) {
   const C = CAMPAIGNS[cid];
   loadCamp(cid);
   const node = id => {
-    const isEnd = id[0] === 'E';
+    const isEnd = !!ENDINGS[id];
     const name = isEnd ? ENDINGS[id].title : MISSIONS[id].title;
     const seen = isEnd ? CAMP.endings.includes(id) : CAMP.visited.includes(id);
     const cur = CAMP.current === id;

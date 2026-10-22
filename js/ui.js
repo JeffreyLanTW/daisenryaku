@@ -206,6 +206,7 @@ function handleClick(x, y) {
   if (!isHumanTurn()) { setInspect(u && UIS.inspect !== u ? u : null); refreshPanel(); return; }
   switch (UIS.mode) {
     case 'idle':
+      if (u && u.side === G.cur && UNITS[u.type].ally && G.allyAI) { setInspect(u); showToast('援軍由電腦指揮，結束回合時行動'); return refreshPanel(); }
       if (u && u.side === G.cur && !u.done) return selectUnit(u);
       if (u) { setInspect(UIS.inspect === u ? null : u); return refreshPanel(); }
       setInspect(null);
@@ -292,7 +293,7 @@ function showMenu(u) {
     add('<small>運輸機須停在據點上才能卸載</small>', () => {}, 'muted');
   }
   for (const k of evoOptions(u)) {
-    add(`⬆ 進化：${UNITS[k].name} <small>${UNITS[k].model}</small>`, () => {
+    add(`⬆ 進化：${UNITS[k].name} <small>💰${evoCost(u, k)}・${UNITS[k].model}</small>`, () => {
       evolve(u, k); sfx('capture');
       const [cx, cy] = tileCenter(u.x, u.y); fxText(cx, cy, '進化！', '#ffd34d');
       finishUnit(u);
@@ -649,15 +650,24 @@ async function turnIntro() {
   autoSave();
   refreshPanel();
 }
-function endTurnClicked() {
-  if (!isHumanTurn() || UIS.mode === 'busy') return;
+async function endTurnClicked() {
+  if (!isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy') return;
   clearSel(); setInspect(null);
+  if (G.allyAI && G.units.some(u => u.side === G.cur && UNITS[u.type].ally && !u.done)) {
+    const token = gameToken;
+    UIS.mode = 'busy'; refreshPanel();
+    showToast('援軍行動中…');
+    await aiAllyTurn();
+    if (token !== gameToken) return;
+    UIS.mode = 'idle';
+    if (G.winner != null) { refreshPanel(); return showVictory(); }
+  }
   endTurn();
   turnIntro();
 }
 function nextUnit() {
   if (!isHumanTurn() || UIS.mode === 'busy') return;
-  const list = G.units.filter(u => u.side === G.cur && !u.done);
+  const list = G.units.filter(u => u.side === G.cur && !u.done && !(UNITS[u.type].ally && G.allyAI));
   if (!list.length) return;
   const k = UIS.sel ? (list.indexOf(UIS.sel) + 1) % list.length : 0;
   if (UIS.mode === 'menu') cancelMove();
