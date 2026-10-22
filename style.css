@@ -401,3 +401,16 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 @media (max-height: 520px) and (orientation: landscape) { #cancelBtn { bottom: 8px; padding: 8px 20px; } }
 #toast { bottom: 66px; }
 .tilesrc { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+.campcard.free { grid-column: 1 / -1; border-style: dashed; }
+/* 中等寬度：頂部列維持單行 */
+@media (max-width: 1280px) and (min-height: 521px) {
+  #topbar { gap: 6px; padding-left: 10px; padding-right: 10px; }
+  #topbar button { padding: 5px 10px; font-size: 13px; }
+  .brand { font-size: 17px; letter-spacing: 3px; margin-right: 2px; }
+  #turnInfo, #funds .pill { padding: 3px 8px; font-size: 13px; }
+  #funds .pill small { display: none; }
+}
+@media (max-width: 960px) and (min-height: 521px) {
+  #btnSave, #btnLoad, #btnHelp, .sep { display: none; }
+  #btnMore { display: inline-block; }
+}

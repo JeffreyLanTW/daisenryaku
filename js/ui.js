@@ -577,14 +577,13 @@ function toggleFullscreen() {
 }
 function openMoreMenu() {
   openModal(`<h2>選單</h2><div class="moregrid">
-    <button id="moCamp">📖 劇情</button><button id="moNew">⚔️ 新遊戲</button>
+    <button id="moCamp">📖 劇情・對戰</button>
     <button id="moSave">💾 存檔</button><button id="moLoad">📂 讀檔</button>
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
     <button id="moMusic">🎵 音樂：${AUDIO.on.music ? '開' : '關'}</button><button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button>
     <button id="moNations">📚 國家圖鑑</button>
     <button id="moMain">🏠 主選單</button><button class="close">✕ 關閉</button></div>`, box => {
     box.querySelector('#moCamp').onclick = () => openCampaignMenu();
-    box.querySelector('#moNew').onclick = openNewGame;
     box.querySelector('#moSave').onclick = openSaveDialog;
     box.querySelector('#moLoad').onclick = openLoadDialog;
     box.querySelector('#moFull').onclick = () => { closeModal(); toggleFullscreen(); };
@@ -774,7 +773,6 @@ function setupInput() {
   });
   $('#btnEnd').onclick = endTurnClicked;
   $('#btnNext').onclick = nextUnit;
-  $('#btnNew').onclick = openNewGame;
   $('#btnSave').onclick = saveGame;
   $('#btnLoad').onclick = loadGame;
   $('#btnHelp').onclick = openHelp;

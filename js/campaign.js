@@ -440,16 +440,20 @@ function allyPref() { try { return localStorage.getItem('daisenryaku_allyai') !=
 function openCampaignMenu(cid) {
   if (!cid) {
     const ids = Object.keys(CAMPAIGNS);
-    openModal(`<h2>劇情模式</h2><div class="sub">選擇要進行的戰役。戰果會影響後續章節與結局，部隊可以繼承到下一場。</div>
+    openModal(`<h2>劇情・對戰</h2><div class="sub">選擇劇情戰役，或開一局自由對戰。劇情的戰果會影響後續章節與結局，部隊可以繼承到下一場。</div>
       <div class="campcards">${ids.map(id => {
         const C = CAMPAIGNS[id], st = (loadCamp(id), CAMP), total = C.tree.at(-1)[1].length;
         return `<button class="campcard" data-id="${id}" style="--c:${SIDES[C.player].color}">
           <div class="ctitle">${C.title}<small>${C.sub}</small></div><p>${C.desc}</p>
           <div class="cprog">結局 ${st.endings.length} / ${total}${st.current ? `　·　進行中：${MISSIONS[st.current].title}` : ''}</div></button>`;
-      }).join('')}</div>
+      }).join('')}
+      <button class="campcard free" id="freeCard" style="--c:#8a9aab">
+        <div class="ctitle">自由對戰<small>16 國・隨機地圖</small></div><p>選擇雙方國家、地圖大小（小到終極大），對電腦或雙人輪流對戰。</p>
+        <div class="cprog">⚔️ 開新局</div></button></div>
       <div class="row"><button class="close">關閉</button></div>`, box => {
       box.querySelector('.close').onclick = closeModal;
-      box.querySelectorAll('.campcard').forEach(b => b.onclick = () => openCampaignMenu(b.dataset.id));
+      box.querySelector('#freeCard').onclick = openNewGame;
+      box.querySelectorAll('.campcard[data-id]').forEach(b => b.onclick = () => openCampaignMenu(b.dataset.id));
     }, true);
     return;
   }
