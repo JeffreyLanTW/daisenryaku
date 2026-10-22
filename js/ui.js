@@ -41,6 +41,7 @@ function setInspect(u) {
 }
 function selectUnit(u) {
   clearSel(); setInspect(null);
+  UIS.lastUnit = u;
   UIS.sel = u;
   UIS.origin = { x: u.x, y: u.y, fuel: u.fuel };
   if (u.autoMoved) { UIS.mode = 'menu'; showMenu(u); refreshPanel(); return; }
@@ -201,6 +202,7 @@ function doCaptureAction(u) {
 // ----- 點擊處理 -----
 function handleClick(x, y) {
   if (!G || !inMap(x, y) || UIS.mode === 'busy') return;
+  { const cu = unitAt(x, y); if (cu) UIS.lastUnit = cu; }
   if (UIS.mode === 'deploy') return deployClick(x, y);
   const u = unitAt(x, y);
   if (!isHumanTurn()) { setInspect(u && UIS.inspect !== u ? u : null); refreshPanel(); return; }
@@ -391,7 +393,9 @@ function refreshPanel() {
 
   // 部隊
   const hu = h && inMap(h[0], h[1]) ? unitAt(h[0], h[1]) : null;
-  const show = hu || UIS.sel || UIS.inspect;
+  // 滑鼠指著的部隊 > 選取中 > 查看中 > 最後點選的部隊（仍存活時）
+  const last = UIS.lastUnit && (UIS.lastUnit.hp > 0 && (G.units.includes(UIS.lastUnit))) ? UIS.lastUnit : null;
+  const show = hu || UIS.sel || UIS.inspect || last;
   $('#unitInfo').innerHTML = show ? unitHTML(show) : '<h3>部隊</h3><div class="desc">點擊己方部隊以選取；點擊空的首都/工廠/機場/港口可生產部隊。</div>';
 
   // 戰鬥預測
@@ -739,7 +743,7 @@ function setupInput() {
   };
   cvs.addEventListener('pointerup', up);
   cvs.addEventListener('pointercancel', up);
-  cvs.addEventListener('pointerleave', () => { if (!down) { UIS.hover = null; refreshPanel(); } });
+  cvs.addEventListener('pointerleave', () => { if (!down) { UIS.hover = null; UIS.orderPreview = null; refreshPanel(); } });
   cvs.addEventListener('wheel', e => {
     e.preventDefault();
     const r = cvs.getBoundingClientRect();
