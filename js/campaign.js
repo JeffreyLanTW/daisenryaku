@@ -237,12 +237,12 @@ function startMission(id) {
       ${M.turnLimit ? `<li class="lose">⏱ 時限 ${M.turnLimit} 回合</li>` : ''}</ul>
       ${M.hint ? `<div class="desc">💡 ${M.hint}</div>` : ''}
       ${M.allies && M.allies.length ? `<div class="allychoice"><b>🤝 援軍：${M.allies.map(n => NATIONS[n].army).join('、')}</b>
-        <label><input type="radio" name="allyc" value="ai" ${allyPref() ? 'checked' : ''}> 交給電腦指揮</label>
-        <label><input type="radio" name="allyc" value="me" ${allyPref() ? '' : 'checked'}> 由我指揮</label></div>` : ''}
+        <label><input type="radio" name="allyc" value="me" ${allyPref() ? '' : 'checked'}> 由我指揮</label>
+        <label><input type="radio" name="allyc" value="ai" ${allyPref() ? 'checked' : ''}> 交給電腦指揮</label></div>` : ''}
       <div class="row"><button class="close">返回</button><button class="primary" id="goMission">開始作戰</button></div>`, box => {
       box.querySelector('.close').onclick = () => openCampaignMenu(CAMP_ID);
       box.querySelector('#goMission').onclick = () => {
-        const r = box.querySelector('input[name=allyc]:checked'), ai = r ? r.value === 'ai' : true;
+        const r = box.querySelector('input[name=allyc]:checked'), ai = r ? r.value === 'ai' : false;
         try { localStorage.setItem('daisenryaku_allyai', ai ? '1' : '0'); } catch (e) { /* 忽略 */ }
         closeModal(); launchMission(id, ai);
       };
@@ -251,7 +251,7 @@ function startMission(id) {
 }
 // 建立任務遊戲狀態（不含畫面）；aiBoth 用於自動平衡測試
 // inherit：{ units: [{base, node, xp}], funds } 由上一場繼承（只在同國家時部署）
-function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = true) {
+function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = false) {
   const M = MISSIONS[id], P = CAMPAIGNS[campOf(M)].player;
   const m = parseMission(M, flags, P);
   const funds = typeof M.funds === 'function' ? M.funds(flags) : [...M.funds];
@@ -411,7 +411,7 @@ function carryCandidates(P) {
   for (const u of G.reserve || []) out.push(u);
   return out.filter(u => u.hp > 0);
 }
-function launchMission(id, allyAI = true) {
+function launchMission(id, allyAI = false) {
   clearSel(); setInspect(null); FX.length = 0;
   const nid = (MISSIONS[id].nations || CAMPAIGNS[campOf(MISSIONS[id])].nations)[CAMPAIGNS[campOf(MISSIONS[id])].player];
   const roster = (CAMP.roster || {})[nid];
@@ -508,7 +508,7 @@ function showEnding(id) {
   });
 }
 
-function allyPref() { try { return localStorage.getItem('daisenryaku_allyai') !== '0'; } catch (e) { return true; } }
+function allyPref() { try { return localStorage.getItem('daisenryaku_allyai') === '1'; } catch (e) { return false; } }
 
 // 劇情選擇
 function openCampaignMenu(cid) {
