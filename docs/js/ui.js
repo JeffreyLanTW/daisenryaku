@@ -533,7 +533,7 @@ function openNations(sel) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明</h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v31</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -552,6 +552,17 @@ function openHelp() {
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
       <li>佔領：步兵類部隊每回合扣除等同 HP 的佔領點（總共 20），離開或陣亡則重置。</li></ul>
     <h4>國家</h4><p>16 個國家各有 1990 年代的真實裝備與作戰偏好，詳見國家圖鑑。</p>
+    <details class="changelog-box">
+      <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
+      <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v31</span><span class="cl-date">2026.10</span><p>專案發布目錄架構重組（隔離 tools 與 docs 生產資產），新增說明視窗版本號與開發歷史展示。</p></div>
+        <div class="cl-item"><span class="cl-ver">v30</span><span class="cl-date">2026.10</span><p>戰役同陣營援軍預設改為玩家手動指揮；船艦移動力降為 3；部隊圖示全面依各國真實型號與迷彩重繪；解放軍改以人海數量平衡機制。</p></div>
+        <div class="cl-item"><span class="cl-ver">v29</span><span class="cl-date">2026.10</span><p>新增「福爾摩沙之盾」後三章 54×33 超大地圖（全島防衛、台海制海、第一島鏈）；各章 AI 勝率與繼承部隊難度平衡。</p></div>
+        <div class="cl-item"><span class="cl-ver">v28</span><span class="cl-date">2026.10</span><p>新增劇情戰役「福爾摩沙之盾」：台灣主角部隊跨章節延續養成，支援美軍/日本自衛隊/菲律賓援軍；敵軍老兵化與配置回合機制。</p></div>
+        <div class="cl-item"><span class="cl-ver">v27</span><span class="cl-date">2026.10</span><p>導入 16 個真實國家裝備與陣營平衡科技樹；新增「第三次世界大戰」分支劇情戰役。</p></div>
+        <div class="cl-item"><span class="cl-ver">v26</span><span class="cl-date">2026.10</span><p>完善存檔系統（具名存檔欄、自動存檔、匯出匯入）；手機橫向 UI 優化；支援跨回合移動命令與 Web Audio 合成音樂音效。</p></div>
+      </div>
+    </details>
     </div><div class="row"><button id="hNations">📚 國家圖鑑</button><span class="spacer"></span><button class="close primary">了解</button></div>`, box => {
     box.querySelector('.close').onclick = closeModal;
     box.querySelector('#hNations').onclick = () => openNations();

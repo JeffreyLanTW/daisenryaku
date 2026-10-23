@@ -426,3 +426,34 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 #deployBar #deployGo { align-self: flex-end; }
 @media (max-height: 520px) and (orientation: landscape) { .rchip canvas { width: 36px; height: 28px; } #deployBar .dtitle { font-size: 11px; } }
 #deployBar .slots { color: var(--gold); font-weight: 700; margin-left: 4px; }
+
+/* 說明面板：版本標籤與開發歷史 */
+.ver-badge {
+  font-size: 13px; font-weight: 600; padding: 2px 7px; border-radius: 6px;
+  background: #2a3a4c; color: var(--gold); border: 1px solid rgba(212,169,74,0.4);
+  vertical-align: middle; margin-left: 6px;
+}
+.changelog-box {
+  margin-top: 14px; background: rgba(14,20,28,0.7); border: 1px solid #2a3a4c;
+  border-radius: 8px; padding: 8px 12px;
+}
+.changelog-box summary {
+  cursor: pointer; font-weight: 700; color: #9cc0f5; outline: none; user-select: none;
+  font-size: 14px;
+}
+.changelog-box summary:hover { color: var(--gold); }
+.changelog-list {
+  margin-top: 10px; display: flex; flex-direction: column; gap: 8px; max-height: 220px;
+  overflow-y: auto; padding-right: 4px;
+}
+.cl-item {
+  border-left: 3px solid #3f6f9a; padding-left: 8px; font-size: 13px; line-height: 1.4;
+}
+.cl-ver {
+  font-weight: 700; color: var(--gold); margin-right: 6px; font-size: 12px;
+}
+.cl-date {
+  color: var(--muted); font-size: 11px; margin-right: 8px;
+}
+.cl-item p { margin: 2px 0 0 0; color: var(--fg); font-size: 12px; }
+
