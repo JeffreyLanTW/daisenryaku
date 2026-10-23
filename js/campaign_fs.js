@@ -59,7 +59,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第二章 馬祖 ----------------
   f2: {
-    camp: 'fs', chapter: '第二章・2003', title: '馬祖封鎖戰', place: '南竿・北竿', enemyXp: 80, slots: 3,
+    camp: 'fs', chapter: '第二章・2003', title: '馬祖封鎖戰', place: '南竿・北竿', horde: 0.1, slots: 3,
     map: [
       'MM^..f.~~~~~~~~~~~~~',
       'M^.r..=~~~~.f.~~~~~~',
@@ -104,7 +104,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第三章 海峽空戰 ----------------
   f3: {
-    camp: 'fs', chapter: '第三章・2008', title: '台海空戰', place: '台灣海峽', allies: ['US'], enemyXp: 240, slots: 4,
+    camp: 'fs', chapter: '第三章・2008', title: '台海空戰', place: '台灣海峽', allies: ['US'], horde: 0.55, slots: 4,
     map: [
       '^Z.~~~~~~~~~~~~~~~=A..',
       'X..~~~~~~~~~~~~~~~=..f',
@@ -152,7 +152,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第四章 蘇澳 ----------------
   f4: {
-    camp: 'fs', chapter: '第四章・2012', title: '蘇澳反登陸', place: '宜蘭平原', allies: ['JP'], enemyXp: 240, slots: 4,
+    camp: 'fs', chapter: '第四章・2012', title: '蘇澳反登陸', place: '宜蘭平原', allies: ['JP'], horde: 0.5, slots: 4,
     map: [
       'MMM^^..=...f..~~~~~~~~',
       'MM^H=.=.b....=~~~~~~~~',
@@ -199,7 +199,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第五章 淡水河 ----------------
   f5: {
-    camp: 'fs', chapter: '第五章・2016', title: '淡水河決戰', place: '台北盆地', allies: ['US', 'JP'], enemyXp: 200, slots: 6,
+    camp: 'fs', chapter: '第五章・2016', title: '淡水河決戰', place: '台北盆地', allies: ['US', 'JP'], horde: 0.45, slots: 6,
     map: [
       '~~~~~~~~~^^MMM^^..~~~~~~',
       '~~~~~~~~^^MMMM^^...~~~~~',
@@ -255,7 +255,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第六章 全島防衛 ----------------
   f6: {
-    camp: 'fs', chapter: '第六章・2020', title: '全島防衛戰', place: '台灣本島', allies: ['US'], enemyXp: 340, slots: 6,
+    camp: 'fs', chapter: '第六章・2020', title: '全島防衛戰', place: '台灣本島', allies: ['US'], horde: 0.55, slots: 6,
     map: [ // mapgen:island
       '^^fMMMMMM^f^^...f.f.....~~.Q~~~~~~~~~~~~~~~~~~~~~~~~~~',
       '^MMMMf^ff^.....r==Z...~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
@@ -345,7 +345,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第七章 台海制海 ----------------
   f7: {
-    camp: 'fs', chapter: '第七章・2023', title: '台海制海戰', place: '台灣海峽・澎湖・金馬', allies: ['JP'], enemyXp: 320, slots: 7,
+    camp: 'fs', chapter: '第七章・2023', title: '台海制海戰', place: '台灣海峽・澎湖・金馬', allies: ['JP'], horde: 0.45, slots: 7,
     map: [ // mapgen:strait
       'ff.......^f^MMMMM^^^....ff.~~~~~~~~~~~~~~~~~~~~~~~~~~~',
       '........f^^MMMMff^^....==Q~~~~P~~~~~~~~~~~~~~~~~~~~~~~',
@@ -425,7 +425,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 終章 第一島鏈 ----------------
   f8: {
-    camp: 'fs', chapter: '終章・2027', title: '第一島鏈', place: '台灣・先島群島・巴士海峽', allies: ['US', 'JP', 'PH'], enemyXp: 340, slots: 8,
+    camp: 'fs', chapter: '終章・2027', title: '第一島鏈', place: '台灣・先島群島・巴士海峽', allies: ['US', 'JP', 'PH'], horde: 0.3, slots: 8,
     map: [ // mapgen:chain
       'ff..^f^^....~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~b~',
       '...fMM^.Q.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~A~~~',

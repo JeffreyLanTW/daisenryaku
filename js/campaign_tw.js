@@ -74,7 +74,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 1-2 澎湖 ----------------
   t2: {
-    camp: 'tw', chapter: '第一章・二', title: '澎湖海空戰', place: '澎湖群島',
+    camp: 'tw', chapter: '第一章・二', title: '澎湖海空戰', place: '澎湖群島', horde: 0.12,
     map: [
       '^Z.~~~~~~~~~~~~~~~.A..',
       'X..~~~~~~~~~~~~~~~=..f',
@@ -125,7 +125,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 1-3 台中 ----------------
   t3: {
-    camp: 'tw', chapter: '第一章・三', title: '台中反登陸', place: '台中港・清泉崗',
+    camp: 'tw', chapter: '第一章・三', title: '台中反登陸', place: '台中港・清泉崗', horde: 0.15,
     map: [
       '~~~~~.=..ff..^^MMMMMMMMM',
       '~~~~~b=...f.^^^MMMMMMMMM',
@@ -352,16 +352,16 @@ Object.assign(MISSIONS, {
     funds: f => [2600 + (f.us ? 300 : 0), 600 + (f.taichung === 'lost' ? 300 : 0) + (f.de ? 0 : 200)],
     units: [
       [0, 'tank', 22, 4], [0, 'tank', 23, 7], [0, 'inf', 22, 2], [0, 'inf', 22, 9], [0, 'marine', 21, 5], [0, 'marine', 21, 8],
-      [0, 'arty', 23, 3], [0, 'sam', 23, 6], [0, 'aa', 24, 8], [0, 'destroyer', 19, 6], [0, 'destroyer', 19, 10],
-      [0, 'fighter', 23, 9], [0, 'attacker', 22, 10], [0, 'lst', 20, 7], [0, 'thelico', 23, 5], [0, 'destroyer', 18, 4],
+      [0, 'arty', 23, 3], [0, 'sam', 23, 6], [0, 'aa', 24, 8], [0, 'destroyer', 15, 6], [0, 'destroyer', 15, 10],
+      [0, 'fighter', 23, 9], [0, 'attacker', 22, 10], [0, 'lst', 17, 7], [0, 'thelico', 23, 5], [0, 'destroyer', 15, 4],
       [1, 'inf', 10, 4], [1, 'aa', 11, 5], [1, 'sam', 10, 5], [1, 'arty', 11, 7], [1, 'fighter', 10, 8], [1, 'inf', 9, 5],
       [1, 'destroyer', 5, 4, { tag: 'armada' }], [1, 'destroyer', 6, 8, { tag: 'armada' }], [1, 'destroyer', 4, 11, { tag: 'armada' }],
       [1, 'marine', 3, 5, { tag: 'armada' }], [1, 'marine', 4, 7, { tag: 'armada' }],
       [1, 'bomber', 1, 0], [1, 'fighter', 0, 2],
     ],
     extra: f => [
-      [0, 'destroyer', 16, 3], [0, 'fighter', 21, 4],
-      ...(f.us ? [[0, 'destroyer', 16, 9]] : []),
+      [0, 'destroyer', 13, 3], [0, 'fighter', 21, 4],
+      ...(f.us ? [[0, 'destroyer', 13, 9]] : []),
 
     ],
     briefing: f => [
@@ -378,7 +378,7 @@ Object.assign(MISSIONS, {
       { id: 'armada', type: 'destroyTag', tag: 'armada', text: '殲滅第二波登陸艦隊' },
     ],
     lose: [{ type: 'hq', text: '台灣指揮中樞失守' }],
-    turnLimit: 20,
+    turnLimit: 22,
     hint: '各戰區的勝利越多、決戰越快，結局越好',
     events: [
       { turn: 6, lines: [['解放軍', '轟炸機群，目標台灣西岸！']], spawn: [[1, 'bomber', 0, 6], [1, 'fighter', 1, 12]] },

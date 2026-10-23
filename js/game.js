@@ -278,8 +278,8 @@ function resolveAttack(att, def) {
   }
   // 經驗值：造成傷害、擊破、反擊與承受攻擊都會累積
   const r0 = [rankOf(att), rankOf(def)];
-  att.xp = (att.xp || 0) + dmg * 5 + (def.hp <= 0 ? 15 : 0) + counter;
-  def.xp = (def.xp || 0) + counter * 5 + (att.hp <= 0 ? 15 : 0) + dmg;
+  if (!noRank(att)) att.xp = (att.xp || 0) + dmg * 5 + (def.hp <= 0 ? 15 : 0) + counter;
+  if (!noRank(def)) def.xp = (def.xp || 0) + counter * 5 + (att.hp <= 0 ? 15 : 0) + dmg;
   const promoted = [att, def].filter((u, k) => u.hp > 0 && rankOf(u) > r0[k]);
   for (const u of promoted) addLog(`${SIDES[u.side].name}${UNITS[u.type].name} 升級為${RANKS[rankOf(u)].name}！`, u.side);
   const an = `${SIDES[att.side].name}${UNITS[att.type].name}`, dn = `${SIDES[def.side].name}${UNITS[def.type].name}`;

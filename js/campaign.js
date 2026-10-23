@@ -190,9 +190,7 @@ function missionTurnStart() {
       if (i < 0) continue;
       taken.add(i);
       const [px, py] = ixy(i);
-      const nu = spawnUnit(type, side, px, py, extra);
-      if (M.enemyXp && side !== (G.pside || 0)) nu.xp = M.enemyXp;
-      G.units.push(nu);
+      G.units.push(spawnUnit(type, side, px, py, extra));
       addLog(`${extra && extra.ally ? NATIONS[extra.ally].army : SIDES[side].name}${UNITS[ut].name}抵達戰場`, side);
     }
     if (ev.lines) G.pendingDialogs.push(ev.lines);
@@ -262,7 +260,7 @@ function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = true) 
   G.hq = m.hq;
   G.pside = P;
   G.campFlags = Object.assign({}, flags);
-  if (M.enemyXp) for (const u of G.units) if (u.side !== P) u.xp = M.enemyXp;
+  if (M.horde) addHorde(M.horde, P);
   addLog(`${M.chapter}「${M.title}」作戰開始`);
   // 繼承部隊先進入待命名單，於配置回合由玩家部署（自動測試時直接自動部署）
   G.reserve = [];
@@ -275,6 +273,22 @@ function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = true) 
     if (aiBoth) autoDeploy();
   }
   startTurn();
+}
+// 人海：敵軍（沒有經驗系統）以數量平衡——依比例複製開局部隊，放在原部隊附近
+function addHorde(ratio, P) {
+  const taken = new Set(G.units.map(u => idxOf(u.x, u.y)));
+  const foes = G.units.filter(u => u.side !== P && !UNITS[u.type].ally);
+  let acc = 0;
+  for (const u of foes) {
+    acc += ratio;
+    for (; acc >= 1; acc--) {
+      const i = placeFree(G.terrain, G.w, G.h, u.x, u.y, UNITS[u.type].mt, taken);
+      if (i < 0) continue;
+      taken.add(i);
+      const [x, y] = ixy(i);
+      G.units.push(makeUnit(u.type, u.side, x, y, u.tag ? { tag: u.tag } : null));
+    }
+  }
 }
 // 繼承部隊部署：地面部隊只放在與指揮部陸路相連的格子；飛機、艦艇限 6 格內
 function placeNearHQ(hx, hy, mt, taken) {

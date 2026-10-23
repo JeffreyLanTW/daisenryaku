@@ -46,7 +46,7 @@ const BASE_UNITS = {
   heli:      { cls: 'heli', cat: 'air',  mt: 'air',   cost: 700,  move: 6, range: [1, 1], atk: [6, 7, 4, 0, 4], fuel: 40, upkeep: 2 },
   fighter:   { cls: 'air',  cat: 'air',  mt: 'air',   cost: 900,  move: 9, range: [1, 1], atk: [0, 0, 7, 8, 0], fuel: 50, upkeep: 5 },
   attacker:  { cls: 'air',  cat: 'air',  mt: 'air',   cost: 1000, move: 8, range: [1, 1], atk: [7, 8, 0, 0, 8], fuel: 45, upkeep: 5 },
-  destroyer: { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 900,  move: 5, range: [1, 1], atk: [4, 4, 4, 5, 7] },
+  destroyer: { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 900,  move: 3, range: [1, 1], atk: [4, 4, 4, 5, 7] },
 };
 
 // 專屬兵種（只有部分國家擁有）
@@ -58,8 +58,8 @@ Object.assign(BASE_UNITS, {
   truck:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 200, move: 6, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 2, allow: ['foot'] } },
   thelico: { cls: 'heli', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0, 0], fuel: 40, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
   airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0, 0], fuel: 60, upkeep: 4, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
-  lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 4, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
-  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 4, range: [1, 1], atk: [1, 1, 4, 3, 1], carry: { cap: 4, allow: ['air'], deck: true } },
+  lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 3, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
+  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 3, range: [1, 1], atk: [1, 1, 4, 3, 1], carry: { cap: 4, allow: ['air'], deck: true } },
   train:   { cls: 'hard', cat: 'land', mt: 'rail', cost: 400, move: 12, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 4, allow: ['foot', 'tread', 'amph'] } },
 });
 const RAIL_COST = 200;
@@ -110,11 +110,11 @@ const NATIONS = {
       marine: ['陸戰隊', '海軍陸戰隊（LVTP-5 兩棲車）'],
     },
     mods: [['land', { armor: 0.9 }], ['sam', { atk: 1, cost: 0.9 }], ['aa', { atk: 1, cost: 0.9 }], ['arty', { atk: -1 }]],
-    prefer: { sam: 1.6, aa: 1.4, inf: 1.2, atinf: 1.3 }, adj: 1.08,
+    prefer: { sam: 1.6, aa: 1.4, inf: 1.2, atinf: 1.3 }, adj: 1.11,
   },
   CN: {
     name: '中共', full: '中國人民解放軍', army: '解放軍', code: 'CN', style: 'east', camo: '#556b3b',
-    doctrine: '人民戰爭', desc: '以龐大數量取勝：步兵與陸戰隊極為廉價，火砲數量多；單一武器性能較落後。專屬：轟-6 轟炸機。',
+    doctrine: '人民戰爭', noRank: true, desc: '以龐大數量取勝：部隊極為廉價，步兵、陸戰隊與火砲數量多；單一武器性能較落後，且沒有經驗升級、王牌與科技進化。專屬：轟-6 轟炸機。',
     units: {
       inf: ['解放軍步兵', '81式步槍步兵'], atinf: ['紅箭-8', '紅箭-8 反戰車飛彈'], recon: ['63式裝甲車', '63式裝甲車（YW531）'],
       tank: ['69-II式', '69-II式主力戰車'], arty: ['83式自走砲', '83式 152mm 自走榴彈砲'], rocket: ['81式火箭', '81式 122mm 多管火箭'],
@@ -124,7 +124,7 @@ const NATIONS = {
     },
     mods: [['inf', { cost: 0.7 }], ['marine', { cost: 0.75 }], ['arty', { cost: 0.85 }], ['rocket', { cost: 0.85 }],
       ['tank', { atk: -1, cost: 0.85 }], ['fighter', { atk: -1, cost: 0.85 }], ['heli', { atk: -1 }]],
-    prefer: { inf: 1.6, marine: 1.5, arty: 1.3, rocket: 1.3 }, adj: 0.965,
+    prefer: { inf: 1.6, marine: 1.5, arty: 1.3, rocket: 1.3 }, adj: 0.88,
   },
   US: {
     name: '美國', full: '美國陸海空軍', army: '美軍', code: 'US', style: 'west', camo: '#5a6440',
@@ -231,7 +231,7 @@ const NATIONS = {
       marine: ['兩棲旅', '兩棲作戰旅'],
     },
     mods: [['all', { cost: 0.92 }]],
-    prefer: {}, adj: 1.03,
+    prefer: {}, adj: 0.99,
   },
   PK: {
     name: '巴基斯坦', full: '巴基斯坦武裝部隊', army: '巴軍', code: 'PK', style: 'west', camo: '#6d6847',
@@ -257,7 +257,7 @@ const NATIONS = {
       marine: ['皇家陸戰隊', '皇家海軍陸戰隊'],
     },
     mods: [['all', { cost: 1.08 }], ['inf', { atk: 1 }], ['atinf', { atk: 1 }], ['recon', { atk: 1 }], ['destroyer', { atk: 1 }], ['marine', { atk: 1 }]],
-    prefer: { destroyer: 1.3, recon: 1.3, marine: 1.2 }, adj: 0.985,
+    prefer: { destroyer: 1.3, recon: 1.3, marine: 1.2 }, adj: 0.95,
   },
   FR: {
     name: '法國', full: '法國陸海空軍', army: '法軍', code: 'FR', style: 'west', camo: '#5a6542',
@@ -340,17 +340,6 @@ const EVOLUTION = {
     heli: [['ah64e', null, 'AH-64E', 'AH-64E 阿帕契守護者', { atk: 2 }]],
     recon: [['cm32', null, '雲豹甲車', 'CM-32 雲豹八輪甲車', { atk: 1, armor: 0.9 }]],
   },
-  CN: {
-    tank: [['88b', null, '88B式', '88B式主力戰車', {}], ['96', '88b', '96式', '96式主力戰車', {}], ['99', '96', '99式', '99式主力戰車', {}]],
-    fighter: [['j11', null, '殲-11', '殲-11（Su-27SK）', { atk: 2, move: 1 }], ['j10', null, '殲-10', '殲-10 戰鬥機', { atk: 2 }], ['j11b', 'j11', '殲-11B', '殲-11B 戰鬥機', {}]],
-    attacker: [['jh7', null, '殲轟-7', '殲轟-7 飛豹', { atk: 1, move: 1 }], ['jh7a', 'jh7', '殲轟-7A', '殲轟-7A 飛豹', {}]],
-    destroyer: [['052', null, '旅滬級', '052型旅滬級驅逐艦', {}], ['052c', '052', '旅洋II級', '052C型旅洋II級驅逐艦', {}]],
-    sam: [['s300', null, 'S-300PMU', 'S-300PMU 防空飛彈', { atk: 1, range: [2, 6] }], ['hq9', 's300', '紅旗-9', '紅旗-9 防空飛彈', { atk: 1 }]],
-    heli: [['z10', null, '直-10', '直-10 攻擊直升機', { atk: 2 }]],
-    bomber: [['h6k', null, '轟-6K', '轟-6K 轟炸機', { atk: 1, move: 1 }]],
-    rocket: [['phl03', null, '03式火箭', '03式 300mm 遠程火箭', { atk: 1, range: [3, 6] }]],
-    marine: [['ztd05', null, '05式兩棲', '05式兩棲突擊車', { atk: 1, move: 1 }]],
-  },
   US: {
     tank: [['m1a2', null, 'M1A2', 'M1A2 艾布蘭', {}], ['sep', 'm1a2', 'M1A2 SEP', 'M1A2 SEP v2', {}]],
     fighter: [['f15e', null, 'F-15E', 'F-15E 打擊鷹', { atk: 1 }], ['f22', null, 'F-22A', 'F-22A 猛禽', { atk: 3, stealth: true }]],
@@ -361,7 +350,7 @@ const EVOLUTION = {
     aa: [['avenger', null, '復仇者', 'M1097 復仇者防空系統', {}]],
     rocket: [['m270a1', null, 'M270A1', 'M270A1 多管火箭', {}]],
     stealth: [['b2', null, 'B-2', 'B-2 幽靈轟炸機', { atk: 2, move: 1 }]],
-    carrier: [['nimitz', null, '尼米茲級', '尼米茲級核動力航空母艦', { move: 1, armor: 0.85 }], ['ford', 'nimitz', '福特級', '福特級核動力航空母艦', { atk: 1, armor: 0.9 }]],
+    carrier: [['nimitz', null, '尼米茲級', '尼米茲級核動力航空母艦', { armor: 0.85 }], ['ford', 'nimitz', '福特級', '福特級核動力航空母艦', { atk: 1, armor: 0.9 }]],
   },
   JP: {
     tank: [['type10', null, '10式戰車', '10式戰車', { atk: 1, move: 1 }]],
@@ -405,7 +394,7 @@ const EVOLUTION = {
     fighter: [['su30mki', null, 'Su-30MKI', 'Su-30MKI 側衛', { atk: 2, move: 1 }]],
     destroyer: [['delhi', null, '德里級', '德里級驅逐艦', {}]],
     sam: [['akash', null, '阿卡什', '阿卡什防空飛彈', {}]],
-    carrier: [['vikramaditya', null, '超日王號', '超日王號航空母艦', { move: 1, armor: 0.88 }]],
+    carrier: [['vikramaditya', null, '超日王號', '超日王號航空母艦', { armor: 0.88 }]],
   },
   PK: {
     fighter: [['f16b', null, 'F-16B', 'F-16B 戰隼（雙座）', {}], ['f16c', 'f16b', 'F-16C', 'F-16C Block 52', {}], ['jf17', null, 'JF-17', 'JF-17 雷電', { atk: 1, move: 1 }]],
@@ -416,14 +405,14 @@ const EVOLUTION = {
     fighter: [['typhoon', null, '颱風', '颱風 FGR4 戰鬥機', { atk: 2 }]],
     destroyer: [['type45', null, '45型', '45型勇敢級驅逐艦', { atk: 2 }]],
     heli: [['wah64', null, '阿帕契AH1', '阿帕契 AH1（長弓）', { atk: 2 }]],
-    carrier: [['qe', null, '伊莉莎白女王級', '伊莉莎白女王級航空母艦', { move: 1, armor: 0.85 }]],
+    carrier: [['qe', null, '伊莉莎白女王級', '伊莉莎白女王級航空母艦', { armor: 0.85 }]],
   },
   FR: {
     tank: [['leclerc', null, '勒克萊爾', '勒克萊爾主力戰車', { atk: 2, move: 1 }]],
     fighter: [['rafale', null, '飆風', '飆風戰鬥機', { atk: 2 }]],
     destroyer: [['horizon', null, '地平線級', '地平線級驅逐艦', { atk: 2 }]],
     heli: [['tigre', null, '虎式', '虎式攻擊直升機', { atk: 2 }]],
-    carrier: [['cdg', null, '戴高樂號', '戴高樂號核動力航空母艦', { move: 1, armor: 0.85 }]],
+    carrier: [['cdg', null, '戴高樂號', '戴高樂號核動力航空母艦', { armor: 0.85 }]],
   },
   DE: {
     tank: [['leo2a5', null, '豹2A5', '豹 2A5 主力戰車', {}], ['leo2a6', 'leo2a5', '豹2A6', '豹 2A6 主力戰車', {}]],
@@ -445,13 +434,16 @@ const EVOLUTION = {
 };
 // 經驗階級：新兵、老兵、精銳、王牌。攻擊力 +10%/階、迴避率 6%/12%/20%
 // 進化到第 n 階需要第 n 階級（一階＝老兵、二階＝精銳、三階＝王牌）
+// 國家設定 noRank（解放軍）：沒有經驗、王牌與進化，改以數量與價格平衡
 const RANKS = [
   { name: '新兵', xp: 0, atk: 1, evade: 0 },
   { name: '老兵', xp: 70, atk: 1.1, evade: 0.06 },
   { name: '精銳', xp: 180, atk: 1.2, evade: 0.12 },
   { name: '王牌', xp: 340, atk: 1.3, evade: 0.2 },
 ];
-const rankOf = u => { let r = 0; for (let k = 1; k < RANKS.length; k++) if ((u.xp || 0) >= RANKS[k].xp) r = k; return r; };
+// 此部隊所屬國家沒有經驗系統
+const noRank = u => { const d = UNITS[u.type]; return !!(d && NATIONS[d.nation] && NATIONS[d.nation].noRank); };
+const rankOf = u => { if (noRank(u)) return 0; let r = 0; for (let k = 1; k < RANKS.length; k++) if ((u.xp || 0) >= RANKS[k].xp) r = k; return r; };
 
 function modMatches(sel, base, def) {
   return sel === 'all' || sel === base || sel === def.cat || sel === def.cls;
@@ -487,8 +479,8 @@ function buildNationUnits(nid, side, suffix = '') {
     if (suffix) d.ally = nid;
     UNITS[K(base)] = d;
   }
-  // 進化型號：在前一階之上套用調整
-  for (const [base, nodes] of Object.entries(EVOLUTION[nid] || {})) {
+  // 進化型號：在前一階之上套用調整（noRank 國家沒有進化）
+  for (const [base, nodes] of Object.entries(NATIONS[nid].noRank ? {} : EVOLUTION[nid] || {})) {
     const root = UNITS[K(base)];
     if (!root) continue;
     for (const [id, from, name, model, m] of nodes) {

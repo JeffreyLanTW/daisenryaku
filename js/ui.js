@@ -329,6 +329,7 @@ function atkTable(type) {
   return `<div class="atk">${a.map((v, k) => `<span class="${v ? '' : 'zero'}"><b>${CLASS_SHORT[k]}</b>${v}</span>`).join('')}</div>`;
 }
 function xpHTML(u) {
+  if (noRank(u)) return `<div class="desc">${NATIONS[UNITS[u.type].nation].army}沒有經驗升級、王牌與進化（以數量取勝）</div>`;
   const r = rankOf(u), R = RANKS[r], nx = RANKS[r + 1], xp = u.xp || 0;
   const pct = nx ? Math.round((xp - R.xp) / (nx.xp - R.xp) * 100) : 100;
   const d = UNITS[u.type];
