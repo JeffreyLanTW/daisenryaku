@@ -152,7 +152,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第四章 蘇澳 ----------------
   f4: {
-    camp: 'fs', chapter: '第四章・2012', title: '蘇澳反登陸', place: '宜蘭平原', allies: ['JP'], enemyXp: 160, slots: 4,
+    camp: 'fs', chapter: '第四章・2012', title: '蘇澳反登陸', place: '宜蘭平原', allies: ['JP'], enemyXp: 240, slots: 4,
     map: [
       'MMM^^..=...f..~~~~~~~~',
       'MM^H=.=.b....=~~~~~~~~',
@@ -191,7 +191,8 @@ Object.assign(MISSIONS, {
     turnLimit: 18,
     events: [
       { turn: 2, lines: [['自衛隊', '護衛艦隊抵達宜蘭外海！']], spawn: [[0, 'destroyer', 21, 4, { ally: 'JP' }], [0, 'destroyer', 21, 10, { ally: 'JP' }], [0, 'fighter', 20, 13, { ally: 'JP' }]] },
-      { turn: 6, lines: [['解放軍', '第二梯隊登陸！']], spawn: [[1, 'marine', 17, 7, { tag: 'landing' }], [1, 'tank', 13, 8, { tag: 'landing' }]] },
+      { turn: 4, lines: [['解放軍', '第二梯隊登陸！']], spawn: [[1, 'marine', 17, 7, { tag: 'landing' }], [1, 'tank', 13, 8, { tag: 'landing' }], [1, 'tank', 14, 9, { tag: 'landing' }], [1, 'rocket', 15, 8, { tag: 'landing' }]] },
+      { turn: 7, lines: [['解放軍', '第三梯隊，攻佔宜蘭！']], spawn: [[1, 'marine', 15, 6, { tag: 'landing' }], [1, 'attacker', 19, 5]] },
     ],
     next: r => ({ to: 'f5', flags: { yilanFast: r.turn <= 12 }, note: '東部海岸的威脅解除了。2016 年，共軍主力直撲台北近郊。' }),
   },
@@ -254,7 +255,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第六章 全島防衛 ----------------
   f6: {
-    camp: 'fs', chapter: '第六章・2020', title: '全島防衛戰', place: '台灣本島', allies: ['US'], enemyXp: 260, slots: 6,
+    camp: 'fs', chapter: '第六章・2020', title: '全島防衛戰', place: '台灣本島', allies: ['US'], enemyXp: 340, slots: 6,
     map: [ // mapgen:island
       '^^fMMMMMM^f^^...f.f.....~~.Q~~~~~~~~~~~~~~~~~~~~~~~~~~',
       '^MMMMf^ff^.....r==Z...~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
@@ -332,11 +333,11 @@ Object.assign(MISSIONS, {
     hint: '地圖很大，善用道路與機場調動部隊',
     events: [
       { turn: 3, lines: [['解放軍', '第二梯隊，台中、台南方向增援！']],
-        spawn: [[1, 'marine', 33, 12, { tag: 'landing' }], [1, 'marine', 32, 13, { tag: 'landing' }], [1, 'marine', 30, 22, { tag: 'landing' }]] },
+        spawn: [[1, 'marine', 33, 12, { tag: 'landing' }], [1, 'marine', 32, 13, { tag: 'landing' }], [1, 'marine', 30, 22, { tag: 'landing' }], [1, 'tank', 34, 11, { tag: 'landing' }], [1, 'tank', 31, 22, { tag: 'landing' }]] },
       { turn: 5, lines: [['美軍', '驅逐艦與 F-35 中隊抵達花東外海！']],
         spawn: [[0, 'destroyer', 50, 14, { ally: 'US' }], [0, 'fighter', 49, 16, { ally: 'US' }], [0, 'attacker', 48, 18, { ally: 'US' }]] },
       { turn: 6, lines: [['解放軍', '花蓮、台南方向，持續登陸！']], spawn: [[1, 'marine', 48, 11, { tag: 'landing' }], [1, 'marine', 29, 23, { tag: 'landing' }], [1, 'marine', 29, 21, { tag: 'landing' }]] },
-      { turn: 8, lines: [['解放軍', '第三梯隊，目標台北！']], spawn: [[1, 'marine', 40, 3, { tag: 'landing' }], [1, 'tank', 40, 4, { tag: 'landing' }], [1, 'marine', 39, 3, { tag: 'landing' }], [1, 'bomber', 18, 2]] },
+      { turn: 8, lines: [['解放軍', '第三梯隊，目標台北！']], spawn: [[1, 'marine', 40, 3, { tag: 'landing' }], [1, 'tank', 40, 4, { tag: 'landing' }], [1, 'marine', 39, 3, { tag: 'landing' }], [1, 'tank', 41, 5, { tag: 'landing' }], [1, 'rocket', 42, 4, { tag: 'landing' }], [1, 'bomber', 18, 2]] },
       { turn: 11, lines: [['解放軍', '預備隊投入台中！']], spawn: [[1, 'marine', 33, 10, { tag: 'landing' }], [1, 'marine', 32, 12, { tag: 'landing' }], [1, 'tank', 35, 9, { tag: 'landing' }], [1, 'bomber', 14, 4]] },
     ],
     next: r => ({ to: 'f7', flags: { islandFast: r.turn <= 16 }, note: '登陸部隊被趕下了海。三年後，國軍決定主動出擊，奪回台灣海峽的控制權。' }),
@@ -424,7 +425,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 終章 第一島鏈 ----------------
   f8: {
-    camp: 'fs', chapter: '終章・2027', title: '第一島鏈', place: '台灣・先島群島・巴士海峽', allies: ['US', 'JP', 'PH'], enemyXp: 300, slots: 8,
+    camp: 'fs', chapter: '終章・2027', title: '第一島鏈', place: '台灣・先島群島・巴士海峽', allies: ['US', 'JP', 'PH'], enemyXp: 340, slots: 8,
     map: [ // mapgen:chain
       'ff..^f^^....~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~b~',
       '...fMM^.Q.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~A~~~',
@@ -502,10 +503,10 @@ Object.assign(MISSIONS, {
       { turn: 7, lines: [['解放軍', '第二梯隊出港，增援南路！']],
         spawn: [[1, 'destroyer', 3, 18, { tag: 'taskforce' }], [1, 'destroyer', 5, 17, { tag: 'taskforce' }], [1, 'bomber', 5, 5]] },
       { turn: 6, lines: [['解放軍', '登陸分隊，奪取與那國與石垣！']],
-        spawn: [[1, 'marine', 23, 7], [1, 'marine', 24, 7], [1, 'marine', 25, 7], [1, 'destroyer', 24, 6], [1, 'marine', 29, 7], [1, 'marine', 30, 7], [1, 'marine', 31, 7], [1, 'destroyer', 30, 6]] },
+        spawn: [[1, 'marine', 23, 7], [1, 'marine', 24, 7], [1, 'marine', 25, 7], [1, 'marine', 26, 7], [1, 'destroyer', 24, 6], [1, 'marine', 29, 7], [1, 'marine', 30, 7], [1, 'marine', 31, 7], [1, 'marine', 32, 7], [1, 'destroyer', 30, 6], [1, 'bomber', 6, 4]] },
       { turn: 8, lines: [['解放軍', '北路，全速衝向宮古海峽！']],
         spawn: [[1, 'destroyer', 13, 1, { tag: 'taskforce' }], [1, 'destroyer', 11, 2, { tag: 'taskforce' }], [1, 'marine', 35, 5], [1, 'marine', 36, 5], [1, 'marine', 37, 5], [1, 'destroyer', 36, 4]] },
-      { turn: 9, lines: [['解放軍', '南路陸戰隊，搶灘澎湖！']], spawn: [[1, 'marine', 6, 12], [1, 'marine', 6, 11], [1, 'marine', 7, 14], [1, 'marine', 7, 10], [1, 'destroyer', 6, 13], [1, 'bomber', 5, 5]] },
+      { turn: 9, lines: [['解放軍', '南路陸戰隊，搶灘澎湖！']], spawn: [[1, 'marine', 6, 12], [1, 'marine', 6, 11], [1, 'marine', 7, 14], [1, 'marine', 7, 10], [1, 'marine', 7, 12], [1, 'marine', 6, 10], [1, 'destroyer', 6, 13], [1, 'bomber', 5, 5]] },
     ],
     next: r => r.obj === 'taskforce' ? { to: 'F1', note: '兩支特遣艦隊在島鏈前全軍覆沒。' } : { to: 'F2', note: '島鏈守住了，但代價慘重。' },
     onLose: () => ({ to: 'F3', note: '島鏈被突破了。' }),
