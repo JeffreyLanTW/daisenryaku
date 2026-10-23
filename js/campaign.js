@@ -267,27 +267,76 @@ function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = true) 
   if (inherit) {
     G.funds[P] += inherit.funds || 0;
     const taken = new Set(G.units.map(u => idxOf(u.x, u.y)));
-    const [hx, hy] = ixy(G.caps[P]);
+    // 部署錨點：任務指定，否則為我方初始部隊中最靠近重心的地面部隊（前線集結區）
+    let hx, hy;
+    if (M.deployAt) [hx, hy] = M.deployAt;
+    else {
+      const own = G.units.filter(u => u.side === P && UNITS[u.type].cat === 'land');
+      if (own.length) {
+        const mx = own.reduce((t, u) => t + u.x, 0) / own.length, my = own.reduce((t, u) => t + u.y, 0) / own.length;
+        const a = own.reduce((b, u) => Math.hypot(u.x - mx, u.y - my) < Math.hypot(b.x - mx, b.y - my) ? u : b);
+        [hx, hy] = [a.x, a.y];
+      } else [hx, hy] = ixy(G.caps[P]);
+    }
+    let placed = 0, refund = 0;
     for (const e of inherit.units || []) {
       const key = e.node ? `${e.base}_${P}_${e.node}` : `${e.base}_${P}`;
       if (!UNITS[key]) continue;
-      const i = placeFree(G.terrain, G.w, G.h, hx, hy, UNITS[key].mt, taken);
-      if (i < 0) continue;
+      const i = placeNearHQ(hx, hy, UNITS[key].mt, taken);
+      if (i < 0) { refund += UNITS[key].cost; continue; }
       taken.add(i);
       const [x, y] = ixy(i);
-      const u = makeUnit(key, P, x, y, { xp: e.xp, vet: true });
-      G.units.push(u);
+      G.units.push(makeUnit(key, P, x, y, { xp: e.xp, vet: true }));
+      placed++;
     }
-    if ((inherit.units || []).length) addLog(`繼承部隊 ${inherit.units.length} 支抵達戰場`, P);
-    // 敵軍依繼承兵力增援（劇情可設定 scale）
-    const sc = CAMPAIGNS[campOf(M)].scale || 0;
+    if (placed) addLog(`繼承部隊 ${placed} 支抵達戰場`, P);
+    if (refund) { G.funds[P] += refund; addLog(`部分繼承部隊因部署空間不足，轉為經費 💰${refund}`, P); }
+    // 敵軍依繼承兵力增援：七成直接派兵（取自本關敵軍兵種組成）、三成為預算
+    const sc = M.scale != null ? M.scale : CAMPAIGNS[campOf(M)].scale || 0;
     if (sc) {
+      const E = 1 - P;
       const val = G.units.filter(u => u.vet).reduce((t, u) => t + UNITS[u.type].cost, 0);
-      const bonus = Math.round(val * sc / 100) * 100;
-      if (bonus) { G.funds[1 - P] += bonus; addLog(`敵軍得知我軍兵力，增調預算 💰${bonus}`, 1 - P); }
+      let budget = val * sc * 0.7;
+      // 兵種池：本關敵軍的所有兵種；複製自任務目標部隊者一併加入目標（殲滅目標隨兵力增加）
+      const pool = G.units.filter(u => u.side === E && !UNITS[u.type].carry).map(u => ({ type: u.type, tag: u.tag }));
+      const taken = new Set(G.units.map(u => idxOf(u.x, u.y)));
+      const [ex, ey] = ixy(G.caps[E]);
+      let n = 0;
+      for (let k = 0; pool.length && k < 40 && budget >= 200; k++) {
+        const { type, tag } = pool[k % pool.length], cost = UNITS[type].cost;
+        if (cost > budget) continue;
+        const i = placeFree(G.terrain, G.w, G.h, ex, ey, UNITS[type].mt, taken);
+        if (i < 0) break;
+        taken.add(i);
+        const [x, y] = ixy(i);
+        const nu = makeUnit(type, E, x, y, Object.assign(M.enemyXp ? { xp: M.enemyXp } : {}, tag ? { tag } : {}));
+        G.units.push(nu);
+        budget -= cost; n++;
+      }
+      const funds = Math.round((val * sc * 0.3 + budget) / 100) * 100;
+      G.funds[E] += funds;
+      if (n || funds) addLog(`敵軍得知我軍兵力，增派 ${n} 支部隊、預算 💰${funds}`, E);
     }
   }
   startTurn();
+}
+// 繼承部隊部署：地面部隊只放在與指揮部陸路相連的格子；飛機、艦艇限 6 格內
+function placeNearHQ(hx, hy, mt, taken) {
+  const W = G.w, start = hy * W + hx, land = ['foot', 'tread', 'amph', 'rail'].includes(mt);
+  const ok = i => moveCost(G.terrain[i], mt) !== Infinity && !taken.has(i);
+  const seen = new Set([start]), q = [start];
+  while (q.length) {
+    const c = q.shift();
+    if (c !== start && ok(c)) return c;
+    const [cx, cy] = ixy(c);
+    for (const [nx, ny] of neighbors(cx, cy)) {
+      const n = ny * W + nx;
+      if (seen.has(n)) continue;
+      if (land ? moveCost(G.terrain[n], mt) === Infinity : hexDist(nx, ny, hx, hy) > 6) continue;
+      seen.add(n); q.push(n);
+    }
+  }
+  return ok(start) ? start : -1;
 }
 // 可帶入下一場的部隊上限
 const CARRY_MAX = 6;

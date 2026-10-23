@@ -56,6 +56,7 @@ node tools/balance.js t1 c5 --runs 20  # 指定任務
 node tools/balance.js --nations --games 8  # 16 國循環賽
 node tools/balance.js --chain fs --runs 60  # 整部戰役連續模擬（部隊延續、失敗重試）
 node tools/balance.js f4 --carry 7,150     # 帶入 7 支經驗 150 的部隊測試單一任務
+node tools/balance.js --sweep fs --runs 40   # 帶入兵力掃描：每關用 0/4/8/12 支繼承部隊測試，標出 45–75% 以外的格子
 ```
 
 AI 同時扮演雙方，統計玩家方勝率與平均回合數。真人通常比 AI 強，AI 勝率 40–70% 約等於「有挑戰但打得過」。

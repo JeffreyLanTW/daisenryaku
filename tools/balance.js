@@ -10,7 +10,7 @@ const opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null
 const RUNS = +(opt('--runs') || 8);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
-const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns'].includes(args[k - 1]));
+const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only'].includes(args[k - 1]));
 
 // 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫
 const ctx = {
@@ -31,6 +31,20 @@ vm.runInContext(`
     u.x = x; u.y = y;
     if (UNITS[u.type].fuel !== undefined) u.fuel -= cost;
     u.moved = true;
+  }
+  // 模擬繼承部隊：n 支、經驗 xp 的典型編組
+  function synthCarry(n, xp) {
+    if (!n) return null;
+    // 每場隨機抽取組成，比重接近一般部隊（避免固定順序造成特定兵種剋制的偏差）
+    const W = { inf: 3, tank: 2, arty: 1, aa: 1, marine: 1, atinf: 1, fighter: 1, sam: 0.5, destroyer: 0.5, heli: 0.5, rocket: 0.5, attacker: 0.5 };
+    const keys = Object.keys(W), tot = keys.reduce((t, k) => t + W[k], 0);
+    const units = [];
+    for (let i = 0; i < n; i++) {
+      let r = Math.random() * tot, pick = keys[0];
+      for (const k of keys) { r -= W[k]; if (r <= 0) { pick = k; break; } }
+      units.push({ base: pick, node: null, xp });
+    }
+    return { units, funds: 300 };
   }
   async function performAttack(att, def) {
     const r = resolveAttack(att, def);
@@ -86,6 +100,44 @@ const problems = vm.runInContext(`(() => {
 })()`, ctx);
 console.log(problems.length ? '地圖問題：\n  ' + problems.join('\n  ') : '地圖檢查：全部通過');
 if (CHECK_ONLY) process.exit(problems.length ? 1 : 0);
+
+// ----- 帶入兵力掃描：每關用不同繼承兵力測試，確認難度不會因帶入多寡而失衡 -----
+if (args.includes('--sweep')) {
+  const cid = opt('--sweep'), sizes = (opt('--sizes') || '0,4,8,12').split(',').map(Number);
+  const LO = 45, HI = 75;
+  vm.runInContext(`
+    async function simOnce(id, n, xp) {
+      setupMission(id, {}, true, synthCarry(n, xp), true);
+      let guard = 0;
+      while (G.winner == null && guard++ < 160) { await aiTurn(); if (G.winner != null) break; endTurn(); }
+      return !!(G.result && G.result.win);
+    }
+  `, ctx);
+  (async () => {
+    const C = vm.runInContext(`CAMPAIGNS['${cid}']`, ctx);
+    const only = opt('--only') ? opt('--only').split(',') : null;
+    const allIds = C.tree.flatMap(t => t[1]).filter(id => vm.runInContext(`!!MISSIONS['${id}']`, ctx));
+    console.log(`\n帶入兵力掃描：${C.title}（每格 ${RUNS} 場；目標 ${LO}–${HI}%，範圍外標 ✗）\n`);
+    console.log('任務   經驗  ' + sizes.map(n => `帶入${String(n).padStart(2)}`).join('  '));
+    let bad = 0;
+    for (const [k, id] of allIds.entries()) {
+      if (only && !only.includes(id)) continue;
+      const xp = [0, 60, 130, 200, 280, 340][Math.min(k, 5)];
+      const cells = [];
+      for (const n of sizes) {
+        if (k === 0 && n > 0) { cells.push('   —  '); continue; }
+        let w = 0;
+        for (let r = 0; r < RUNS; r++) if (await ctx.simOnce(id, n, xp)) w++;
+        const pct = Math.round(w / RUNS * 100), ok = pct >= LO && pct <= HI;
+        if (!ok) bad++;
+        cells.push(`${String(pct).padStart(3)}%${ok ? ' ' : '✗'} `);
+      }
+      console.log(`${id.padEnd(6)} ${String(xp).padStart(4)}  ${cells.join('  ')}`);
+    }
+    console.log(bad ? `\n${bad} 格超出目標範圍` : '\n全部落在目標範圍內');
+  })();
+  return;
+}
 
 // ----- 整部戰役連續模擬：部隊與旗標延續、失敗最多重試 3 次 -----
 if (args.includes('--chain')) {
@@ -187,12 +239,6 @@ const DEFAULT_FLAGS = {
   c5: [{ us: true, kr: true, de: true, taichung: 'held' }, { us: false, kr: false, de: false, taichung: 'held' }, { us: true, kr: true, de: false, taichung: 'lost' }],
 };
 vm.runInContext(`
-  // 模擬繼承部隊：n 支、經驗 xp 的典型編組
-  function synthCarry(n, xp) {
-    if (!n) return null;
-    const mix = ['inf', 'tank', 'arty', 'aa', 'marine', 'atinf', 'fighter', 'sam', 'tank', 'inf', 'destroyer', 'heli', 'rocket', 'attacker', 'tank', 'marine', 'inf', 'arty', 'fighter', 'aa'];
-    return { units: mix.slice(0, n).map(base => ({ base, node: null, xp })), funds: 300 };
-  }
   async function simulate(id, flags) {
     setupMission(id, flags, true, synthCarry(CARRY_N, CARRY_XP));
     let guard = 0;
