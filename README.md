@@ -4,10 +4,10 @@
 
 ## 執行
 
-直接用瀏覽器開啟 `index.html` 即可；或啟動本機伺服器：
+直接用瀏覽器開啟 `docs/index.html` 即可；或啟動本機伺服器：
 
 ```bash
-python3 -m http.server 8765
+python3 -m http.server 8765 --directory docs
 ```
 
 然後開啟 http://localhost:8765
@@ -30,20 +30,20 @@ python3 -m http.server 8765
 
 | 檔案 | 內容 |
 |---|---|
-| `js/data.js` | 地形與兵種數值 |
-| `js/map.js` | 隨機地圖產生 |
-| `js/game.js` | 遊戲規則：移動、戰鬥、佔領、回合 |
-| `js/ai.js` | 電腦 AI |
-| `js/campaign.js` | 劇情系統：任務地圖、勝敗判定、分支、繼承、配置回合 |
-| `js/campaign_tw.js` | 劇情「第三次世界大戰」 |
-| `js/campaign_fs.js` | 劇情「福爾摩沙之盾」 |
-| `js/audio.js` | 背景音樂與音效（Web Audio 合成） |
-| `js/saves.js` | 存檔系統 |
+| `docs/js/data.js` | 地形與兵種數值 |
+| `docs/js/map.js` | 隨機地圖產生 |
+| `docs/js/game.js` | 遊戲規則：移動、戰鬥、佔領、回合 |
+| `docs/js/ai.js` | 電腦 AI |
+| `docs/js/campaign.js` | 劇情系統：任務地圖、勝敗判定、分支、繼承、配置回合 |
+| `docs/js/campaign_tw.js` | 劇情「第三次世界大戰」 |
+| `docs/js/campaign_fs.js` | 劇情「福爾摩沙之盾」 |
+| `docs/js/audio.js` | 背景音樂與音效（Web Audio 合成） |
+| `docs/js/saves.js` | 存檔系統 |
 | `tools/balance.js` | 劇情地圖檢查與 AI 自動對戰平衡測試 |
-| `tools/mapgen.js`、`tools/maps.js`、`tools/mapsync.js` | 大地圖產生器：以經緯度海岸線、山脈、道路與據點畫出地圖字串，`mapsync` 寫回 `campaign_fs.js` 標記 `// mapgen:<名稱>` 的地圖 |
-| `js/icons.js` | 部隊圖示：型號造型對照、各國迷彩與國籍標誌 |
-| `js/render.js` | Canvas 繪圖與動畫 |
-| `js/ui.js` | 操作、面板、對話框 |
+| `tools/mapgen.js`、`tools/maps.js`、`tools/mapsync.js` | 大地圖產生器：以經緯度海岸線、山脈、道路與據點畫出地圖字串，`mapsync` 寫回 `docs/js/campaign_fs.js` 標記 `// mapgen:<名稱>` 的地圖 |
+| `docs/js/icons.js` | 部隊圖示：型號造型對照、各國迷彩與國籍標誌 |
+| `docs/js/render.js` | Canvas 繪圖與動畫 |
+| `docs/js/ui.js` | 操作、面板、對話框 |
 
 ## 線上遊玩
 

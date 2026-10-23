@@ -3,7 +3,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const { draw } = require('./mapgen.js'), SPECS = require('./maps.js');
-const file = path.join(__dirname, '..', 'js', 'campaign_fs.js');
+const file = path.join(__dirname, '..', 'docs', 'js', 'campaign_fs.js');
 let src = fs.readFileSync(file, 'utf8');
 src = src.replace(/( *)map: \[ \/\/ mapgen:(\w+)\n(?:\1  '.*',\n)*\1\],/g, (all, ind, name) => {
   const { rows } = draw(SPECS[name]);

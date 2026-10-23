@@ -4,7 +4,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
-const root = path.join(__dirname, '..');
+const root = path.join(__dirname, '..', 'docs');
 const args = process.argv.slice(2);
 const opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
 const RUNS = +(opt('--runs') || 8);
