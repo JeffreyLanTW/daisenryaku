@@ -164,6 +164,8 @@ function orderStep(u, reach) {
 }
 
 // ----- 搭載 -----
+// 部隊所屬軍隊名稱（友軍顯示自己的國家）
+const armyName = u => UNITS[u.type].ally ? NATIONS[UNITS[u.type].ally].army : SIDES[u.side].name;
 function canLoad(t, u) {
   const c = UNITS[t.type].carry, d = UNITS[u.type];
   if (!c || t.side !== u.side || d.carry || d.cat === 'sea') return false;
@@ -176,7 +178,7 @@ function loadInto(u, t) {
   u.done = u.moved = true;
   t.cargo = t.cargo || [];
   t.cargo.push(u);
-  addLog(`${SIDES[u.side].name}${UNITS[u.type].name} 搭上 ${UNITS[t.type].name}`, u.side);
+  addLog(`${armyName(u)}${UNITS[u.type].name} 搭上 ${UNITS[t.type].name}`, u.side);
 }
 // 可卸載的相鄰格
 function unloadTiles(t, c) {
@@ -197,7 +199,7 @@ function unloadAt(t, c, i) {
   const [x, y] = ixy(i);
   c.x = x; c.y = y; c.done = c.moved = true;
   G.units.push(c);
-  addLog(`${SIDES[c.side].name}${UNITS[c.type].name} 自 ${UNITS[t.type].name} 卸載`, c.side);
+  addLog(`${armyName(c)}${UNITS[c.type].name} 自 ${UNITS[t.type].name} ${UNITS[c.type].cat === 'air' ? '起飛' : '卸載'}`, c.side);
 }
 
 // ----- 鐵路鋪設 -----

@@ -32,12 +32,12 @@ Object.assign(MISSIONS, {
       '~~~~~~~~~~~~~~~~~~',
       '~~~~~~~~~~~~~~~~~~',
     ],
-    funds: [500, 950],
+    funds: [400, 1500],
     units: [
       [0, 'marine', 10, 5], [0, 'marine', 10, 7], [0, 'inf', 9, 7], [0, 'aa', 10, 6], [0, 'arty', 11, 7],
       [0, 'destroyer', 13, 6], [0, 'fighter', 11, 5],
       [1, 'marine', 3, 2], [1, 'marine', 3, 4], [1, 'marine', 4, 3], [1, 'marine', 5, 2], [1, 'marine', 5, 4],
-      [1, 'destroyer', 4, 1], [1, 'destroyer', 5, 5], [1, 'destroyer', 6, 3],
+      [1, 'destroyer', 4, 1], [1, 'destroyer', 5, 5], [1, 'destroyer', 6, 3], [1, 'marine', 4, 5],
       [1, 'fighter', 1, 0], [1, 'attacker', 0, 2], [1, 'attacker', 1, 4],
     ],
     briefing: () => [
@@ -59,7 +59,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第二章 馬祖 ----------------
   f2: {
-    camp: 'fs', chapter: '第二章・2003', title: '馬祖封鎖戰', place: '南竿・北竿', enemyXp: 40, scale: 1.3,
+    camp: 'fs', chapter: '第二章・2003', title: '馬祖封鎖戰', place: '南竿・北竿', enemyXp: 80, slots: 3,
     map: [
       'MM^..f.~~~~~~~~~~~~~',
       'M^.r..=~~~~.f.~~~~~~',
@@ -75,7 +75,7 @@ Object.assign(MISSIONS, {
       'MMM^..~~~~~~~~~~~~~~',
       'MMMM^.~~~~~~~~~~~~~~',
     ],
-    funds: [1700, 1200],
+    funds: [1200, 3900],
     units: [
       [0, 'inf', 10, 6], [0, 'inf', 12, 3], [0, 'aa', 12, 7], [0, 'arty', 11, 8], [0, 'destroyer', 15, 6],
       [0, 'tank', 10, 8], [0, 'atinf', 11, 6], [0, 'inf', 12, 2],
@@ -104,7 +104,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第三章 海峽空戰 ----------------
   f3: {
-    camp: 'fs', chapter: '第三章・2008', title: '台海空戰', place: '台灣海峽', allies: ['US'], enemyXp: 160, scale: 3.4,
+    camp: 'fs', chapter: '第三章・2008', title: '台海空戰', place: '台灣海峽', allies: ['US'], enemyXp: 240, slots: 4,
     map: [
       '^Z.~~~~~~~~~~~~~~~=A..',
       'X..~~~~~~~~~~~~~~~=..f',
@@ -117,16 +117,17 @@ Object.assign(MISSIONS, {
       '~~~~~~~~~~~~~~~~~~=.A^',
       '~~~~~~~~~~~~~~~~~~=..^',
       '~~~~~~~~~~~~~~~~~~~=.^',
-      '~~~~~~~~~~~~~~~~~~~.P.',
+      '~~~~~~~~~~~~~~~~~~~~P.',
       '~~~~~~~~~~~~~~~~~~~~..',
     ],
-    funds: f => [1000 + (f.beigan ? 500 : 0), 2200],
+    funds: f => [600 + (f.beigan ? 500 : 0), 5600],
     units: [
-      [0, 'fighter', 20, 0], [0, 'fighter', 20, 8], [0, 'sam', 20, 4], [0, 'sam', 20, 7], [0, 'aa', 11, 6], [0, 'inf', 10, 5],
-      [0, 'sam', 19, 3], [0, 'fighter', 21, 2], [0, 'aa', 19, 9],
+      [0, 'fighter', 20, 0], [0, 'fighter', 20, 8], [0, 'sam', 20, 4], [0, 'aa', 11, 6], [0, 'inf', 10, 5],
+      [0, 'fighter', 21, 2], [0, 'aa', 19, 9],
       [1, 'fighter', 1, 0, { tag: 'wing' }], [1, 'fighter', 2, 1, { tag: 'wing' }], [1, 'fighter', 1, 5, { tag: 'wing' }],
       [1, 'bomber', 0, 2, { tag: 'wing' }], [1, 'bomber', 0, 4, { tag: 'wing' }], [1, 'attacker', 2, 3, { tag: 'wing' }],
       [1, 'attacker', 2, 0, { tag: 'wing' }], [1, 'fighter', 3, 2, { tag: 'wing' }], [1, 'bomber', 1, 3, { tag: 'wing' }],
+      [1, 'fighter', 4, 1, { tag: 'wing' }], [1, 'fighter', 3, 4, { tag: 'wing' }], [1, 'attacker', 4, 3, { tag: 'wing' }],
       [1, 'destroyer', 5, 6], [1, 'destroyer', 6, 2], [1, 'destroyer', 7, 9], [1, 'sam', 0, 1], [1, 'marine', 4, 4], [1, 'marine', 5, 8],
     ],
     briefing: f => [
@@ -151,7 +152,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 第四章 蘇澳 ----------------
   f4: {
-    camp: 'fs', chapter: '第四章・2012', title: '蘇澳反登陸', place: '宜蘭平原', allies: ['JP'], enemyXp: 90, scale: 1.5,
+    camp: 'fs', chapter: '第四章・2012', title: '蘇澳反登陸', place: '宜蘭平原', allies: ['JP'], enemyXp: 160, slots: 4,
     map: [
       'MMM^^..=...f..~~~~~~~~',
       'MM^H=.=.b....=~~~~~~~~',
@@ -168,10 +169,10 @@ Object.assign(MISSIONS, {
       'MMMMMM^^^.=..^^..~~~~~',
       'MMMMMM^^^^.=.^^^.~~~~~',
     ],
-    funds: [1300, 2200],
+    funds: [900, 5800],
     units: [
       [0, 'tank', 9, 5], [0, 'inf', 10, 6], [0, 'atinf', 11, 9], [0, 'arty', 9, 8], [0, 'aa', 8, 4],
-      [0, 'tank', 10, 4], [0, 'inf', 9, 7],
+      [0, 'tank', 10, 4], [0, 'inf', 9, 7], [0, 'atinf', 10, 9],
       [1, 'marine', 15, 6, { tag: 'landing' }], [1, 'marine', 14, 8, { tag: 'landing' }], [1, 'marine', 15, 10, { tag: 'landing' }],
       [1, 'tank', 14, 7, { tag: 'landing' }], [1, 'tank', 13, 9, { tag: 'landing' }], [1, 'tank', 15, 9, { tag: 'landing' }],
       [1, 'arty', 15, 8, { tag: 'landing' }], [1, 'aa', 16, 10, { tag: 'landing' }], [1, 'atinf', 14, 10, { tag: 'landing' }],
@@ -197,7 +198,7 @@ Object.assign(MISSIONS, {
 
   // ---------------- 終章 淡水河 ----------------
   f5: {
-    camp: 'fs', chapter: '終章・2016', title: '淡水河決戰', place: '台北盆地', allies: ['US', 'JP'], enemyXp: 120, scale: 0.8,
+    camp: 'fs', chapter: '終章・2016', title: '淡水河決戰', place: '台北盆地', allies: ['US', 'JP'], enemyXp: 200, slots: 6,
     map: [
       '~~~~~~~~~^^MMM^^..~~~~~~',
       '~~~~~~~~^^MMMM^^...~~~~~',
@@ -215,7 +216,7 @@ Object.assign(MISSIONS, {
       '~~~~~~..=........=.^^MM~',
       '~~~~~~~...=.......~^MMMM',
     ],
-    funds: f => [1800 + (f.yilanFast ? 400 : 0), 1300],
+    funds: f => [1300 + (f.yilanFast ? 400 : 0), 3800],
     units: [
       [0, 'tank', 13, 5], [0, 'inf', 12, 7], [0, 'atinf', 11, 9], [0, 'sam', 15, 9], [0, 'arty', 14, 8],
       [0, 'tank', 12, 5], [0, 'tank', 13, 9], [0, 'inf', 11, 6], [0, 'rocket', 15, 7], [0, 'aa', 14, 6], [0, 'atinf', 10, 10], [0, 'inf', 13, 7],
@@ -262,7 +263,7 @@ Object.assign(ENDINGS, {
 });
 
 CAMPAIGNS.fs = {
-  title: '福爾摩沙之盾', sub: '國軍篇', player: 0, nations: ['TW', 'CN'], start: 'f1', key: 'daisenryaku_campaign_fs', carryMax: 20, scale: 1.3,
+  title: '福爾摩沙之盾', sub: '國軍篇', player: 0, nations: ['TW', 'CN'], start: 'f1', key: 'daisenryaku_campaign_fs', carryMax: 10,
   desc: '全程指揮國軍，從 1999 年東沙到 2016 年淡水河。部隊跨章節延續、進化，並與美日援軍並肩作戰（架空歷史）。',
   tree: [['1999', ['f1']], ['2003', ['f2']], ['2008', ['f3']], ['2012', ['f4']], ['2016', ['f5']], ['結局', ['F1', 'F2', 'F3']]],
 };

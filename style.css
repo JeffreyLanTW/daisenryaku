@@ -414,3 +414,15 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   #btnSave, #btnLoad, #btnHelp, .sep { display: none; }
   #btnMore { display: inline-block; }
 }
+#deployBar { flex-direction: column; align-items: stretch; gap: 6px; width: min(760px, calc(100% - 80px)); max-width: none; }
+#deployBar .dtitle { font-size: 13px; }
+#reserveList { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.rchip { display: flex; align-items: center; gap: 4px; padding: 3px 8px 3px 3px; flex: none; }
+.rchip canvas { width: 48px; height: 37px; }
+.rchip span { display: flex; flex-direction: column; font-size: 12px; text-align: left; }
+.rchip small { color: var(--muted); font-size: 10px; }
+.rchip.on { border-color: #7dff9a; background: #1f3a28; }
+.rdone { font-size: 12px; color: var(--muted); padding: 6px; }
+#deployBar #deployGo { align-self: flex-end; }
+@media (max-height: 520px) and (orientation: landscape) { .rchip canvas { width: 36px; height: 28px; } #deployBar .dtitle { font-size: 11px; } }
+#deployBar .slots { color: var(--gold); font-weight: 700; margin-left: 4px; }

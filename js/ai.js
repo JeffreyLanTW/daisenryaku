@@ -27,6 +27,11 @@ function distField(goals, mt) {
 
 function ownBases(side, cat, self = null) {
   const m = new Map();
+  // 航母也是飛機的降落點（有空位時）
+  if (cat === 'air') for (const t of G.units) {
+    const c = UNITS[t.type].carry;
+    if (t.side === side && c && c.deck && (t.cargo || []).length < c.cap) m.set(idxOf(t.x, t.y), 0);
+  }
   for (let i = 0; i < G.owner.length; i++) {
     const t = TERRAIN[G.terrain[i]];
     if (G.owner[i] !== side || !t.heal || !t.heal.includes(cat)) continue;
@@ -89,6 +94,7 @@ async function aiAct(u, token) {
     return;
   }
   const d = UNITS[u.type], s = u.side, W = G.w;
+  if (d.carry && !d.carry.deck) aiUnload(u);
   const reach = computeReach(u);
   const baseField = d.fuel !== undefined ? distField(ownBases(s, 'air', u), 'air') : null;
   const { goals, mode } = aiGoals(u, baseField);
@@ -99,13 +105,19 @@ async function aiAct(u, token) {
   let best = { score: -Infinity, dest: start, act: null };
 
   for (const [i, v] of reach) {
-    if (!v.canStop || v.load) continue;
+    if (!v.canStop) continue;
+    if (v.load) {
+      const tr = unitById(v.load);
+      if (d.cat === 'air' && tr && UNITS[tr.type].carry.deck && (mode === 'retreat' || (baseField && u.fuel - v.cost < d.upkeep * 3)))
+        { if (500 > best.score) best = { score: 500, dest: i, act: { kind: 'land', t: tr } }; }
+      continue;
+    }
     const [x, y] = ixy(i), t = TERRAIN[G.terrain[i]];
     const consider = (sc, act) => { if (sc > best.score) best = { score: sc, dest: i, act }; };
     let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : mode === 'vip' ? 14 : 9 * ag);
     if (d.cat === 'land') base += t.def * 0.4;
     base += missionHoldBonus(u, i);
-    const thrW = mode === 'retreat' || mode === 'vip' ? 3 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
+    const thrW = mode === 'retreat' || mode === 'vip' || (d.carry && d.carry.deck) ? 3 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
     base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW / (mode === 'attack' ? ag : 1);
     if (t.build && G.owner[i] === s && d.cat !== 'air') base -= 45;
     if (t.prop && G.owner[i] !== s && !d.capture) base -= 30;
@@ -144,6 +156,8 @@ async function aiAct(u, token) {
   }
   if (token !== gameToken) return;
   const act = best.act;
+  if (act && act.kind === 'land') { loadInto(u, act.t); refreshPanel(); return; }
+  if (d.carry && !d.carry.deck) aiUnload(u);
   if (act && act.kind === 'attack' && act.target.hp > 0) {
     ensureVisible(u.x, u.y);
     await performAttack(u, act.target, SETTINGS.aiStep / 110);
@@ -215,9 +229,35 @@ function aiProduce(s) {
   }
 }
 
+// 運輸工具：接近敵軍（6 格內）或已在陸上時卸下所有搭載部隊
+function aiUnload(t) {
+  if (!t.cargo || !t.cargo.length) return;
+  const near = G.units.some(e => e.side !== t.side && hexDist(e.x, e.y, t.x, t.y) <= 6);
+  if (!near && UNITS[t.type].cat !== 'land') return;
+  for (const c of [...t.cargo]) {
+    const tiles = unloadTiles(t, c);
+    if (!tiles.length) break;
+    unloadAt(t, c, tiles[0]);
+  }
+}
+// 航母：讓艦載機起飛（起飛後當回合可行動）；燃料不足或受損的留在艦上補給
+function aiLaunch(side, filter = () => true) {
+  for (const t of G.units.filter(u => u.side === side && (u.cargo || []).length && UNITS[u.type].carry.deck && filter(u))) {
+    for (const c of [...t.cargo]) {
+      const cd = UNITS[c.type];
+      if (c.hp < 6 || (cd.fuel !== undefined && c.fuel < cd.fuel * 0.6)) continue;
+      const tiles = unloadTiles(t, c);
+      if (!tiles.length) break;
+      unloadAt(t, c, tiles[0]);
+      c.done = c.moved = false;
+    }
+  }
+}
+
 async function aiTurn() {
   const token = gameToken, s = G.cur;
   await sleep(SETTINGS.aiStep * 3);
+  aiLaunch(s);
   const prio = u => {
     const d = UNITS[u.type];
     return isIndirect(u.type) ? 0 : d.capture ? 3 : d.cat === 'air' ? 2 : 1;
@@ -238,6 +278,7 @@ async function aiTurn() {
 // 友軍（電腦指揮）：玩家結束回合前，替同陣營的援軍行動
 async function aiAllyTurn() {
   const token = gameToken;
+  aiLaunch(G.cur, u => UNITS[u.type].ally);
   for (const u of G.units.filter(e => e.side === G.cur && UNITS[e.type].ally && !e.done)) {
     if (token !== gameToken || G.winner != null) return;
     if (u.hp <= 0) continue;

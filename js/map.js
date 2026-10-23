@@ -209,6 +209,13 @@ function generateMap(w, h, seed) {
     for (const hub of hubs.slice(0, 4)) layRail(railPath(bc, hub));
   }
 
+  // 港口必須臨海：任一方的港口不臨海時，雙方都改成城市（維持公平）
+  for (let i = 0; i < N; i++) {
+    if (terrain[i] !== 'port') continue;
+    const j = mir(i), coastal = k => nbs(k).some(n => terrain[n] === 'sea');
+    if (!coastal(i) || terrain[j] !== 'port' || !coastal(j)) { terrain[i] = 'city'; if (terrain[j] === 'port') terrain[j] = 'city'; }
+  }
+
   // 初始所有權
   const owner = new Array(N).fill(-1);
   for (let i = 0; i < N; i++) {

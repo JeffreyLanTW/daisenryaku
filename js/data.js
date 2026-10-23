@@ -46,7 +46,7 @@ const BASE_UNITS = {
   heli:      { cls: 'heli', cat: 'air',  mt: 'air',   cost: 700,  move: 6, range: [1, 1], atk: [6, 7, 4, 0, 4], fuel: 40, upkeep: 2 },
   fighter:   { cls: 'air',  cat: 'air',  mt: 'air',   cost: 900,  move: 9, range: [1, 1], atk: [0, 0, 7, 8, 0], fuel: 50, upkeep: 5 },
   attacker:  { cls: 'air',  cat: 'air',  mt: 'air',   cost: 1000, move: 8, range: [1, 1], atk: [7, 8, 0, 0, 8], fuel: 45, upkeep: 5 },
-  destroyer: { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 900,  move: 6, range: [1, 2], atk: [5, 5, 5, 6, 7] },
+  destroyer: { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 900,  move: 5, range: [1, 1], atk: [4, 4, 4, 5, 7] },
 };
 
 // 專屬兵種（只有部分國家擁有）
@@ -58,8 +58,8 @@ Object.assign(BASE_UNITS, {
   truck:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 200, move: 6, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 2, allow: ['foot'] } },
   thelico: { cls: 'heli', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0, 0], fuel: 40, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
   airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0, 0], fuel: 60, upkeep: 4, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
-  lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 5, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
-  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 5, range: [1, 1], atk: [1, 1, 4, 3, 1], carry: { cap: 4, allow: ['air'], deck: true } },
+  lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 4, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
+  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 4, range: [1, 1], atk: [1, 1, 4, 3, 1], carry: { cap: 4, allow: ['air'], deck: true } },
   train:   { cls: 'hard', cat: 'land', mt: 'rail', cost: 400, move: 12, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 4, allow: ['foot', 'tread', 'amph'] } },
 });
 const RAIL_COST = 200;

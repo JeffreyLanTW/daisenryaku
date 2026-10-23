@@ -264,59 +264,15 @@ function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = true) 
   G.campFlags = Object.assign({}, flags);
   if (M.enemyXp) for (const u of G.units) if (u.side !== P) u.xp = M.enemyXp;
   addLog(`${M.chapter}「${M.title}」作戰開始`);
+  // 繼承部隊先進入待命名單，於配置回合由玩家部署（自動測試時直接自動部署）
+  G.reserve = [];
   if (inherit) {
     G.funds[P] += inherit.funds || 0;
-    const taken = new Set(G.units.map(u => idxOf(u.x, u.y)));
-    // 部署錨點：任務指定，否則為我方初始部隊中最靠近重心的地面部隊（前線集結區）
-    let hx, hy;
-    if (M.deployAt) [hx, hy] = M.deployAt;
-    else {
-      const own = G.units.filter(u => u.side === P && UNITS[u.type].cat === 'land');
-      if (own.length) {
-        const mx = own.reduce((t, u) => t + u.x, 0) / own.length, my = own.reduce((t, u) => t + u.y, 0) / own.length;
-        const a = own.reduce((b, u) => Math.hypot(u.x - mx, u.y - my) < Math.hypot(b.x - mx, b.y - my) ? u : b);
-        [hx, hy] = [a.x, a.y];
-      } else [hx, hy] = ixy(G.caps[P]);
-    }
-    let placed = 0, refund = 0;
     for (const e of inherit.units || []) {
       const key = e.node ? `${e.base}_${P}_${e.node}` : `${e.base}_${P}`;
-      if (!UNITS[key]) continue;
-      const i = placeNearHQ(hx, hy, UNITS[key].mt, taken);
-      if (i < 0) { refund += UNITS[key].cost; continue; }
-      taken.add(i);
-      const [x, y] = ixy(i);
-      G.units.push(makeUnit(key, P, x, y, { xp: e.xp, vet: true }));
-      placed++;
+      if (UNITS[key]) G.reserve.push(makeUnit(key, P, -1, -1, { xp: e.xp, vet: true }));
     }
-    if (placed) addLog(`繼承部隊 ${placed} 支抵達戰場`, P);
-    if (refund) { G.funds[P] += refund; addLog(`部分繼承部隊因部署空間不足，轉為經費 💰${refund}`, P); }
-    // 敵軍依繼承兵力增援：七成直接派兵（取自本關敵軍兵種組成）、三成為預算
-    const sc = M.scale != null ? M.scale : CAMPAIGNS[campOf(M)].scale || 0;
-    if (sc) {
-      const E = 1 - P;
-      const val = G.units.filter(u => u.vet).reduce((t, u) => t + UNITS[u.type].cost, 0);
-      let budget = val * sc * 0.7;
-      // 兵種池：本關敵軍的所有兵種；複製自任務目標部隊者一併加入目標（殲滅目標隨兵力增加）
-      const pool = G.units.filter(u => u.side === E && !UNITS[u.type].carry).map(u => ({ type: u.type, tag: u.tag }));
-      const taken = new Set(G.units.map(u => idxOf(u.x, u.y)));
-      const [ex, ey] = ixy(G.caps[E]);
-      let n = 0;
-      for (let k = 0; pool.length && k < 40 && budget >= 200; k++) {
-        const { type, tag } = pool[k % pool.length], cost = UNITS[type].cost;
-        if (cost > budget) continue;
-        const i = placeFree(G.terrain, G.w, G.h, ex, ey, UNITS[type].mt, taken);
-        if (i < 0) break;
-        taken.add(i);
-        const [x, y] = ixy(i);
-        const nu = makeUnit(type, E, x, y, Object.assign(M.enemyXp ? { xp: M.enemyXp } : {}, tag ? { tag } : {}));
-        G.units.push(nu);
-        budget -= cost; n++;
-      }
-      const funds = Math.round((val * sc * 0.3 + budget) / 100) * 100;
-      G.funds[E] += funds;
-      if (n || funds) addLog(`敵軍得知我軍兵力，增派 ${n} 支部隊、預算 💰${funds}`, E);
-    }
+    if (aiBoth) autoDeploy();
   }
   startTurn();
 }
@@ -340,7 +296,7 @@ function placeNearHQ(hx, hy, mt, taken) {
 }
 // 可帶入下一場的部隊上限
 const CARRY_MAX = 6;
-// 配置區：我方據點周圍 2 格與初始部隊周圍 1 格
+// 配置區：我方據點周圍 2 格與任務初始部隊周圍 1 格
 function deployZone() {
   const P = G.pside, zone = new Set();
   const addAround = (cx, cy, r) => {
@@ -350,41 +306,96 @@ function deployZone() {
     }
   };
   for (let i = 0; i < G.owner.length; i++) {
-    if (G.owner[i] === P && TERRAIN[G.terrain[i]].build) { const [x, y] = ixy(i); addAround(x, y, 2); }
+    if (G.owner[i] === P && TERRAIN[G.terrain[i]].prop) { const [x, y] = ixy(i); addAround(x, y, 2); }
   }
-  for (const u of G.units) if (u.side === P) addAround(u.x, u.y, 1);
+  for (const u of G.units) if (u.side === P && !u.vet) addAround(u.x, u.y, 1);
   return zone;
 }
+const deployOk = (u, i) => UIS.deployZone && UIS.deployZone.has(i) && !unitAt(...ixy(i)) && moveCost(G.terrain[i], UNITS[u.type].mt) !== Infinity;
+// 自動部署待命部隊：優先靠近我方任務部隊的重心（前線）
+function autoDeploy() {
+  const P = G.pside, zone = (typeof UIS !== 'undefined' && UIS.deployZone) || deployZone();
+  const own = G.units.filter(u => u.side === P && !u.vet);
+  const [mx, my] = own.length ? [own.reduce((t, u) => t + u.x, 0) / own.length, own.reduce((t, u) => t + u.y, 0) / own.length] : ixy(G.caps[P]);
+  const tiles = [...zone].sort((a, b) => { const [ax, ay] = ixy(a), [bx, by] = ixy(b); return Math.hypot(ax - mx, ay - my) - Math.hypot(bx - mx, by - my); });
+  const left = [];
+  for (const u of G.reserve) {
+    if (slotsLeft() <= 0) { left.push(u); continue; }
+    const i = tiles.find(t => !unitAt(...ixy(t)) && moveCost(G.terrain[t], UNITS[u.type].mt) !== Infinity);
+    if (i === undefined) { left.push(u); continue; }
+    [u.x, u.y] = ixy(i);
+    G.units.push(u);
+  }
+  const placed = G.reserve.length - left.length;
+  G.reserve = left;
+  if (placed) addLog(`繼承部隊 ${placed} 支部署完成`, P);
+  if (left.length) addLog(`${left.length} 支部隊未部署（名額或空間不足），留在待命名單帶到下一場`, P);
+}
+// 部署名額：任務可設定 slots（可部署的繼承部隊數量）
+const deploySlots = () => { const M = MISSIONS[G.missionId]; return M && M.slots != null ? M.slots : 99; };
+const slotsLeft = () => deploySlots() - G.units.filter(u => u.vet && u.side === G.pside).length;
 function startDeploy() {
+  if (!G.reserve || !G.reserve.length) return turnIntro();
   UIS.mode = 'deploy';
   UIS.deployZone = deployZone();
   UIS.deploySel = null;
-  const bar = $('#deployBar');
-  bar.classList.remove('hidden');
+  $('#deployBar').classList.remove('hidden');
+  renderDeployBar();
   refreshPanel();
 }
+function renderDeployBar() {
+  const list = $('#reserveList');
+  const slots = deploySlots();
+  $('#deployBar .dtitle').innerHTML = `🪖 <b>部隊配置</b>：從待命名單點選繼承部隊，再點綠色配置區放下${slots < 99 ? `　<span class="slots">名額 ${slots - slotsLeft()} / ${slots}</span>` : ''}`;
+  list.innerHTML = G.reserve.map((u, k) => `<button class="rchip ${UIS.deploySel === u ? 'on' : ''}" data-k="${k}">
+    <canvas width="72" height="56" data-t="${u.type}"></canvas><span>${UNITS[u.type].name}<small>${RANKS[rankOf(u)].name}</small></span></button>`).join('')
+    || '<span class="rdone">全部部署完成，可以點選已部署的繼承部隊重新放置</span>';
+  list.querySelectorAll('canvas[data-t]').forEach(c => { const g = c.getContext('2d'); g.scale(1.5, 1.5); drawCounter(g, 24, 19, c.dataset.t, G.pside); });
+  list.querySelectorAll('.rchip').forEach(b => b.onclick = () => {
+    const u = G.reserve[+b.dataset.k];
+    UIS.deploySel = UIS.deploySel === u ? null : u;
+    renderDeployBar(); refreshPanel();
+  });
+}
 function endDeploy() {
+  if (G.reserve && G.reserve.length) autoDeploy();
   $('#deployBar').classList.add('hidden');
   UIS.deployZone = null; UIS.deploySel = null;
   UIS.mode = 'idle';
   turnIntro();
 }
+// 配置回合點擊：只有繼承部隊可以部署或移動，任務原有部隊固定
 function deployClick(x, y) {
   const i = idxOf(x, y), u = unitAt(x, y), sel = UIS.deploySel, P = G.pside;
-  const okFor = (unit, idx) => UIS.deployZone.has(idx) && moveCost(G.terrain[idx], UNITS[unit.type].mt) !== Infinity;
   if (u && u.side === P) {
-    if (sel && sel !== u && okFor(sel, i) && okFor(u, idxOf(sel.x, sel.y))) {
-      const [sx, sy] = [sel.x, sel.y];
-      sel.x = u.x; sel.y = u.y; u.x = sx; u.y = sy;
-      UIS.deploySel = null;
-      sfx('click');
-    } else UIS.deploySel = sel === u ? null : u;
-  } else if (sel && !u && okFor(sel, i)) {
-    sel.x = x; sel.y = y;
-    UIS.deploySel = null;
+    if (!u.vet) { showToast('任務原有部隊固定在原位'); UIS.inspect = u; return refreshPanel(); }
+    // 點已部署的繼承部隊：收回待命名單並選取
+    G.units = G.units.filter(e => e !== u);
+    u.x = u.y = -1;
+    G.reserve.push(u);
+    UIS.deploySel = u;
+  } else if (sel && slotsLeft() <= 0) {
+    showToast(`本關最多部署 ${deploySlots()} 支繼承部隊`);
+  } else if (sel && deployOk(sel, i)) {
+    [sel.x, sel.y] = [x, y];
+    G.reserve = G.reserve.filter(e => e !== sel);
+    G.units.push(sel);
+    UIS.deploySel = G.reserve[0] || null;
     sfx('foot');
-  } else UIS.deploySel = null;
+  } else if (sel) showToast('請放在綠色配置區的空格');
+  renderDeployBar();
   refreshPanel();
+}
+// 可帶入下一場的部隊：場上、搭載中與待命中的我方部隊（不含友軍）
+function carryCandidates(P) {
+  const out = [];
+  for (const u of G.units) {
+    if (u.side !== P || UNITS[u.type].ally) continue;
+    out.push(u);
+    for (const c of u.cargo || []) if (!UNITS[c.type].ally) out.push(c);
+  }
+  for (const u of G.reserve || []) out.push(u);
+  return out.filter(u => u.hp > 0);
 }
 function launchMission(id, allyAI = true) {
   clearSel(); setInspect(null); FX.length = 0;
@@ -432,7 +443,7 @@ function showDebrief() {
 function chooseCarry(br) {
   const P = G.pside, nid = G.nations[P];
   const cap = CAMPAIGNS[CAMP_ID].carryMax || CARRY_MAX;
-  const list = G.units.filter(u => u.side === P && !UNITS[u.type].ally).sort((a, b) => (b.xp || 0) - (a.xp || 0) || UNITS[b.type].cost - UNITS[a.type].cost);
+  const list = carryCandidates(P).sort((a, b) => (b.xp || 0) - (a.xp || 0) || UNITS[b.type].cost - UNITS[a.type].cost);
   const carryFunds = Math.min(1500, Math.round(G.funds[P] * 0.3 / 10) * 10);
   const pre = new Set(list.slice(0, cap).map(u => u.id));
   openModal(`<h2>部隊繼承</h2>

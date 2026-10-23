@@ -672,8 +672,7 @@ function drawOverlays(now) {
     if (UIS.deploySel) {
       const ds = UIS.deploySel, mt = UNITS[ds.type].mt;
       for (const i of UIS.deployZone) if (!unitAt(...ixy(i)) && moveCost(G.terrain[i], mt) !== Infinity) fillHex(i, 'rgba(90,220,120,0.35)');
-      const [cx, cy] = tileCenter(ds.x, ds.y);
-      hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = '#7dff9a'; ctx.lineWidth = 3; ctx.stroke();
+      if (ds.x >= 0) { const [cx, cy] = tileCenter(ds.x, ds.y); hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = '#7dff9a'; ctx.lineWidth = 3; ctx.stroke(); }
     }
   }
   if (UIS.mode === 'selected' && UIS.reach) {

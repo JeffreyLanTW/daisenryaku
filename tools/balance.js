@@ -63,6 +63,9 @@ const problems = vm.runInContext(`(() => {
   for (const [id, M] of Object.entries(MISSIONS)) {
     const P = CAMPAIGNS[campOf(M)].player, w = M.map[0].length;
     M.map.forEach((r, y) => {
+      for (let x = 0; x < r.length; x++) {
+        if ('PQp'.includes(r[x]) && !neighbors(x, y, w, M.map.length).some(([nx, ny]) => M.map[ny][nx] === '~')) out.push(id + ' 港口 ' + x + ',' + y + ' 不臨海');
+      }
       if (r.length !== w) out.push(id + ' 第' + y + '列長度 ' + r.length + ' ≠ ' + w);
       for (const ch of r) if (!LEGEND[ch]) out.push(id + ' 未知字元 ' + ch);
     });
@@ -122,7 +125,7 @@ if (args.includes('--sweep')) {
     let bad = 0;
     for (const [k, id] of allIds.entries()) {
       if (only && !only.includes(id)) continue;
-      const xp = [0, 60, 130, 200, 280, 340][Math.min(k, 5)];
+      const xp = [0, 40, 90, 140, 190, 240][Math.min(k, 5)];
       const cells = [];
       for (const n of sizes) {
         if (k === 0 && n > 0) { cells.push('   —  '); continue; }
@@ -164,7 +167,7 @@ if (args.includes('--chain')) {
         Object.assign(flags, br.flags || {}, gained);
         if (r.win) {
           const P = G.pside, cap = C.carryMax || CARRY_MAX;
-          const list = G.units.filter(u => u.side === P && !UNITS[u.type].ally).sort((a, b) => (b.xp || 0) - (a.xp || 0) || UNITS[b.type].cost - UNITS[a.type].cost).slice(0, cap);
+          const list = carryCandidates(P).sort((a, b) => (b.xp || 0) - (a.xp || 0) || UNITS[b.type].cost - UNITS[a.type].cost).slice(0, cap);
           inherit = { units: list.map(u => ({ base: UNITS[u.type].base, node: UNITS[u.type].node || null, xp: u.xp || 0 })), funds: Math.min(1500, Math.round(G.funds[P] * 0.3 / 10) * 10) };
         }
         if (ENDINGS[br.to]) { log.push({ end: br.to }); break; }
