@@ -9,7 +9,7 @@ const UIS = {
 };
 const SETTINGS = { aiStep: 110, labels: true };
 try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETTINGS.labels = l === '1'; } catch (e) { /* 忽略 */ }
-let modalDismissable = false;
+let modalDismissable = false, modalOpenedAt = 0;
 let lastPointerType = 'mouse';
 const isTouch = () => lastPointerType === 'touch' || lastPointerType === 'pen';
 const SIZES = { s: [18, 13, '小'], m: [24, 15, '中'], l: [30, 19, '大'], xl: [40, 25, '超大'], xxl: [54, 33, '終極大'] };
@@ -430,6 +430,7 @@ function refreshPanel() {
 // ----- 對話框 -----
 function openModal(html, onReady, dismissable = false) {
   modalDismissable = dismissable;
+  modalOpenedAt = performance.now();
   $('#resultBar').classList.add('hidden');
   $('#modalBox').innerHTML = html;
   $('#modal').classList.remove('hidden');
@@ -803,7 +804,9 @@ function setupInput() {
   };
   $('#zIn').onclick = () => { const [vw, vh] = viewSize(); zoomAt(vw / 2, vh / 2, 1.2); };
   $('#zOut').onclick = () => { const [vw, vh] = viewSize(); zoomAt(vw / 2, vh / 2, 1 / 1.2); };
-  $('#modal').addEventListener('pointerdown', e => { if (e.target.id === 'modal' && modalDismissable) closeModal(); });
+  // 觸控開啟對話框的同一次點擊，可能落在剛出現的按鈕上（Android）：開啟後 0.4 秒內忽略點擊
+  $('#modal').addEventListener('click', e => { if (performance.now() - modalOpenedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
+  $('#modal').addEventListener('pointerdown', e => { if (performance.now() - modalOpenedAt < 400) return; if (e.target.id === 'modal' && modalDismissable) closeModal(); });
 }
 
 function resize() {
