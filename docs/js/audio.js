@@ -266,39 +266,62 @@ function stopAllSfx() {
   }
 }
 
-// 全面硬靜音：清除排程、停止所有節點、主增益歸零並 suspend AudioContext
-function stopAllAudio() {
+// 終極關閉開關：停止所有節點後直接 close() 整個 AudioContext。
+// iPad WebKit 的音訊在獨立程序中渲染，stop()/disconnect()/suspend() 偶有未生效而持續發聲；
+// close() 會釋放硬體輸出，該 context 產生的任何聲音（含漏網節點）都必定消失。
+function killContext() {
   stopMusic();
   stopAllSfx();
-  if (!AUDIO.ctx) return;
-  if (AUDIO.master) setParam(AUDIO.master.gain, 0);
-  try { AUDIO.ctx.suspend().catch(() => {}); } catch (e) { /* 忽略 */ }
+  const c = AUDIO.ctx;
+  if (!c) return;
+  if (AUDIO.master) {
+    setParam(AUDIO.master.gain, 0);
+    try { AUDIO.master.disconnect(); } catch (e) { /* 忽略 */ }
+  }
+  AUDIO.ctx = null;
+  AUDIO.master = null;
+  AUDIO.comp = null;
+  AUDIO.bgmFilter = null;
+  AUDIO.music = null;
+  AUDIO.musicConnected = false;
+  AUDIO.sfx = null;
+  AUDIO.noiseWhite = null;
+  AUDIO.noisePink = null;
+  AUDIO.resumeP = null;
+  AUDIO.bgmCache = {};
+  try {
+    const p = c.close ? c.close() : c.suspend();
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* 忽略 */ }
+}
+
+// 全面硬靜音：清除排程、停止所有節點並關閉 AudioContext
+function stopAllAudio() {
+  killContext();
 }
 
 function setAudio(kind, on) {
   AUDIO.on[kind] = !!on;
   saveAudio();
-  if (!AUDIO.ctx) audioInit();
-  if (!AUDIO.ctx) return;
-
-  if (kind === 'music') {
-    if (!AUDIO.on.music) {
-      // 立即同步停止所有音源並將 BGM 匯流排從主輸出實體斷開，確保 iOS WebKit 100% 關得掉
-      stopMusic();
-      setParam(AUDIO.music.gain, 0);
-      if (AUDIO.musicConnected) {
-        try { AUDIO.music.disconnect(); } catch (e) { /* 忽略 */ }
-        AUDIO.musicConnected = false;
-      }
-    }
-  } else if (kind === 'sfx') {
-    if (!AUDIO.on.sfx) stopAllSfx();
-    setParam(AUDIO.sfx.gain, AUDIO.on.sfx ? SFX_GAIN : 0);
-  }
 
   if (audioAllOff()) {
     stopAllAudio();
     return;
+  }
+  if (kind === 'music' && !AUDIO.on.music) {
+    // 關閉音樂：整個 context 關閉重建（於同一觸控手勢內，iOS 允許新 context 立即運作），
+    // 保證舊 BGM 無論處於何種狀態都不可能繼續發聲；音效改由新 context 播放
+    killContext();
+    audioInit();
+    return;
+  }
+  if (!AUDIO.ctx) {
+    audioInit();
+    return;
+  }
+  if (kind === 'sfx') {
+    if (!AUDIO.on.sfx) stopAllSfx();
+    setParam(AUDIO.sfx.gain, AUDIO.on.sfx ? SFX_GAIN : 0);
   }
   // 至少一項開啟：恢復主增益並（經互斥鎖）解除 suspend
   setParam(AUDIO.master.gain, MASTER_GAIN);
@@ -1015,6 +1038,8 @@ if (typeof window !== 'undefined') {
   ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev =>
     window.addEventListener(ev, audioInit, { once: false, passive: true })
   );
+  // 頁面離開或進入 bfcache 時直接關閉 context，避免背景頁面殘留的舊實例持續播放音樂
+  window.addEventListener('pagehide', killContext);
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (!AUDIO.ctx) return;

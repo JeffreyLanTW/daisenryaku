@@ -686,6 +686,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v55</span><span class="cl-date">2026.10.25</span><p>修正 iPad Mini 關閉音樂／音效後仍持續播放背景音樂：關閉音樂時直接關閉整個 AudioContext 並於同一觸控內重建音效專用 context，釋放硬體輸出，WebKit 未生效的 stop()／disconnect()／suspend() 不再殘留聲音；音樂與音效全關時不保留任何音訊引擎；頁面離開或進入 bfcache 時亦自動關閉，避免背景舊頁面持續播放。</p></div>
         <div class="cl-item"><span class="cl-ver">v54</span><span class="cl-date">2026.10.25</span><p>iPad Mini 音訊全面修正：AudioContext 解鎖改用單一 resume 互斥鎖與 BGM 世代權杖，杜絕觸控雙重觸發造成的雙重背景音樂；建立音效聲部與延遲計時器註冊表，音樂／音效全關時硬性清除所有排程、主增益歸零並暫停音訊引擎；柔化銅管與貝斯泛音、加入 7kHz 柔化低通、75Hz 次低頻高通與峰值限幅器，降低單聲部增益與平滑起音，消除小喇叭刺耳與破音。</p></div>
         <div class="cl-item"><span class="cl-ver">v53</span><span class="cl-date">2026.10.25</span><p>徹底修復 iPad Mini 6 音樂無法關閉、無法切換曲目與串音問題：廢除 WebKit 非同步 OfflineAudioContext，改用 100% 同步零延遲 PCM 波形合成與單音閘門控制（前後音符絕不重疊）；關閉音樂時實體斷開音訊匯流排；修正選單視窗連續點擊 0.4 秒防誤觸攔截問題。</p></div>
         <div class="cl-item"><span class="cl-ver">v52</span><span class="cl-date">2026.10.25</span><p>修正 iPad Mini 6 / iOS Safari 雙重背景音樂重疊問題：徹底移除殘留的舊版單音主旋律與高頻琶音軌、改為純粹一體化的工業管弦合奏，並建立 iOS WebKit 多重觸控與非同步渲染互斥鎖（同步強制斷開舊音源節點）。</p></div>
@@ -792,7 +793,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v54</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v55</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
