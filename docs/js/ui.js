@@ -166,7 +166,7 @@ async function performAttack(att, def, speed = 1) {
   await sleep(420 * speed);
   if (res.countered) {
     sfxFire(UNITS[def.type].base);
-    if (res.counter > 0) setTimeout(() => sfx('explode', { big: att.hp <= 0 }), 120);
+    if (res.counter > 0) audioTimer(() => sfx('explode', { big: att.hp <= 0 }), 120);
     fxBoom(ax, ay, att.hp <= 0);
     fxText(ax, ay, res.cEvaded ? '迴避!' : att.hp <= 0 ? '擊破!' : `-${res.counter}`, res.cEvaded ? '#8fe3ff' : '#ff9b8a');
     await sleep(420 * speed);
@@ -686,6 +686,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v54</span><span class="cl-date">2026.10.25</span><p>iPad Mini 音訊全面修正：AudioContext 解鎖改用單一 resume 互斥鎖與 BGM 世代權杖，杜絕觸控雙重觸發造成的雙重背景音樂；建立音效聲部與延遲計時器註冊表，音樂／音效全關時硬性清除所有排程、主增益歸零並暫停音訊引擎；柔化銅管與貝斯泛音、加入 7kHz 柔化低通、75Hz 次低頻高通與峰值限幅器，降低單聲部增益與平滑起音，消除小喇叭刺耳與破音。</p></div>
         <div class="cl-item"><span class="cl-ver">v53</span><span class="cl-date">2026.10.25</span><p>徹底修復 iPad Mini 6 音樂無法關閉、無法切換曲目與串音問題：廢除 WebKit 非同步 OfflineAudioContext，改用 100% 同步零延遲 PCM 波形合成與單音閘門控制（前後音符絕不重疊）；關閉音樂時實體斷開音訊匯流排；修正選單視窗連續點擊 0.4 秒防誤觸攔截問題。</p></div>
         <div class="cl-item"><span class="cl-ver">v52</span><span class="cl-date">2026.10.25</span><p>修正 iPad Mini 6 / iOS Safari 雙重背景音樂重疊問題：徹底移除殘留的舊版單音主旋律與高頻琶音軌、改為純粹一體化的工業管弦合奏，並建立 iOS WebKit 多重觸控與非同步渲染互斥鎖（同步強制斷開舊音源節點）。</p></div>
         <div class="cl-item"><span class="cl-ver">v51</span><span class="cl-date">2026.10.25</span><p>導入 90 年代《大戰略》工業管弦無縫迴圈 BGM 引擎（48kHz 離線立體聲渲染、尾韻交叉淡化零交越接縫、-16 LUFS 母帶響度校準與中高頻挖空濾波，確保戰術音效清晰穿透）。</p></div>
@@ -791,7 +792,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v53</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v54</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -1014,13 +1015,15 @@ function setupInput() {
   const mb = $('#zMusic'), sb = $('#zSfx');
   const syncAudioBtns = () => { mb.classList.toggle('on', AUDIO.on.music); sb.classList.toggle('on', AUDIO.on.sfx); sb.textContent = AUDIO.on.sfx ? '🔊' : '🔇'; };
   syncAudioBtns();
-  mb.onclick = () => { setAudio('music', !AUDIO.on.music); syncAudioBtns(); showToast(AUDIO.on.music ? '背景音樂：開' : '背景音樂：關'); };
-  sb.onclick = () => { setAudio('sfx', !AUDIO.on.sfx); syncAudioBtns(); if (AUDIO.on.sfx) sfx('click'); showToast(AUDIO.on.sfx ? '音效：開' : '音效：關'); };
-  $('#zTrack').onclick = () => {
+  // iPad 觸控 + 合成 click 雙重觸發防護：同一按鈕 300ms 內只接受一次切換
+  const tapGuard = fn => { let last = -1e9; return e => { const now = performance.now(); if (now - last < 300) return; last = now; fn(e); }; };
+  mb.onclick = tapGuard(() => { setAudio('music', !AUDIO.on.music); syncAudioBtns(); showToast(AUDIO.on.music ? '背景音樂：開' : '背景音樂：關'); });
+  sb.onclick = tapGuard(() => { setAudio('sfx', !AUDIO.on.sfx); syncAudioBtns(); if (AUDIO.on.sfx) sfx('click'); showToast(AUDIO.on.sfx ? '音效：開' : '音效：關'); });
+  $('#zTrack').onclick = tapGuard(() => {
     const n = cycleTrack();
     syncAudioBtns();
     showToast(`🎼 ${AUDIO.on.track + 1}/${TRACKS.length} ${n}`);
-  };
+  });
   document.addEventListener('click', e => { if (e.target.closest('button')) sfx('click'); });
   const lb = $('#zLabel');
   lb.classList.toggle('on', SETTINGS.labels);

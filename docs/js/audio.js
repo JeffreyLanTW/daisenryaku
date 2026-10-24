@@ -16,11 +16,22 @@ const AUDIO = {
   bgmSource: null,
   bgmBus: null,
   bgmCache: {},
+  bgmGen: 0,        // BGM 世代權杖：每次停止／啟動皆遞增，舊世代的任何續行動作一律作廢
+  resumeP: null,    // 單一共用 resume 承諾（互斥鎖），多重觸控事件只會觸發一次
+  voices: new Set(),  // 所有存活中的音效振盪器／噪音源節點註冊表
+  timers: new Set(),  // 所有音訊相關 setTimeout 註冊表
   tense: false,
   manual: false,
   lastAt: {},
   lastActionAt: 0,
 };
+
+// 增益常數（iPad Mini 小喇叭調校：保留多聲部疊加餘裕，避免削波失真）
+const MASTER_GAIN = 0.80;
+const MUSIC_GAIN = 0.36;
+const SFX_GAIN = 0.58;
+const VOICE_GAIN = 0.72;
+const MAX_VOICES = 40;
 
 try {
   const saved = JSON.parse(localStorage.getItem('daisenryaku_audio'));
@@ -86,19 +97,64 @@ function createNoiseBuffers(ctx) {
   return { white: wBuf, pink: pBuf };
 }
 
-// 僅於使用者真實互動手勢中建立與解鎖 AudioContext
+const audioAllOff = () => !AUDIO.on.music && !AUDIO.on.sfx;
+
+// 單一共用 resume 互斥鎖：touchend + click 等雙重觸發只會產生一個 resume()，
+// 若 resume 完成前使用者已全部靜音或頁面轉入背景，完成後立即重新 suspend
+function resumeCtx() {
+  const c = AUDIO.ctx;
+  if (!c) return Promise.resolve(false);
+  if (c.state === 'running') return Promise.resolve(true);
+  if (AUDIO.resumeP) return AUDIO.resumeP;
+  let p;
+  try { p = Promise.resolve(c.resume()); } catch (e) { p = Promise.reject(e); }
+  AUDIO.resumeP = p.then(() => {
+    AUDIO.resumeP = null;
+    if (audioAllOff() || (typeof document !== 'undefined' && document.hidden)) {
+      try { c.suspend().catch(() => {}); } catch (e) { /* 忽略 */ }
+      return false;
+    }
+    return c.state === 'running';
+  }, () => {
+    AUDIO.resumeP = null;
+    return false;
+  });
+  return AUDIO.resumeP;
+}
+
+// 音訊計時器註冊表：靜音時可一次清除所有尚未觸發的延遲音效
+function audioTimer(fn, ms) {
+  const id = setTimeout(() => {
+    AUDIO.timers.delete(id);
+    fn();
+  }, ms);
+  AUDIO.timers.add(id);
+  return id;
+}
+
+function clearAudioTimers() {
+  for (const id of AUDIO.timers) clearTimeout(id);
+  AUDIO.timers.clear();
+}
+
+function setParam(param, val) {
+  try {
+    param.cancelScheduledValues(0);
+    if (AUDIO.ctx) param.setValueAtTime(val, AUDIO.ctx.currentTime);
+    param.value = val;
+  } catch (e) { /* 忽略 */ }
+}
+
+// 僅於使用者真實互動手勢中建立與解鎖 AudioContext（可重複呼叫，完全冪等）
 function audioInit() {
   if (typeof window === 'undefined') return;
   if (AUDIO.ctx) {
-    if (AUDIO.ctx.state === 'suspended' || AUDIO.ctx.state === 'interrupted') {
-      AUDIO.ctx.resume().then(() => {
-        if (AUDIO.on.music && !AUDIO.bgmSource) startMusic();
-      }).catch(() => {});
-    } else if (AUDIO.on.music && !AUDIO.bgmSource) {
-      startMusic();
-    }
+    if (audioAllOff()) return;
+    resumeCtx();
+    if (AUDIO.on.music && !AUDIO.bgmSource) startMusic();
     return;
   }
+  if (audioAllOff()) return;
 
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
@@ -107,17 +163,38 @@ function audioInit() {
   AUDIO.ctx = c;
 
   const master = c.createGain();
-  master.gain.value = 0.90;
+  master.gain.value = MASTER_GAIN;
   master.connect(c.destination);
   AUDIO.master = master;
 
+  // 最終磚牆限幅器：多聲部同時爆發時鎖住峰值，杜絕 iPad 喇叭削波破音
+  const limiter = c.createDynamicsCompressor();
+  limiter.threshold.value = -3;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.002;
+  limiter.release.value = 0.12;
+  limiter.connect(master);
+
+  // 柔化濾波：7kHz 低通去除刺耳高頻、75Hz 高通移除小喇叭無法重現的次低頻（避免振膜失真）
+  const soften = c.createBiquadFilter();
+  soften.type = 'lowpass';
+  soften.frequency.value = 7000;
+  soften.Q.value = 0.5;
+  soften.connect(limiter);
+  const rumble = c.createBiquadFilter();
+  rumble.type = 'highpass';
+  rumble.frequency.value = 75;
+  rumble.Q.value = 0.6;
+  rumble.connect(soften);
+
   const comp = c.createDynamicsCompressor();
-  comp.threshold.value = -8;
-  comp.knee.value = 10;
-  comp.ratio.value = 3.5;
-  comp.attack.value = 0.004;
-  comp.release.value = 0.15;
-  comp.connect(master);
+  comp.threshold.value = -12;
+  comp.knee.value = 12;
+  comp.ratio.value = 3;
+  comp.attack.value = 0.005;
+  comp.release.value = 0.18;
+  comp.connect(rumble);
   AUDIO.comp = comp;
 
   // BGM 中高頻挖空濾波器（2.1kHz -4.5dB），讓戰術音效清晰浮現
@@ -130,7 +207,7 @@ function audioInit() {
   AUDIO.bgmFilter = bgmDip;
 
   const musicBus = c.createGain();
-  musicBus.gain.value = AUDIO.on.music ? 0.42 : 0;
+  musicBus.gain.value = AUDIO.on.music ? MUSIC_GAIN : 0;
   if (AUDIO.on.music) {
     musicBus.connect(bgmDip);
     AUDIO.musicConnected = true;
@@ -138,7 +215,7 @@ function audioInit() {
   AUDIO.music = musicBus;
 
   const sfxBus = c.createGain();
-  sfxBus.gain.value = AUDIO.on.sfx ? 0.68 : 0;
+  sfxBus.gain.value = AUDIO.on.sfx ? SFX_GAIN : 0;
   sfxBus.connect(comp);
   AUDIO.sfx = sfxBus;
 
@@ -146,18 +223,13 @@ function audioInit() {
   AUDIO.noiseWhite = bufs.white;
   AUDIO.noisePink = bufs.pink;
 
-  if (c.state === 'suspended' || c.state === 'interrupted') {
-    c.resume().then(() => {
-      if (AUDIO.on.music && !AUDIO.bgmSource) startMusic();
-    }).catch(() => {});
-  }
-  if (AUDIO.on.music && !AUDIO.bgmSource) {
-    startMusic();
-  }
+  resumeCtx();
+  if (AUDIO.on.music) startMusic();
 }
 
 // 強制同步關閉並斷開所有 BGM 節點（實體斷線保證 iPad Safari 100% 立即靜音）
 function stopMusic() {
+  AUDIO.bgmGen++;
   const list = AUDIO.activeList.splice(0, AUDIO.activeList.length);
   if (AUDIO.bgmSource || AUDIO.bgmBus) {
     list.push({ src: AUDIO.bgmSource, bus: AUDIO.bgmBus });
@@ -167,11 +239,7 @@ function stopMusic() {
 
   for (const item of list) {
     if (item.bus) {
-      try {
-        item.bus.gain.cancelScheduledValues(0);
-        if (AUDIO.ctx) item.bus.gain.setValueAtTime(0, AUDIO.ctx.currentTime);
-        item.bus.gain.value = 0;
-      } catch (e) { /* 忽略 */ }
+      setParam(item.bus.gain, 0);
       try { item.bus.disconnect(); } catch (e) { /* 忽略 */ }
     }
     if (item.src) {
@@ -184,52 +252,78 @@ function stopMusic() {
   }
 }
 
+// 立即停止並斷開所有存活中的音效聲部（振盪器、噪音源、濾波器、增益節點）
+function stopAllSfx() {
+  clearAudioTimers();
+  const list = Array.from(AUDIO.voices);
+  AUDIO.voices.clear();
+  for (const v of list) {
+    try { v.src.onended = null; } catch (e) { /* 忽略 */ }
+    try { v.src.stop(0); } catch (e) { /* 忽略 */ }
+    for (const n of v.nodes) {
+      try { n.disconnect(); } catch (e) { /* 忽略 */ }
+    }
+  }
+}
+
+// 全面硬靜音：清除排程、停止所有節點、主增益歸零並 suspend AudioContext
+function stopAllAudio() {
+  stopMusic();
+  stopAllSfx();
+  if (!AUDIO.ctx) return;
+  if (AUDIO.master) setParam(AUDIO.master.gain, 0);
+  try { AUDIO.ctx.suspend().catch(() => {}); } catch (e) { /* 忽略 */ }
+}
+
 function setAudio(kind, on) {
   AUDIO.on[kind] = !!on;
   saveAudio();
   if (!AUDIO.ctx) audioInit();
   if (!AUDIO.ctx) return;
-  const c = AUDIO.ctx;
 
   if (kind === 'music') {
     if (!AUDIO.on.music) {
       // 立即同步停止所有音源並將 BGM 匯流排從主輸出實體斷開，確保 iOS WebKit 100% 關得掉
       stopMusic();
-      try {
-        AUDIO.music.gain.cancelScheduledValues(0);
-        AUDIO.music.gain.setValueAtTime(0, c.currentTime);
-        AUDIO.music.gain.value = 0;
-      } catch (e) { /* 忽略 */ }
+      setParam(AUDIO.music.gain, 0);
       if (AUDIO.musicConnected) {
         try { AUDIO.music.disconnect(); } catch (e) { /* 忽略 */ }
         AUDIO.musicConnected = false;
       }
-    } else {
-      if (!AUDIO.musicConnected && AUDIO.bgmFilter) {
-        try { AUDIO.music.connect(AUDIO.bgmFilter); AUDIO.musicConnected = true; } catch (e) { /* 忽略 */ }
-      }
-      try {
-        AUDIO.music.gain.cancelScheduledValues(0);
-        AUDIO.music.gain.setValueAtTime(0.42, c.currentTime);
-        AUDIO.music.gain.value = 0.42;
-      } catch (e) { /* 忽略 */ }
-      startMusic();
     }
   } else if (kind === 'sfx') {
-    try {
-      AUDIO.sfx.gain.cancelScheduledValues(0);
-      const val = AUDIO.on.sfx ? 0.68 : 0;
-      AUDIO.sfx.gain.setValueAtTime(val, c.currentTime);
-      AUDIO.sfx.gain.value = val;
-    } catch (e) { /* 忽略 */ }
+    if (!AUDIO.on.sfx) stopAllSfx();
+    setParam(AUDIO.sfx.gain, AUDIO.on.sfx ? SFX_GAIN : 0);
   }
+
+  if (audioAllOff()) {
+    stopAllAudio();
+    return;
+  }
+  // 至少一項開啟：恢復主增益並（經互斥鎖）解除 suspend
+  setParam(AUDIO.master.gain, MASTER_GAIN);
+  resumeCtx();
+  if (kind === 'music' && AUDIO.on.music && !AUDIO.bgmSource) startMusic();
 }
 
 // ----- 戰術音效合成基礎積木 -----
+// 註冊存活聲部；結束時自動註銷並斷線（超過上限則拒絕新聲部以免疊加削波）
+function trackVoice(src, nodes) {
+  const v = { src, nodes };
+  AUDIO.voices.add(v);
+  src.onended = () => {
+    AUDIO.voices.delete(v);
+    for (const n of nodes) {
+      try { n.disconnect(); } catch (e) { /* 忽略 */ }
+    }
+  };
+}
+
 function env(g, t, attack, peak, decay, end = 0.0001) {
-  const a = Math.max(0.002, attack);
+  // 柔化起音（最短 4ms）並統一降低單聲部增益，避免多聲部疊加削波
+  const a = Math.max(0.004, attack);
   const d = Math.max(0.01, decay);
-  const p = Math.max(0.0002, peak);
+  const p = Math.max(0.0002, peak * VOICE_GAIN);
   g.gain.setValueAtTime(0.0001, t);
   g.gain.linearRampToValueAtTime(p, t + a);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0001, end), t + a + d);
@@ -241,7 +335,7 @@ function noiseHit(dest, t, {
 } = {}) {
   const c = AUDIO.ctx;
   const b = pink ? AUDIO.noisePink : AUDIO.noiseWhite;
-  if (!c || !b) return;
+  if (!c || !b || AUDIO.voices.size >= MAX_VOICES) return;
   const src = c.createBufferSource();
   const f = c.createBiquadFilter();
   const g = c.createGain();
@@ -258,9 +352,7 @@ function noiseHit(dest, t, {
   g.connect(dest);
   const totalDur = attack + dur;
   const maxOffset = Math.max(0.01, b.duration - totalDur - 0.08);
-  src.onended = () => {
-    try { src.disconnect(); f.disconnect(); g.disconnect(); } catch (e) { /* 忽略 */ }
-  };
+  trackVoice(src, [src, f, g]);
   src.start(t, Math.random() * maxOffset);
   src.stop(t + totalDur + 0.03);
 }
@@ -270,7 +362,7 @@ function tone(dest, t, {
   to = 0, attack = 0.004, cutoff = 0,
 } = {}) {
   const c = AUDIO.ctx;
-  if (!c) return;
+  if (!c || AUDIO.voices.size >= MAX_VOICES) return;
   const o = c.createOscillator();
   const g = c.createGain();
   o.type = type;
@@ -290,9 +382,7 @@ function tone(dest, t, {
   }
   env(g, t, attack, peak, dur);
   g.connect(dest);
-  o.onended = () => {
-    try { o.disconnect(); if (f) f.disconnect(); g.disconnect(); } catch (e) { /* 忽略 */ }
-  };
+  trackVoice(o, f ? [o, f, g] : [o, g]);
   o.start(t);
   o.stop(t + attack + dur + 0.03);
 }
@@ -302,7 +392,7 @@ function sfx(name, opt = {}) {
   if (!AUDIO.on.sfx || typeof window === 'undefined' || !AUDIO.ctx) return;
   const c = AUDIO.ctx;
   if (c.state !== 'running') {
-    c.resume().catch(() => {});
+    resumeCtx();
     return;
   }
 
@@ -563,11 +653,12 @@ function writeBrassNote(L, R, sr, i0, i1, freq, peak, pan = -0.1) {
       decay *= decayStep;
       envVal = decay;
     }
+    // 柔和銅管泛音（降低 3、4 次泛音，消除小喇叭上的刺耳鼻音）
     const sig = (
-      0.50 * fastSin(phase) +
-      0.32 * fastSin(phase * 2) +
-      0.13 * fastSin(phase * 3) +
-      0.05 * fastSin(phase * 4)
+      0.66 * fastSin(phase) +
+      0.24 * fastSin(phase * 2) +
+      0.08 * fastSin(phase * 3) +
+      0.02 * fastSin(phase * 4)
     ) * envVal;
     const idx = i0 + k;
     L[idx] += sig * gainL;
@@ -604,9 +695,9 @@ function writeChordPad(L, R, sr, i0, i1, chordMidi, peak) {
       envVal = 1.0;
     }
     const a = envVal * peak;
-    const s0 = (0.65 * fastSin(p0) + 0.25 * fastSin(p0 * 2)) * a;
-    const s1 = (0.65 * fastSin(p1) + 0.25 * fastSin(p1 * 2)) * a;
-    const s2 = (0.65 * fastSin(p2) + 0.25 * fastSin(p2 * 2)) * a;
+    const s0 = (0.74 * fastSin(p0) + 0.16 * fastSin(p0 * 2)) * a;
+    const s1 = (0.74 * fastSin(p1) + 0.16 * fastSin(p1 * 2)) * a;
+    const s2 = (0.74 * fastSin(p2) + 0.16 * fastSin(p2 * 2)) * a;
     const idx = i0 + k;
     L[idx] += s0 * 1.15 + s1 + s2 * 0.85;
     R[idx] += s0 * 0.85 + s1 + s2 * 1.15;
@@ -618,8 +709,8 @@ function writeChordPad(L, R, sr, i0, i1, chordMidi, peak) {
 function writeBassNote(L, R, sr, i0, i1, freq, peak) {
   const len = i1 - i0;
   if (len <= 64) return;
-  const atk = Math.min(Math.floor(sr * 0.006), Math.floor(len * 0.15));
-  const rel = Math.min(Math.floor(sr * 0.018), Math.floor(len * 0.25));
+  const atk = Math.min(Math.floor(sr * 0.010), Math.floor(len * 0.15));
+  const rel = Math.min(Math.floor(sr * 0.024), Math.floor(len * 0.25));
   const susEnd = len - rel;
   const invAtk = 1 / Math.max(1, atk);
   const invRel = 1 / Math.max(1, rel);
@@ -631,7 +722,8 @@ function writeBassNote(L, R, sr, i0, i1, freq, peak) {
   for (let k = 0; k < len; k++) {
     let envVal;
     if (k < atk) {
-      envVal = k * invAtk;
+      const u = k * invAtk;
+      envVal = u * u * (3 - 2 * u);
     } else if (k >= susEnd) {
       const u = 1 - (k - susEnd) * invRel;
       envVal = u * u * (3 - 2 * u) * decay;
@@ -639,7 +731,7 @@ function writeBassNote(L, R, sr, i0, i1, freq, peak) {
       decay *= decayStep;
       envVal = decay;
     }
-    const sig = (0.58 * fastSin(phase) + 0.30 * fastSin(phase * 2) + 0.12 * fastSin(phase * 3)) * envVal * peak;
+    const sig = (0.66 * fastSin(phase) + 0.26 * fastSin(phase * 2) + 0.08 * fastSin(phase * 3)) * envVal * peak;
     const idx = i0 + k;
     L[idx] += sig;
     R[idx] += sig;
@@ -652,14 +744,17 @@ function writeDrumHit(L, R, sr, i0, maxIdx, kind, stepSeed) {
   if (kind === 'kick') {
     const dur = Math.min(Math.floor(sr * 0.15), maxIdx - i0);
     const invDur = 1 / Math.max(1, dur);
+    const atk = Math.max(1, Math.floor(sr * 0.002));
     const fDecay = Math.exp(-28 / sr);
     const eDecay = Math.exp(-18 / sr);
-    let fSweep = 68, envExp = 1.0, phase = 0;
+    // 基頻由 36Hz 提高至 48Hz：iPad Mini 喇叭無法重現極低頻，硬推只會失真
+    let fSweep = 62, envExp = 1.0, phase = 0;
     for (let k = 0; k < dur; k++) {
-      phase += (36 + fSweep) / sr;
+      phase += (48 + fSweep) / sr;
       fSweep *= fDecay;
       envExp *= eDecay;
-      const v = fastSin(phase) * envExp * (1 - k * invDur) * 0.34;
+      const a = k < atk ? k / atk : 1;
+      const v = fastSin(phase) * envExp * a * (1 - k * invDur) * 0.30;
       L[i0 + k] += v;
       R[i0 + k] += v;
     }
@@ -674,8 +769,9 @@ function writeDrumHit(L, R, sr, i0, maxIdx, kind, stepSeed) {
       phase += (85 + fSweep) / sr;
       fSweep *= fDecay;
       envExp *= eDecay;
-      const envVal = envExp * (1 - k * invDur);
-      const v = (fastSin(phase) * 0.14 + PINK_TABLE[pOff + k] * 0.24) * envVal;
+      const a = k < 48 ? k / 48 : 1;
+      const envVal = envExp * a * (1 - k * invDur);
+      const v = (fastSin(phase) * 0.14 + PINK_TABLE[pOff + k] * 0.20) * envVal;
       L[i0 + k] += v * 0.95;
       R[i0 + k] += v * 1.05;
     }
@@ -686,7 +782,7 @@ function writeDrumHit(L, R, sr, i0, maxIdx, kind, stepSeed) {
     for (let k = 0; k < dur; k++) {
       const u = 1 - k * invDur;
       const hp = PINK_TABLE[pOff + k + 1] - PINK_TABLE[pOff + k];
-      const v = hp * u * u * 0.065;
+      const v = hp * u * u * 0.040;
       L[i0 + k] += v * 1.05;
       R[i0 + k] += v * 0.95;
     }
@@ -778,13 +874,24 @@ function getTrackBufferSync(trackIdx) {
     if (cfg.hat && cfg.hat[pos]) writeDrumHit(L, R, sr, i0, loopSamples, 'hat', s);
   }
 
-  // 5. -16 LUFS 母帶響度校準與首尾零交越平滑
+  // 5. 單極低通（約 5.5kHz）柔化整體高頻，兩次掃描使濾波狀態於迴圈首尾一致（無縫接合）
+  const lpA = 1 - Math.exp(-2 * Math.PI * 5500 / sr);
+  for (const ch of [L, R]) {
+    let y = 0;
+    for (let i = loopSamples - 2048; i < loopSamples; i++) y += lpA * (ch[i] - y);
+    for (let i = 0; i < loopSamples; i++) {
+      y += lpA * (ch[i] - y);
+      ch[i] = y;
+    }
+  }
+
+  // 6. 響度校準（預留多聲部餘裕）與首尾零交越平滑
   let sumSq = 0;
   for (let i = 0; i < loopSamples; i += 4) {
     sumSq += L[i] * L[i] + R[i] * R[i];
   }
   const rms = Math.sqrt(sumSq / ((loopSamples / 4) * 2)) || 0.001;
-  const gain = Math.min(2.5, 0.16 / rms);
+  const gain = Math.min(2.0, 0.12 / rms);
   const fadeSamples = Math.min(96, Math.floor(sr * 0.002));
 
   for (let i = 0; i < loopSamples; i++) {
@@ -807,14 +914,14 @@ function startMusic() {
   if (!AUDIO.ctx || !AUDIO.on.music || typeof window === 'undefined') return;
   const c = AUDIO.ctx;
 
+  const gen = AUDIO.bgmGen;
   if (!AUDIO.musicConnected && AUDIO.bgmFilter) {
     try { AUDIO.music.connect(AUDIO.bgmFilter); AUDIO.musicConnected = true; } catch (e) { /* 忽略 */ }
   }
-  try {
-    AUDIO.music.gain.cancelScheduledValues(0);
-    AUDIO.music.gain.setValueAtTime(0.42, c.currentTime);
-    AUDIO.music.gain.value = 0.42;
-  } catch (e) { /* 忽略 */ }
+  setParam(AUDIO.music.gain, MUSIC_GAIN);
+  // 由硬靜音狀態直接切換曲目時，恢復主增益並解除 suspend
+  if (AUDIO.master) setParam(AUDIO.master.gain, MASTER_GAIN);
+  resumeCtx();
 
   const trackIdx = ((AUDIO.on.track % TRACKS.length) + TRACKS.length) % TRACKS.length;
   const buf = getTrackBufferSync(trackIdx);
@@ -834,6 +941,11 @@ function startMusic() {
   src.connect(bus);
   bus.connect(AUDIO.music);
 
+  // 單例保證：渲染期間若世代已變更（理論上同步不會發生），放棄本次啟動
+  if (gen !== AUDIO.bgmGen || AUDIO.bgmSource) {
+    try { bus.disconnect(); src.disconnect(); } catch (e) { /* 忽略 */ }
+    return;
+  }
   AUDIO.bgmSource = src;
   AUDIO.bgmBus = bus;
   AUDIO.activeList.push({ src, bus });
@@ -898,6 +1010,7 @@ function setMusicTense(on) {
 }
 
 // 首次使用者互動時解鎖並初始化 Web Audio（相容 iPad Mini 6 / iOS Safari 與桌面瀏覽器）
+// audioInit 完全冪等：resume 經互斥鎖合併、BGM 同步單例啟動，雙重觸發不會產生第二個實例
 if (typeof window !== 'undefined') {
   ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev =>
     window.addEventListener(ev, audioInit, { once: false, passive: true })
@@ -906,8 +1019,9 @@ if (typeof window !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (!AUDIO.ctx) return;
       if (document.hidden) {
+        stopAllSfx();
         if (AUDIO.ctx.state === 'running') AUDIO.ctx.suspend().catch(() => {});
-      } else if (AUDIO.on.music || AUDIO.on.sfx) {
+      } else if (!audioAllOff()) {
         audioInit();
       }
     });
