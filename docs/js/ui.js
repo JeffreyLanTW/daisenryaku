@@ -664,7 +664,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v51</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v52</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -686,6 +686,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v52</span><span class="cl-date">2026.10.25</span><p>修正 iPad Mini 6 / iOS Safari 雙重背景音樂重疊問題：徹底移除殘留的舊版單音主旋律與高頻琶音軌、改為純粹一體化的工業管弦合奏，並建立 iOS WebKit 多重觸控與非同步渲染互斥鎖（同步強制斷開舊音源節點）。</p></div>
         <div class="cl-item"><span class="cl-ver">v51</span><span class="cl-date">2026.10.25</span><p>導入 90 年代《大戰略》工業管弦無縫迴圈 BGM 引擎（48kHz 離線立體聲渲染、尾韻交叉淡化零交越接縫、-16 LUFS 母帶響度校準與中高頻挖空濾波，確保戰術音效清晰穿透）。</p></div>
         <div class="cl-item"><span class="cl-ver">v50</span><span class="cl-date">2026.10.25</span><p>全面重製 Web Audio 戰術音效引擎：導入 1/f 粉紅噪音濾波消除刺耳白噪音、修正 iOS/Safari 暫停佇列爆音與按鈕音效重疊問題，重新調校 15 種武器射擊、爆炸、載具移動與戰術號角音效。</p></div>
         <div class="cl-item"><span class="cl-ver">v49</span><span class="cl-date">2026.10.24</span><p>修復 iPad / iOS Safari 從 iCloud Drive 匯入存檔問題：採用原生 DOM 觸發結構解決 WebKit 手勢限制、放寬 MIME 格式防止檔案反灰不可選取、改以 FileReader 串流讀取，並新增「貼上代碼匯入」與「匯出複製至剪貼簿」雙重備援。</p></div>
@@ -789,7 +790,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v51</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v52</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
