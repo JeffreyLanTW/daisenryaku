@@ -140,6 +140,36 @@ function setParam(param, val) {
   } catch (e) { /* 忽略 */ }
 }
 
+// 是否以「加入主畫面」網頁 App（standalone）模式執行
+const IS_STANDALONE = typeof window !== 'undefined' && (
+  window.navigator.standalone === true ||
+  (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches)
+);
+
+// 建立 AudioContext。主畫面網頁 App 專用修正（Safari 分頁不受影響）：
+// 1. 將 iOS 音訊工作階段固定為 playback，避免 standalone 程序的工作階段類別與硬體取樣率不穩定；
+// 2. iOS 取樣率錯配 bug（WebKit 154538）：context 回報的取樣率與硬體實際渲染速率不同，
+//    造成失真、重複怪音與音高／速度錯誤。已知解法：建立後播放一個空白樣本、立即關閉，再建立新的 context。
+function createAudioContext(AC) {
+  if (IS_STANDALONE && window.navigator.audioSession) {
+    try { window.navigator.audioSession.type = 'playback'; } catch (e) { /* 忽略 */ }
+  }
+  let c = new AC();
+  if (IS_STANDALONE && typeof c.close === 'function') {
+    try {
+      const dummy = c.createBufferSource();
+      dummy.buffer = c.createBuffer(1, 1, c.sampleRate);
+      dummy.connect(c.destination);
+      dummy.start(0);
+      dummy.disconnect();
+      c.close().catch(() => {});
+      c = new AC();
+      AUDIO.recreated = true;
+    } catch (e) { /* 忽略 */ }
+  }
+  return c;
+}
+
 // 僅於使用者真實互動手勢中建立與解鎖 AudioContext（可重複呼叫，完全冪等）
 function audioInit() {
   if (typeof window === 'undefined') return;
@@ -154,7 +184,7 @@ function audioInit() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   let c;
-  try { c = new AC(); } catch (e) { return; }
+  try { c = createAudioContext(AC); } catch (e) { return; }
   AUDIO.ctx = c;
 
   const master = c.createGain();
@@ -262,9 +292,8 @@ function stopAllSfx() {
 }
 
 // 全面硬靜音：清除排程、停止並斷開所有節點、主增益歸零。
-// 刻意不 suspend()／close()：iPad「加入主畫面」網頁 App 在 context 暫停或關閉時，
-// 硬體輸出會卡住重複播放最後一段緩衝（重複怪音），重建的 context 取樣率也可能錯誤（音高／速度不對）。
-// 因此整個工作階段只使用單一 AudioContext，靜音時讓它持續輸出純靜音。
+// 刻意不 suspend()／close()：整個工作階段只使用單一 AudioContext（建立時的取樣率修正除外），
+// 靜音時讓它持續輸出純靜音，避免 iPad 主畫面 App 輸出卡住重複播放。
 function stopAllAudio() {
   stopMusic();
   stopAllSfx();
