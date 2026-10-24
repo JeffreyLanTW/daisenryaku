@@ -633,7 +633,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v46</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v47</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -655,6 +655,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v47</span><span class="cl-date">2026.10.24</span><p>側欄佈局優化：調整右側欄元件顯示順序，將「章節任務卡」緊接置於「小地圖」正下方，其下依序排列「地形資訊」與「部隊資訊」，作戰目標與地形地貌一目了然。</p></div>
         <div class="cl-item"><span class="cl-ver">v46</span><span class="cl-date">2026.10.24</span><p>升級「國家圖鑑」：整合 16 國國旗、專屬色徽章與主力兵種剪影展示；兵種規格表完整整合 Q 版圖示；新增層級式導覽與「返回上一頁 / 返回國家總覽」按鈕，查閱體驗更流暢直覺。</p></div>
         <div class="cl-item"><span class="cl-ver">v45</span><span class="cl-date">2026.10.24</span><p>部隊圖示改為 Q 版卡通軍武風格，步兵系改以大尺寸卡通鋼盔呈現（步兵星章鋼盔、反甲火箭筒鋼盔、陸戰隊船錨海浪鋼盔）；日本自衛隊改為純白色系，戰場各國顏色鮮明區隔。</p></div>
         <div class="cl-item"><span class="cl-ver">v44</span><span class="cl-date">2026.10.24</span><p>部隊圖示全面改版為「老花友善高對比單色系剪影」：移除方框外框、依 16 國專屬色系單色繪製、放大簡化兵種幾何特徵與血量/名稱標籤，一眼輕鬆辨識。</p></div>
@@ -753,7 +754,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v46</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v47</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -1006,8 +1007,22 @@ function initAppIcon() {
   } catch (e) { /* 忽略 */ }
 }
 
+// 側欄元件順序（小圖 mini → 章節卡 objCard → 地形卡 tileInfo → 部隊卡 unitInfo → 戰鬥預測 forecast → 戰報 logcard）
+function initPanelOrder() {
+  const panel = $('#panel');
+  if (!panel) return;
+  const ids = ['mini', 'objCard', 'tileInfo', 'unitInfo', 'forecast'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el) panel.appendChild(el);
+  }
+  const log = panel.querySelector('.logcard');
+  if (log) panel.appendChild(log);
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   initAppIcon();
+  initPanelOrder();
   cvs = $('#map'); ctx = cvs.getContext('2d');
   mini = $('#mini'); mctx = mini.getContext('2d');
   setupInput();

@@ -135,6 +135,7 @@ main { display: grid; grid-template-columns: 1fr 300px; min-height: 0; }
   main { grid-template-columns: 1fr; grid-template-rows: 1fr 34vh; }
   #panel { border-left: none; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; align-content: start; }
   #mini { grid-column: 1 / -1; max-width: 260px; }
+  .obj-card { grid-column: 1 / -1; }
   .logcard { grid-column: 1 / -1; }
   .brand { font-size: 16px; }
   .sep { display: none; }
