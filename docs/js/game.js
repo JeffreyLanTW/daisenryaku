@@ -176,6 +176,8 @@ function canLoad(t, u) {
 function loadInto(u, t) {
   G.units = G.units.filter(e => e !== u);
   u.done = u.moved = true;
+  if (UNITS[u.type].cat === 'land') u.shipped = true;
+  if (G.stats) G.stats.loads = (G.stats.loads || 0) + 1;
   t.cargo = t.cargo || [];
   t.cargo.push(u);
   addLog(`${armyName(u)}${UNITS[u.type].name} 搭上 ${UNITS[t.type].name}`, u.side);
@@ -198,6 +200,10 @@ function unloadAt(t, c, i) {
   t.cargo = t.cargo.filter(e => e !== c);
   const [x, y] = ixy(i);
   c.x = x; c.y = y; c.done = c.moved = true;
+  if (UNITS[c.type].cat === 'land') {
+    c.shipped = true;
+    if (G.stats) G.stats.unloads = (G.stats.unloads || 0) + 1;
+  }
   G.units.push(c);
   addLog(`${armyName(c)}${UNITS[c.type].name} 自 ${UNITS[t.type].name} ${UNITS[c.type].cat === 'air' ? '起飛' : '卸載'}`, c.side);
 }
@@ -322,6 +328,7 @@ function doCapture(u) {
   const prev = G.owner[i];
   G.owner[i] = u.side;
   delete G.capture[i];
+  if (G.stats && (u.shipped || UNITS[u.type].mt === 'amph')) G.stats.amphibious_captures = (G.stats.amphibious_captures || 0) + 1;
   addLog(`${SIDES[u.side].name}佔領了${tname}！`, u.side);
   if (!G.missionId && G.terrain[i] === 'capital' && prev >= 0) {
     G.winner = u.side;
@@ -369,7 +376,11 @@ function makeUnit(type, side, x, y, extra) {
 function spawnUnit(type, side, x, y, extra) {
   const { load, ...rest } = extra || {};
   const u = makeUnit(type, side, x, y, rest);
-  if (load) u.cargo = load.map(t => makeUnit(t, side, x, y, rest.ally ? { ally: rest.ally } : null));
+  if (load) u.cargo = load.map(t => {
+    const cu = makeUnit(t, side, x, y, rest.ally ? { ally: rest.ally } : null);
+    if (UNITS[cu.type].cat === 'land') cu.shipped = true;
+    return cu;
+  });
   return u;
 }
 function buildOptions(x, y, side) {
@@ -459,6 +470,7 @@ function initState(m, opts) {
     nextId: 1, log: [], missionId: opts.missionId || null, result: null, nations: opts.nations || ['TW', 'CN'],
     allies: opts.allies || [], allyAI: !!opts.allyAI,
     firedEvents: [], pendingDialogs: [],
+    stats: { loads: 0, unloads: 0, amphibious_captures: 0 },
   };
   applyNations(G.nations, G.allies);
   for (const [type, i, side, extra] of m.start) {

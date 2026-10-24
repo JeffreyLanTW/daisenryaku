@@ -7,14 +7,16 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..', 'docs');
 const args = process.argv.slice(2);
 const opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
-const RUNS = +(opt('--runs') || 8);
+const RUNS = +(opt('--runs') || 16);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
 const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only'].includes(args[k - 1]));
 
-// 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫
+// 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫（靜默 console 以節省輸出 token）
+const noop = () => {};
+const silentConsole = { log: noop, warn: noop, error: noop, info: noop };
 const ctx = {
-  console, Math, JSON, Set, Map, Array, Object, Promise, Infinity, Number, String, Date,
+  console: silentConsole, Math, JSON, Set, Map, Array, Object, Promise, Infinity, Number, String, Date,
   setTimeout: f => setImmediate(f),
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
 };
@@ -243,16 +245,17 @@ const DEFAULT_FLAGS = {
 };
 vm.runInContext(`
   async function simulate(id, flags) {
-    setupMission(id, flags, true, synthCarry(CARRY_N, CARRY_XP));
+    setupMission(id, flags, true, synthCarry(CARRY_N, CARRY_XP), true);
     let guard = 0;
-    while (G.winner == null && guard++ < 140) {
+    while (G.winner == null && guard++ < 160) {
       await aiTurn();
       if (G.winner != null) break;
       endTurn();
     }
-    const P = G.pside;
+    const P = G.pside, st = G.stats || { loads: 0, unloads: 0, amphibious_captures: 0 };
     return {
       win: G.result ? G.result.win : false, obj: G.result ? G.result.obj : 'stuck', turn: G.turn,
+      loads: st.loads || 0, unloads: st.unloads || 0, amph: st.amphibious_captures || 0,
       left: [G.units.filter(u => u.side === P).length, G.units.filter(u => u.side !== P).length],
     };
   }
@@ -260,9 +263,8 @@ vm.runInContext(`
 
 (async () => {
   const list = ids.length ? ids : vm.runInContext('Object.keys(MISSIONS)', ctx);
-  if (process.env.DBG) console.log('list', list, args);
-  console.log(`\n每種組合模擬 ${RUNS} 場（AI 扮演玩家方；真人通常比 AI 強）\n`);
-  console.log('任務   旗標                     勝率    平均回合  結果分布');
+  console.log(`\n每種組合模擬 ${RUNS} 場（AI 扮演雙方 + 友軍；零干擾極簡遙測）`);
+  console.log('任務   旗標                     勝率   平均回合   搭載/卸載/渡海佔領   結果分布');
   for (const id of list) {
     for (const f of FLAGS ? [FLAGS] : (DEFAULT_FLAGS[id] || [{}])) {
       const res = [];
@@ -270,7 +272,9 @@ vm.runInContext(`
       const wins = res.filter(r => r.win), dist = {};
       for (const r of res) { const key = (r.win ? '勝:' : '敗:') + r.obj; dist[key] = (dist[key] || 0) + 1; }
       const avg = a => a.length ? (a.reduce((s, r) => s + r.turn, 0) / a.length).toFixed(1) : '-';
-      console.log(`${id.padEnd(6)} ${JSON.stringify(f).padEnd(24)} ${String(Math.round(wins.length / RUNS * 100)).padStart(3)}%   ${avg(wins).padStart(5)}    ${Object.entries(dist).map(([k, v]) => k + '×' + v).join(' ')}`);
+      const avgS = k => (res.reduce((s, r) => s + r[k], 0) / RUNS).toFixed(1);
+      const trStr = `${avgS('loads').padStart(4)}/${avgS('unloads').padStart(4)}/${avgS('amph').padStart(4)}`;
+      console.log(`${id.padEnd(6)} ${JSON.stringify(f).padEnd(24)} ${String(Math.round(wins.length / RUNS * 100)).padStart(3)}%    ${avg(wins).padStart(5)}      ${trStr.padEnd(18)} ${Object.entries(dist).map(([k, v]) => k + '×' + v).join(' ')}`);
     }
   }
 })();

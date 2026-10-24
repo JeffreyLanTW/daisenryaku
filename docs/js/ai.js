@@ -65,6 +65,58 @@ function aiGoals(u, baseField) {
     const bases = ownBases(s, d.cat, u);
     if (bases.size && !(d.capture && canCapture(u))) return { goals: bases, mode: 'retreat' };
   }
+  // 地面/兩棲運輸工具（非航母）：空載時尋找待接運的己方地面部隊；滿載或已載人時開往目標島嶼/前線海灘
+  if (d.carry && !d.carry.deck) {
+    const cargo = u.cargo || [];
+    if (!cargo.length) {
+      const pGoals = new Map();
+      for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) pGoals.set(i, 0);
+      for (const e of G.units) if (e.side !== s && UNITS[e.type].cat === 'land') pGoals.set(idxOf(e.x, e.y), 2);
+      const pf = pGoals.size ? distField(pGoals, 'foot') : null;
+      for (const a of G.units) {
+        if (a === u || a.side !== s || !canLoad(u, a)) continue;
+        const ad = UNITS[a.type], ai = idxOf(a.x, a.y), fDist = pf ? pf[ai] : Infinity;
+        if (fDist <= ad.move * 2) continue;
+        // 優先接運隔海（fDist === Infinity）或遠離前線的步兵/佔領部隊與裝甲部隊
+        let pri = (ad.capture ? -6 : -2) + (fDist === Infinity ? -4 : 0);
+        if (d.cat === 'sea') {
+          for (const [nx, ny] of neighbors(a.x, a.y)) if (moveCost(G.terrain[idxOf(nx, ny)], 'sea') !== Infinity) add(idxOf(nx, ny), pri);
+          if (moveCost(G.terrain[ai], 'sea') !== Infinity) add(ai, pri - 1);
+        } else {
+          add(ai, pri);
+        }
+      }
+      if (goals.size) return { goals, mode: 'pickup' };
+    } else {
+      const hasCap = cargo.some(c => UNITS[c.type].capture);
+      const cmt = cargo[0] ? UNITS[cargo[0].type].mt : 'foot';
+      const addLanding = (ti, off) => {
+        if (d.carry.runway) {
+          if (TERRAIN[G.terrain[ti]].prop) add(ti, off);
+          return;
+        }
+        if (d.cat === 'sea') {
+          for (const [nx, ny] of neighbors(...ixy(ti))) {
+            const ni = idxOf(nx, ny);
+            if (moveCost(G.terrain[ni], 'sea') !== Infinity) add(ni, off);
+          }
+        } else {
+          if (moveCost(G.terrain[ti], cmt) !== Infinity) add(ti, off);
+          for (const [nx, ny] of neighbors(...ixy(ti))) {
+            const ni = idxOf(nx, ny);
+            if (moveCost(G.terrain[ni], cmt) !== Infinity) add(ni, off + 1);
+          }
+        }
+      };
+      for (let i = 0; i < G.owner.length; i++) {
+        if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
+        addLanding(i, G.terrain[i] === 'capital' ? -6 : hasCap ? -3 : 1);
+      }
+      for (const e of G.units) if (e.side !== s && UNITS[e.type].cat === 'land') addLanding(idxOf(e.x, e.y), hasCap ? 2 : -2);
+      for (const [i, off] of mg) addLanding(i, off - 3);
+      if (goals.size) return { goals, mode: 'deliver' };
+    }
+  }
   if (d.capture) {
     for (let i = 0; i < G.owner.length; i++) {
       if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
@@ -98,9 +150,28 @@ async function aiAct(u, token) {
   const reach = computeReach(u);
   const baseField = d.fuel !== undefined ? distField(ownBases(s, 'air', u), 'air') : null;
   const { goals, mode } = aiGoals(u, baseField);
-  const field = distField(goals, d.mt);
+  let field = distField(goals, d.mt);
+  const start = idxOf(u.x, u.y), origDist = field[start];
+  // 地面部隊若與目標隔海或距離遙遠（> 6 移動成本），自動向附近的待命運輸工具靠攏
+  if (d.cat === 'land' && !d.carry && origDist > 6) {
+    const tGoals = new Map();
+    for (const tr of G.units) {
+      if (tr.side === s && canLoad(tr, u)) {
+        const ti = idxOf(tr.x, tr.y);
+        if (moveCost(G.terrain[ti], d.mt) !== Infinity) tGoals.set(ti, -2);
+        for (const [nx, ny] of neighbors(tr.x, tr.y)) {
+          const ni = idxOf(nx, ny);
+          if (moveCost(G.terrain[ni], d.mt) !== Infinity && !tGoals.has(ni)) tGoals.set(ni, 0);
+        }
+      }
+    }
+    if (tGoals.size && origDist === Infinity) field = distField(tGoals, d.mt);
+    else if (tGoals.size) {
+      const tf = distField(tGoals, d.mt);
+      for (let k = 0; k < field.length; k++) if (tf[k] + 4 < field[k]) field[k] = tf[k] + 4;
+    }
+  }
   const enemies = G.units.filter(e => e.side !== s);
-  const start = idxOf(u.x, u.y);
   const ag = aiAggression(s);
   let best = { score: -Infinity, dest: start, act: null };
 
@@ -108,19 +179,38 @@ async function aiAct(u, token) {
     if (!v.canStop) continue;
     if (v.load) {
       const tr = unitById(v.load);
-      if (d.cat === 'air' && tr && UNITS[tr.type].carry.deck && (mode === 'retreat' || (baseField && u.fuel - v.cost < d.upkeep * 3)))
-        { if (500 > best.score) best = { score: 500, dest: i, act: { kind: 'land', t: tr } }; }
+      if (!tr) continue;
+      const tc = UNITS[tr.type].carry;
+      if (d.cat === 'air' && tc.deck && (mode === 'retreat' || (baseField && u.fuel - v.cost < d.upkeep * 3))) {
+        if (500 > best.score) best = { score: 500, dest: i, act: { kind: 'land', t: tr } };
+      } else if (d.cat === 'land' && !tc.deck) {
+        const nearFoe = enemies.some(e => hexDist(e.x, e.y, u.x, u.y) <= 3);
+        const nearProp = d.capture && neighbors(u.x, u.y).some(([nx, ny]) => {
+          const pi = idxOf(nx, ny);
+          return TERRAIN[G.terrain[pi]].prop && G.owner[pi] !== s;
+        });
+        if (!nearProp && (!nearFoe || origDist === Infinity) && (origDist === Infinity || origDist > d.move * 1.5)) {
+          const bScore = (origDist === Infinity ? 450 : 200 + Math.min(200, origDist * 10)) + (d.capture ? 80 : 30);
+          if (bScore > best.score) best = { score: bScore, dest: i, act: { kind: 'land', t: tr } };
+        }
+      }
       continue;
     }
     const [x, y] = ixy(i), t = TERRAIN[G.terrain[i]];
     const consider = (sc, act) => { if (sc > best.score) best = { score: sc, dest: i, act }; };
-    let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : mode === 'vip' ? 14 : 9 * ag);
+    let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : mode === 'vip' || mode === 'deliver' || mode === 'pickup' ? 14 : 9 * ag);
     if (d.cat === 'land') base += t.def * 0.4;
     base += missionHoldBonus(u, i);
-    const thrW = mode === 'retreat' || mode === 'vip' || (d.carry && d.carry.deck) ? 3 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
-    base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW / (mode === 'attack' ? ag : 1);
+    const thrW = mode === 'retreat' || mode === 'vip' || d.carry ? 2.6 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
+    base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW / (mode === 'attack' || mode === 'deliver' ? ag : 1);
     if (t.build && G.owner[i] === s && d.cat !== 'air') base -= 45;
-    if (t.prop && G.owner[i] !== s && !d.capture) base -= 30;
+    if (t.prop && G.owner[i] !== s && !d.capture && !(d.carry && d.carry.runway && (u.cargo || []).length)) base -= 30;
+    if (mode === 'deliver' && (u.cargo || []).length) {
+      const c0 = u.cargo[0];
+      const canDropHere = (!d.carry.runway || t.prop) && (d.cat !== 'air' || moveCost(G.terrain[i], UNITS[c0.type].mt) !== Infinity)
+        && neighbors(x, y).some(([nx, ny]) => !unitAt(nx, ny) && moveCost(G.terrain[idxOf(nx, ny)], UNITS[c0.type].mt) !== Infinity);
+      if (canDropHere && field[i] <= 2) base += 180;
+    }
     if (baseField) {
       const home = baseField[i];
       if (u.fuel - v.cost < home + d.upkeep * Math.ceil(Math.max(1, home) / d.move) + 1) base -= 3000;
@@ -177,9 +267,14 @@ function aiProduce(s) {
   const cnt = k => G.units.filter(u => u.side === s && UNITS[u.type].base === k).length;
   const ecls = c => foes.filter(u => UNITS[u.type].cls === c).length;
   const enemyAir = ecls('air'), enemyHard = ecls('hard'), enemySoft = ecls('soft'), enemyShip = ecls('ship');
-  const capturers = mine.filter(u => UNITS[u.type].capture).length;
+  const capturers = mine.filter(u => UNITS[u.type].capture || (u.cargo || []).some(c => UNITS[c.type].capture)).length;
   let openProps = 0;
-  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) openProps++;
+  const propGoals = new Map();
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) { openProps++; propGoals.set(i, 0); }
+  for (const e of foes) if (UNITS[e.type].cat === 'land') propGoals.set(idxOf(e.x, e.y), 2);
+  const footField = propGoals.size ? distField(propGoals, 'foot') : null;
+  const seaGap = footField ? mine.some(u => UNITS[u.type].cat === 'land' && footField[idxOf(u.x, u.y)] === Infinity) : false;
+  const longMarch = footField ? mine.some(u => UNITS[u.type].cat === 'land' && footField[idxOf(u.x, u.y)] > 10 && footField[idxOf(u.x, u.y)] < Infinity) : false;
 
   const sites = [];
   for (let i = 0; i < G.owner.length; i++) {
@@ -196,6 +291,9 @@ function aiProduce(s) {
       const dd = hexDist(u.x, u.y, x, y), ud = UNITS[u.type];
       return dd <= ud.move && u.fuel <= dd + ud.upkeep * 3 + 2;
     })) continue;
+    const siteDist = footField ? footField[i] : 6;
+    const needSea = seaGap || siteDist === Infinity;
+    const needFar = longMarch || (siteDist > 10 && siteDist < Infinity);
     const w = {
       inf: capturers < Math.min(7, 2 + openProps / 2) ? 7 : 1,
       atinf: 1 + enemyHard * 0.3,
@@ -211,7 +309,11 @@ function aiProduce(s) {
       destroyer: cnt('destroyer') >= Math.min(3, 1 + enemyShip) ? 0 : 0.3 + enemyShip * 0.8,
       stealth: 1.2,
       bomber: cnt('bomber') >= 3 ? 0.3 : 1.1,
-      marine: capturers < Math.min(7, 2 + openProps / 2) ? 3 : 0.8,
+      marine: capturers < Math.min(7, 2 + openProps / 2) ? (needSea ? 4.5 : 3) : 0.8,
+      lst: cnt('lst') < 2 && needSea && capturers >= 1 ? 2.2 : 0,
+      thelico: cnt('thelico') < 2 && (needSea || needFar) && capturers >= 1 ? 1.6 : 0,
+      truck: cnt('truck') < 2 && !needSea && needFar && capturers >= 2 ? 1.2 : 0,
+      airlift: cnt('airlift') < 1 && (needSea || needFar) && openProps >= 3 ? 0.8 : 0,
     };
     const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     if (!opts.length) continue;
@@ -229,14 +331,24 @@ function aiProduce(s) {
   }
 }
 
-// 運輸工具：接近敵軍（6 格內）或已在陸上時卸下所有搭載部隊
+// 運輸工具：接近敵軍、抵達目標據點附近或無法繼續向目標推進時，將搭載部隊卸載至與目標陸路相連的最佳相鄰格
 function aiUnload(t) {
   if (!t.cargo || !t.cargo.length) return;
-  const near = G.units.some(e => e.side !== t.side && hexDist(e.x, e.y, t.x, t.y) <= 6);
-  if (!near && UNITS[t.type].cat !== 'land') return;
+  const s = t.side, td = UNITS[t.type];
+  const nearFoe = G.units.some(e => e.side !== s && UNITS[e.type].cat === 'land' && hexDist(e.x, e.y, t.x, t.y) <= 5);
+  const nearProp = G.owner.some((o, i) => TERRAIN[G.terrain[i]].prop && o !== s && hexDist(...ixy(i), t.x, t.y) <= 4);
+  if (!nearFoe && !nearProp && td.cat !== 'land') return;
+  const pGoals = new Map();
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) pGoals.set(i, 0);
+  for (const e of G.units) if (e.side !== s && UNITS[e.type].cat === 'land') pGoals.set(idxOf(e.x, e.y), 2);
+  const pf = pGoals.size ? distField(pGoals, 'foot') : null;
   for (const c of [...t.cargo]) {
-    const tiles = unloadTiles(t, c);
-    if (!tiles.length) break;
+    // 優先卸載在能透過陸路抵達敵方據點或敵方陸軍的陸地格（pf[i] < Infinity），避免把步兵卸回原本的出發島嶼！
+    const tiles = unloadTiles(t, c).filter(i => !pf || pf[i] < Infinity);
+    if (!tiles.length) continue;
+    if (pf) tiles.sort((a, b) => pf[a] - pf[b]);
+    if (pf && pf[tiles[0]] > 8 && !nearFoe) continue;
+    if (td.cat === 'land' && !nearFoe && !nearProp && pf && pf[tiles[0]] >= pf[idxOf(t.x, t.y)]) continue;
     unloadAt(t, c, tiles[0]);
   }
 }
@@ -260,7 +372,9 @@ async function aiTurn() {
   aiLaunch(s);
   const prio = u => {
     const d = UNITS[u.type];
-    return isIndirect(u.type) ? 0 : d.capture ? 3 : d.cat === 'air' ? 2 : 1;
+    if (isIndirect(u.type)) return 0;
+    if (d.carry && !d.carry.deck) return (u.cargo || []).length ? 1 : 4;
+    return d.capture ? 3 : d.cat === 'air' ? 2 : 1;
   };
   const units = G.units.filter(u => u.side === s && !u.done).sort((a, b) => prio(a) - prio(b));
   for (const u of units) {
