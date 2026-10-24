@@ -368,6 +368,35 @@ button, #map { touch-action: manipulation; }
 .sbtns button { padding: 5px 9px; }
 button.danger { background: #7a2a2a; border-color: #b04040; }
 .row .spacer { flex: 1; }
+
+.btn-import-file {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: #2b3947;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.btn-import-file:hover { background: #374758; }
+.btn-import-file input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
 @media (max-height: 520px) and (orientation: landscape) {
   .slots { max-height: calc(100dvh - 150px); }
   .slot img, .slot .nothumb { width: 56px; height: 34px; }

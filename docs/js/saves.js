@@ -160,28 +160,116 @@ function exportSlot(id) {
   a.download = `大戰略_${m.name.replace(/[\\/:*?"<>|]/g, '_')}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(raw).then(() => {
+      showBanner('已下載檔案並複製存檔代碼至剪貼簿', '#3a8a4a');
+    }).catch(() => {
+      showBanner('已匯出存檔檔案', '#3a8a4a');
+    });
+  } else {
+    showBanner('已匯出存檔檔案', '#3a8a4a');
+  }
 }
+
+// 跨平台（含 iOS / iPadOS Safari & iCloud Drive）文字檔案讀取器
+function readFileText(f, cb) {
+  if (typeof FileReader !== 'undefined') {
+    const reader = new FileReader();
+    reader.onload = e => cb(e.target.result);
+    reader.onerror = () => {
+      if (typeof f.text === 'function') f.text().then(cb).catch(() => cb(null));
+      else cb(null);
+    };
+    try {
+      reader.readAsText(f);
+      return;
+    } catch (e) { /* fallback below */ }
+  }
+  if (typeof f.text === 'function') {
+    f.text().then(cb).catch(() => cb(null));
+  } else {
+    cb(null);
+  }
+}
+
+// 驗證並儲存存檔 JSON
+function processSaveJSON(txt, fileName = '匯入存檔') {
+  if (!txt) { showBanner('檔案內容為空', '#a33'); return false; }
+  txt = txt.trim().replace(/^\uFEFF/, '');
+  let obj = null;
+  try { obj = JSON.parse(txt); } catch (e) { /* 忽略 */ }
+  const g = obj && (obj.G || obj);
+  if (!g || !Array.isArray(g.terrain) || !Array.isArray(g.units)) {
+    showBanner('不是有效的大戰略存檔檔案', '#a33');
+    return false;
+  }
+  const d = describeGame(g), id = `i${Date.now().toString(36)}`;
+  try {
+    localStorage.setItem(SAVE_PREFIX + id, JSON.stringify(obj.G ? obj : { v: 2, G: g, camp: null }));
+    const list = readIndex();
+    const saveName = (fileName || '匯入存檔').replace(/\.json$/i, '').replace(/\.txt$/i, '').replace(/^大戰略_/, '').trim() || '匯入存檔';
+    list.push({
+      id, name: saveName, time: Date.now(), auto: false,
+      mode: d.mode, title: d.title, turn: g.turn, side: g.cur, thumb: makeThumb(g)
+    });
+    writeIndex(list);
+    showBanner('已成功匯入存檔！', '#3a8a4a');
+    return true;
+  } catch (e) {
+    showBanner('儲存空間不足', '#a33');
+    return false;
+  }
+}
+
+function openPasteImportDialog(onDone) {
+  openModal(`<h2>📋 貼上代碼匯入存檔</h2>
+    <div class="sub">若從 iCloud 或其他裝置複製了存檔 JSON，可在此直接貼上匯入：</div>
+    <textarea id="pasteArea" placeholder="在此貼上大戰略存檔 JSON 代碼..." style="width:100%;height:160px;font-family:monospace;font-size:12px;background:#0d1217;color:#c8d2dc;border:1px solid var(--line);border-radius:6px;padding:8px;box-sizing:border-box;resize:vertical"></textarea>
+    <div class="row" style="flex-wrap:wrap;gap:6px">
+      <button id="btnReadClip">📋 從剪貼簿貼上</button>
+      <span class="spacer"></span>
+      <button class="close">取消</button>
+      <button class="primary" id="btnConfirmPaste">確定匯入</button>
+    </div>`, box => {
+    const ta = box.querySelector('#pasteArea');
+    box.querySelector('#btnReadClip').onclick = async () => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const clipText = await navigator.clipboard.readText();
+          if (clipText) ta.value = clipText;
+        } else {
+          showBanner('請於文字框長按貼上', '#666');
+        }
+      } catch (err) {
+        showBanner('請於文字框長按貼上', '#666');
+      }
+    };
+    box.querySelector('#btnConfirmPaste').onclick = () => {
+      if (processSaveJSON(ta.value, '貼上存檔')) {
+        closeModal();
+        onDone && onDone();
+      }
+    };
+    box.querySelector('.close').onclick = onDone || closeModal;
+  }, true);
+}
+
 function importSaveFile(onDone) {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.type = 'file';
+  inp.accept = '.json,application/json,text/plain,text/json,application/octet-stream,*/*';
+  inp.style.position = 'fixed';
+  inp.style.left = '-9999px';
+  inp.style.opacity = '0';
+  document.body.appendChild(inp);
   inp.onchange = () => {
-    const f = inp.files[0];
-    if (!f) return;
-    f.text().then(txt => {
-      let obj = null;
-      try { obj = JSON.parse(txt); } catch (e) { /* 忽略 */ }
-      const g = obj && (obj.G || obj);
-      if (!g || !Array.isArray(g.terrain) || !Array.isArray(g.units)) return showBanner('不是有效的存檔檔案', '#a33');
-      const d = describeGame(g), id = `i${Date.now().toString(36)}`;
-      try {
-        localStorage.setItem(SAVE_PREFIX + id, JSON.stringify(obj.G ? obj : { v: 2, G: g, camp: null }));
-        const list = readIndex();
-        list.push({ id, name: f.name.replace(/\.json$/i, '').replace(/^大戰略_/, ''), time: Date.now(), auto: false,
-          mode: d.mode, title: d.title, turn: g.turn, side: g.cur, thumb: makeThumb(g) });
-        writeIndex(list);
-        showBanner('已匯入存檔', '#3a8a4a');
-      } catch (e) { showBanner('儲存空間不足', '#a33'); }
-      onDone && onDone();
+    const f = inp.files && inp.files[0];
+    if (!f) { inp.remove(); return; }
+    readFileText(f, txt => {
+      inp.remove();
+      if (processSaveJSON(txt, f.name)) {
+        onDone && onDone();
+      }
     });
   };
   inp.click();
@@ -234,9 +322,31 @@ function openLoadDialog() {
   const slots = sortedSlots();
   openModal(`<h2>讀取存檔</h2>
     ${slots.length ? `<div class="slots">${slots.map(m => slotRow(m, false)).join('')}</div>` : '<div class="sub">還沒有任何存檔。遊戲中按「存檔」即可建立，每回合開始時也會自動存檔。</div>'}
-    <div class="row"><button id="importBtn">⇧ 匯入存檔檔案</button><span class="spacer"></span><button class="close">關閉</button></div>`, box => {
+    <div class="row" style="flex-wrap:wrap;gap:6px">
+      <label class="btn-import-file" id="importFileLabel" title="從本機或 iCloud 選擇存檔檔案 (.json)">
+        ⇧ 選擇檔案匯入
+        <input type="file" id="importInp" accept=".json,application/json,text/plain,text/json,application/octet-stream,*/*">
+      </label>
+      <button id="importPasteBtn" title="貼上 JSON 存檔內容或從剪貼簿讀取">📋 貼上代碼</button>
+      <span class="spacer"></span>
+      <button class="close">關閉</button>
+    </div>`, box => {
     box.querySelector('.close').onclick = closeModal;
-    box.querySelector('#importBtn').onclick = () => importSaveFile(openLoadDialog);
+    const fileInp = box.querySelector('#importInp');
+    if (fileInp) {
+      fileInp.onchange = e => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        readFileText(f, txt => {
+          if (processSaveJSON(txt, f.name)) {
+            openLoadDialog();
+          }
+        });
+        e.target.value = '';
+      };
+    }
+    const pasteBtn = box.querySelector('#importPasteBtn');
+    if (pasteBtn) pasteBtn.onclick = () => openPasteImportDialog(openLoadDialog);
     box.querySelectorAll('[data-act]').forEach(b => {
       const id = b.dataset.id;
       b.onclick = () => {

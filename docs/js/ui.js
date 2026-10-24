@@ -663,7 +663,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v48</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v49</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -685,6 +685,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v49</span><span class="cl-date">2026.10.24</span><p>修復 iPad / iOS Safari 從 iCloud Drive 匯入存檔問題：採用原生 DOM 觸發結構解決 WebKit 手勢限制、放寬 MIME 格式防止檔案反灰不可選取、改以 FileReader 串流讀取，並新增「貼上代碼匯入」與「匯出複製至剪貼簿」雙重備援。</p></div>
         <div class="cl-item"><span class="cl-ver">v48</span><span class="cl-date">2026.10.24</span><p>「下一部隊」按鈕動態狀態切換：顯示未行動部隊剩餘數量，當全軍行動完畢且無可生產據點時，按鈕動態轉化為「結束回合 ✓」高亮就緒狀態；支援 Tab 鍵全回合無縫串接操作。</p></div>
         <div class="cl-item"><span class="cl-ver">v47</span><span class="cl-date">2026.10.24</span><p>側欄佈局優化：調整右側欄元件顯示順序，將「章節任務卡」緊接置於「小地圖」正下方，其下依序排列「地形資訊」與「部隊資訊」，作戰目標與地形地貌一目了然。</p></div>
         <div class="cl-item"><span class="cl-ver">v46</span><span class="cl-date">2026.10.24</span><p>升級「國家圖鑑」：整合 16 國國旗、專屬色徽章與主力兵種剪影展示；兵種規格表完整整合 Q 版圖示；新增層級式導覽與「返回上一頁 / 返回國家總覽」按鈕，查閱體驗更流暢直覺。</p></div>
@@ -785,7 +786,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v48</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v49</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
