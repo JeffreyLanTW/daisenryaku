@@ -686,6 +686,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v59</span><span class="cl-date">2026.10.25</span><p>iPad 主畫面網頁 App 音訊工作階段改為 ambient（原為 playback）：鎖定螢幕與休眠時由系統自動靜音、不再於背景持續播放；系統凍結頁面前亦先行靜音。</p></div>
         <div class="cl-item"><span class="cl-ver">v58</span><span class="cl-date">2026.10.25</span><p>新增「音訊模式」選單（自動／原始／固定 48kHz／固定 44.1kHz／相容模式），供 iPad 主畫面網頁 App 實機逐一測試；相容模式將背景音樂轉為 WAV 交由 HTML 媒體播放器播放，完全繞過 Web Audio 輸出。</p></div>
         <div class="cl-item"><span class="cl-ver">v57</span><span class="cl-date">2026.10.25</span><p>針對 iPad「加入主畫面」網頁 App 的重複怪音與音高／速度錯誤：修正 iOS AudioContext 取樣率錯配 bug（建立後播放空白樣本、關閉並重建 context），並將 iOS 音訊工作階段固定為 playback；僅於主畫面 App 模式套用，Safari／Chrome 分頁不受影響；選單診斷資訊加入延遲與音訊工作階段類型。</p></div>
         <div class="cl-item"><span class="cl-ver">v56</span><span class="cl-date">2026.10.25</span><p>修正 iPad「加入主畫面」網頁 App 重複怪音、音樂與怪音並放及音高／速度錯誤：整個工作階段只使用單一 AudioContext，靜音與轉入背景時不再 suspend／close（避免硬體輸出卡住重複播放與重建 context 取樣率錯誤），改為停止所有節點並將增益歸零；主畫面 App 回到前景時自動檢查新版本並顯示更新按鈕；選單顯示音訊診斷資訊。</p></div>
@@ -809,7 +810,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v58</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v59</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>

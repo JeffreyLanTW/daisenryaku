@@ -167,17 +167,18 @@ function setAudioMode(m) {
 }
 
 // 建立 AudioContext。主畫面網頁 App 專用修正（Safari 分頁不受影響）：
-// 1. 將 iOS 音訊工作階段固定為 playback，避免 standalone 程序的工作階段類別與硬體取樣率不穩定；
+// 1. 將 iOS 音訊工作階段固定為 ambient（所有模式）：鎖定螢幕／休眠時由系統靜音，且不搶占其他 App 音訊。
+//    切勿使用 playback：該類別允許背景與鎖定畫面持續播放，主畫面 App 卡住時聲音在休眠後仍不停止；
 // 2. iOS 取樣率錯配 bug（WebKit 154538）：context 回報的取樣率與硬體實際渲染速率不同，
 //    造成失真、重複怪音與音高／速度錯誤。已知解法：建立後播放一個空白樣本、立即關閉，再建立新的 context。
 function createAudioContext(AC) {
+  if (IS_STANDALONE && window.navigator.audioSession) {
+    try { window.navigator.audioSession.type = 'ambient'; } catch (e) { /* 忽略 */ }
+  }
   if (AUDIO.mode === '48k' || AUDIO.mode === '44k') {
     try { return new AC({ sampleRate: AUDIO.mode === '48k' ? 48000 : 44100 }); } catch (e) { return new AC(); }
   }
   if (AUDIO.mode !== 'auto') return new AC();
-  if (IS_STANDALONE && window.navigator.audioSession) {
-    try { window.navigator.audioSession.type = 'playback'; } catch (e) { /* 忽略 */ }
-  }
   let c = new AC();
   if (IS_STANDALONE && typeof c.close === 'function') {
     try {
@@ -1135,6 +1136,8 @@ if (typeof window !== 'undefined') {
     }
   };
   window.addEventListener('pagehide', quiet);
+  // 主畫面 App 被系統凍結（切到背景、鎖定）前同樣靜音
+  if (typeof document !== 'undefined') document.addEventListener('freeze', quiet);
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (!AUDIO.ctx) return;
