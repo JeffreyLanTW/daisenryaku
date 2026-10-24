@@ -531,7 +531,7 @@ function openNations(sel) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v37</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v38</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -553,6 +553,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v38</span><span class="cl-date">2026.10.24</span><p>新增背景音樂「深海潛航・紅色十月」（D 小調合唱銅管、定音鼓、聲納），可由地圖右下角 🎼 或選單切換曲目。</p></div>
         <div class="cl-item"><span class="cl-ver">v37</span><span class="cl-date">2026.10.24</span><p>版本紀錄日期精確到「日」。</p></div>
         <div class="cl-item"><span class="cl-ver">v36</span><span class="cl-date">2026.10.24</span><p>部隊卡片精簡：移除價格、射程、移動；字體放大；進化路線與剩餘燃料改為醒目標示（燃料不足時紅色閃爍警示）。</p></div>
         <div class="cl-item"><span class="cl-ver">v35</span><span class="cl-date">2026.10.24</span><p>主選單標題旁新增版本號標籤。</p></div>
@@ -601,7 +602,7 @@ function openMoreMenu() {
     <button id="moSave">💾 存檔</button><button id="moLoad">📂 讀檔</button>
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
     <button id="moMusic">🎵 音樂：${AUDIO.on.music ? '開' : '關'}</button><button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button>
-    <button id="moNations">📚 國家圖鑑</button>
+    <button id="moTrack">🎼 曲目：${TRACKS[AUDIO.on.track] ? TRACKS[AUDIO.on.track].name : TRACKS[0].name}</button><button id="moNations">📚 國家圖鑑</button>
     <button id="moMain">🏠 主選單</button><button class="close">✕ 關閉</button></div>`, box => {
     box.querySelector('#moCamp').onclick = () => openCampaignMenu();
     box.querySelector('#moSave').onclick = openSaveDialog;
@@ -610,6 +611,7 @@ function openMoreMenu() {
     box.querySelector('#moHelp').onclick = openHelp;
     box.querySelector('#moNations').onclick = () => openNations();
     box.querySelector('#moMusic').onclick = () => { $('#zMusic').click(); openMoreMenu(); };
+    box.querySelector('#moTrack').onclick = () => { $('#zTrack').click(); openMoreMenu(); };
     box.querySelector('#moSfx').onclick = () => { $('#zSfx').click(); openMoreMenu(); };
     box.querySelector('#moMain').onclick = openMainMenu;
     box.querySelector('.close').onclick = closeModal;
@@ -623,7 +625,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v37</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v38</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -820,6 +822,7 @@ function setupInput() {
   syncAudioBtns();
   mb.onclick = () => { setAudio('music', !AUDIO.on.music); syncAudioBtns(); showToast(AUDIO.on.music ? '背景音樂：開' : '背景音樂：關'); };
   sb.onclick = () => { setAudio('sfx', !AUDIO.on.sfx); syncAudioBtns(); showToast(AUDIO.on.sfx ? '音效：開' : '音效：關'); };
+  $('#zTrack').onclick = () => { const n = cycleTrack(); if (!AUDIO.on.music) { setAudio('music', true); syncAudioBtns(); } showToast('🎼 ' + n); };
   document.addEventListener('click', e => { if (e.target.closest('button')) sfx('click'); });
   const lb = $('#zLabel');
   lb.classList.toggle('on', SETTINGS.labels);
