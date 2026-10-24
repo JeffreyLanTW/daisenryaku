@@ -189,6 +189,7 @@ button.muted { color: var(--muted); background: transparent; }
 .mainmenu { display: flex; flex-direction: column; gap: 10px; align-items: stretch; padding: 10px 20px; }
 .mainmenu .logo { text-align: center; font-size: 52px; font-weight: 900; letter-spacing: 14px; color: var(--gold); text-shadow: 0 3px 0 #000, 0 0 30px rgba(224,181,74,.35); }
 .mainmenu .tagline { text-align: center; color: var(--muted); margin-bottom: 12px; letter-spacing: 3px; }
+.mainmenu .logo-ver { display: inline-block; vertical-align: super; margin-left: 4px; padding: 1px 8px; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--gold); border: 1px solid rgba(224,181,74,.55); border-radius: 999px; background: rgba(224,181,74,.12); text-shadow: none; }
 .mainmenu button.big { font-size: 17px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .mainmenu button small { font-size: 12px; opacity: .75; font-weight: 400; }
 
