@@ -533,7 +533,7 @@ function openNations(sel) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v33</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v34</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -555,6 +555,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v34</span><span class="cl-date">2026.10</span><p>修正小螢幕（iPad Mini）配置畫面遮擋地圖上方格子無法點擊的問題：配置列改為停靠於地圖下方。</p></div>
         <div class="cl-item"><span class="cl-ver">v33</span><span class="cl-date">2026.10</span><p>修復說明視窗模板字串語法錯誤；優化 iPad Mini 與觸控螢幕首回配置介面佈局（支援名單收合折疊）；補齊 v1–v25 歷史重大里程碑紀錄。</p></div>
         <div class="cl-item"><span class="cl-ver">v31</span><span class="cl-date">2026.10</span><p>專案發布目錄架構重組（隔離 tools 與 docs 生產資產），新增說明視窗版本號與開發歷史展示。</p></div>
         <div class="cl-item"><span class="cl-ver">v30</span><span class="cl-date">2026.10</span><p>戰役同陣營援軍預設改為玩家手動指揮；船艦移動力降為 3；部隊圖示全面依各國真實型號與迷彩重繪；解放軍改以人海數量平衡機制。</p></div>

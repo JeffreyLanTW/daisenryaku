@@ -355,6 +355,7 @@ function startDeploy() {
   UIS.deploySel = null;
   const bar = $('#deployBar');
   bar.classList.remove('hidden', 'minimized');
+  $('#mapWrap').classList.add('deploying');
   const dt = $('#deployToggle');
   if (dt) dt.textContent = '收合 ▴';
   renderDeployBar();
@@ -379,6 +380,7 @@ function endDeploy() {
   const bar = $('#deployBar');
   bar.classList.add('hidden');
   bar.classList.remove('minimized');
+  $('#mapWrap').classList.remove('deploying');
   UIS.deployZone = null; UIS.deploySel = null;
   UIS.mode = 'idle';
   turnIntro();
