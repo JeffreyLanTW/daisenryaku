@@ -434,8 +434,8 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   .campcard { padding: 10px; }
   .campcard p { font-size: 12px; margin: 4px 0; }
 }
-#zoomCtl #zMusic, #zoomCtl #zSfx, #zoomCtl #zTrack { font-size: 14px; color: var(--muted); }
-#zoomCtl #zMusic.on { color: #1a1205; background: var(--gold); border-color: var(--gold); }
+#zoomCtl #zSfx { font-size: 14px; color: var(--muted); }
+#zoomCtl #zSfx.on { color: var(--text); }
 .facs.one { grid-template-columns: 1fr; }
 .ut td.model { text-align: left; font-size: 11px; color: #c8d2dc; }
 .ut td.model small { color: var(--gold); margin-left: 4px; }
