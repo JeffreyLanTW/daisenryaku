@@ -204,28 +204,28 @@ function lgrad(c, x0, y0, x1, y1, stops) {
   return g;
 }
 
-// 繪製一枚部隊圖示（無外框、高對比國家單色剪影、大字體老花友善標示）
+// 繪製一枚部隊圖示（無外框、高對比國家單色卡通造型、大字體老花友善標示）
 function drawCounter(c, cx, cy, type, side, o = {}) {
   const d = UNITS[type], ncol = typeof nationColor === 'function' ? nationColor(d.nation, side) : SIDES[side].color;
+  const light = typeof isLightNation === 'function' && isLightNation(d.nation);
   const air = d.cat === 'air';
   const oy = air ? -5 : -2, w = 50, h = 38;
   const top = cy - h / 2 + oy;
-  if (air) { c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(cx, cy + 15, 16, 4.5, 0, 0, 7); c.fill(); }
+  if (air) {
+    c.fillStyle = 'rgba(0,0,0,0.32)'; c.beginPath(); c.ellipse(cx, cy + 15, 16, 4.5, 0, 0, 7); c.fill();
+  } else {
+    c.fillStyle = 'rgba(0,0,0,0.24)'; c.beginPath(); c.ellipse(cx, cy + 12, 18, 5, 0, 0, 7); c.fill();
+  }
   // 選取或檢視高亮光暈（不使用方框外框）
   if (o.highlight) {
-    c.fillStyle = 'rgba(255,226,122,0.38)';
-    circle(c, cx, cy + oy, 25);
+    c.fillStyle = 'rgba(255,226,122,0.42)';
+    circle(c, cx, cy + oy, 24);
     c.fill();
   }
-  // 高對比柔和淺色底墊（無邊框，確保深色或鮮色單色剪影在森林/海洋等背景上100%清晰突出）
-  c.fillStyle = o.done ? 'rgba(180,186,194,0.48)' : 'rgba(255,255,255,0.78)';
-  c.beginPath();
-  c.ellipse(cx, cy + oy + 1, 22, 15.5, 0, 0, Math.PI * 2);
-  c.fill();
 
   c.save();
   if (o.done) c.globalAlpha = 0.48;
-  c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2 * 1.12, cy + oy + 1 - ICON_H / 2 * 1.12, ICON_W * 1.12, ICON_H * 1.12);
+  c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2 * 1.14, cy + oy + 1 - ICON_H / 2 * 1.14, ICON_W * 1.14, ICON_H * 1.14);
   c.restore();
 
   if (o.label) {
@@ -233,7 +233,8 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
     const tw = c.measureText(d.name).width + 10;
     roundRect(c, cx - tw / 2, top + h - 2, tw, 15, 4);
     c.fillStyle = o.done ? 'rgba(20,25,32,0.75)' : ncol; c.fill();
-    c.fillStyle = o.done ? '#cbd5e1' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    if (!o.done && light) { c.strokeStyle = '#1e293b'; c.lineWidth = 1.4; c.stroke(); }
+    c.fillStyle = o.done ? '#cbd5e1' : (light ? '#0f172a' : '#fff'); c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(d.name, cx, top + h + 5.5);
   }
   if (o.hp !== undefined && o.hp < 10) {
@@ -257,7 +258,8 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
   if (o.allyAI) {
     c.font = 'bold 8px sans-serif';
     roundRect(c, cx - w / 2 + 1, top + 2, 15, 10, 3); c.fillStyle = ncol; c.fill();
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('友', cx - w / 2 + 8.5, top + 7.2);
+    if (light) { c.strokeStyle = '#1e293b'; c.lineWidth = 1.2; c.stroke(); }
+    c.fillStyle = light ? '#0f172a' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('友', cx - w / 2 + 8.5, top + 7.2);
   }
   if (o.cargo) {
     c.font = 'bold 10px sans-serif';
