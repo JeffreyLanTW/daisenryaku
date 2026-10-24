@@ -204,99 +204,93 @@ function lgrad(c, x0, y0, x1, y1, stops) {
   return g;
 }
 
-// 繪製一枚部隊棋子
+// 繪製一枚部隊圖示（無外框、高對比國家單色剪影、大字體老花友善標示）
 function drawCounter(c, cx, cy, type, side, o = {}) {
-  const d = UNITS[type], S = SIDES[side];
-  const N = NATIONS[d.nation] || NATIONS.TW;
+  const d = UNITS[type], ncol = typeof nationColor === 'function' ? nationColor(d.nation, side) : SIDES[side].color;
   const air = d.cat === 'air';
-  const oy = air ? -6 : -2, w = 46, h = 34, rad = air ? 12 : 6;
-  if (air) { c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.ellipse(cx, cy + 14, 16, 4, 0, 0, 7); c.fill(); }
+  const oy = air ? -5 : -2, w = 50, h = 38;
   const top = cy - h / 2 + oy;
-  const shape = () => {
-    if (side === 1 && !air) {
-      const k = 8, x0 = cx - w / 2, x1 = cx + w / 2, y1 = top + h;
-      c.beginPath(); c.moveTo(x0 + k, top); c.lineTo(x1 - k, top); c.lineTo(x1, top + k); c.lineTo(x1, y1 - k);
-      c.lineTo(x1 - k, y1); c.lineTo(x0 + k, y1); c.lineTo(x0, y1 - k); c.lineTo(x0, top + k); c.closePath();
-    } else roundRect(c, cx - w / 2, top, w, h, side === 1 ? 4 : rad);
-  };
-  // 淺色底（依兵種環境：天空、海面、地面）
-  const bg = air ? ['#dbe9f7', '#9fbfdc'] : d.cat === 'sea' || d.base === 'marine' ? ['#cfe2ef', '#7fa3bf'] : ['#e8e6d6', '#b9b59a'];
-  shape();
-  c.fillStyle = lgrad(c, 0, top, 0, top + h, [[0, bg[0]], [1, bg[1]]]); c.fill();
-  c.save(); shape(); c.clip();
-  c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2, cy + oy + 1 - ICON_H / 2, ICON_W, ICON_H);
+  if (air) { c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(cx, cy + 15, 16, 4.5, 0, 0, 7); c.fill(); }
+  // 選取或檢視高亮光暈（不使用方框外框）
+  if (o.highlight) {
+    c.fillStyle = 'rgba(255,226,122,0.38)';
+    circle(c, cx, cy + oy, 25);
+    c.fill();
+  }
+  // 高對比柔和淺色底墊（無邊框，確保深色或鮮色單色剪影在森林/海洋等背景上100%清晰突出）
+  c.fillStyle = o.done ? 'rgba(180,186,194,0.48)' : 'rgba(255,255,255,0.78)';
+  c.beginPath();
+  c.ellipse(cx, cy + oy + 1, 22, 15.5, 0, 0, Math.PI * 2);
+  c.fill();
+
+  c.save();
+  if (o.done) c.globalAlpha = 0.48;
+  c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2 * 1.12, cy + oy + 1 - ICON_H / 2 * 1.12, ICON_W * 1.12, ICON_H * 1.12);
   c.restore();
-  shape();
-  c.strokeStyle = o.highlight ? '#ffe27a' : S.color; c.lineWidth = o.highlight ? 3.2 : 2.6; c.stroke();
-  // 國碼標籤
-  c.font = 'bold 8px sans-serif';
-  const cw = c.measureText(N.code).width + 5;
-  roundRect(c, cx - w / 2 + 1.5, top + 1.5, cw, 9, 2); c.fillStyle = S.color; c.fill();
-  c.fillStyle = '#fff'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(N.code, cx - w / 2 + 4, top + 6.3);
-  if (o.done) { shape(); c.fillStyle = 'rgba(20,20,20,0.5)'; c.fill(); }
+
   if (o.label) {
-    c.font = 'bold 10px -apple-system, "PingFang TC", sans-serif';
-    const tw = c.measureText(d.name).width + 8;
-    roundRect(c, cx - tw / 2, top + h - 1, tw, 12, 3);
-    c.fillStyle = 'rgba(8,12,16,0.85)'; c.fill();
-    c.fillStyle = o.done ? '#9aa6b2' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(d.name, cx, top + h + 5);
+    c.font = 'bold 12px -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif';
+    const tw = c.measureText(d.name).width + 10;
+    roundRect(c, cx - tw / 2, top + h - 2, tw, 15, 4);
+    c.fillStyle = o.done ? 'rgba(20,25,32,0.75)' : ncol; c.fill();
+    c.fillStyle = o.done ? '#cbd5e1' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(d.name, cx, top + h + 5.5);
   }
   if (o.hp !== undefined && o.hp < 10) {
-    const hx = cx + w / 2 - 2, hy = top + 2;
-    circle(c, hx, hy, 8); c.fillStyle = '#111'; c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 1.2; c.stroke();
-    c.fillStyle = o.hp <= 3 ? '#ff8a7a' : '#fff'; c.font = 'bold 11px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const hx = cx + w / 2 - 3, hy = top + 3;
+    circle(c, hx, hy, 9.5); c.fillStyle = o.hp <= 3 ? '#b91c1c' : '#111827'; c.fill();
+    c.fillStyle = o.hp <= 3 ? '#fef08a' : '#fff'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(o.hp, hx, hy + 0.5);
   }
   if (o.vip) {
-    c.save(); c.translate(cx, top - 1);
+    c.save(); c.translate(cx, top - 2);
     c.beginPath();
-    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 3.4 : 8; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
-    c.closePath(); c.fillStyle = '#ffd34d'; c.fill(); c.strokeStyle = '#000'; c.lineWidth = 1.2; c.stroke();
+    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 3.8 : 9; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    c.closePath(); c.fillStyle = '#ffd34d'; c.fill(); c.strokeStyle = '#000'; c.lineWidth = 1.4; c.stroke();
     c.restore();
   }
   if (o.fuelLow) {
-    c.font = 'bold 10px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'top';
-    c.strokeStyle = '#000'; c.lineWidth = 2.5; c.fillStyle = '#ffcc33';
-    c.strokeText('⛽', cx - w / 2 + 2, top + h - 12); c.fillText('⛽', cx - w / 2 + 2, top + h - 12);
+    c.font = 'bold 12px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'top';
+    c.strokeStyle = '#000'; c.lineWidth = 3; c.fillStyle = '#fde047';
+    c.strokeText('⛽', cx - w / 2 + 1, top + h - 14); c.fillText('⛽', cx - w / 2 + 1, top + h - 14);
   }
   if (o.allyAI) {
-    c.font = 'bold 7px sans-serif';
-    roundRect(c, cx - w / 2 + 1.5, top + 11.5, 13, 8, 2); c.fillStyle = '#4a4f57'; c.fill();
-    c.fillStyle = '#fff'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('AI', cx - w / 2 + 3, top + 15.8);
+    c.font = 'bold 8px sans-serif';
+    roundRect(c, cx - w / 2 + 1, top + 2, 15, 10, 3); c.fillStyle = ncol; c.fill();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('友', cx - w / 2 + 8.5, top + 7.2);
   }
   if (o.cargo) {
-    c.font = 'bold 9px sans-serif';
-    roundRect(c, cx - 11, top + h - 11, 22, 10, 3); c.fillStyle = 'rgba(20,90,40,0.92)'; c.fill();
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('載' + o.cargo, cx, top + h - 5.5);
+    c.font = 'bold 10px sans-serif';
+    roundRect(c, cx - 13, top + h - 13, 26, 12, 3); c.fillStyle = '#15803d'; c.fill();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('載' + o.cargo, cx, top + h - 6.5);
   }
   if (o.rank) {
     // 階級：金色 V 形臂章；王牌另加星
     const bx = cx + w / 2 - 7, by = top + h - 5;
-    c.strokeStyle = '#000'; c.lineWidth = 3.4; c.lineJoin = 'miter';
+    c.strokeStyle = '#000'; c.lineWidth = 3.8; c.lineJoin = 'miter';
     for (let k = 0; k < Math.min(o.rank, 2); k++) {
-      c.beginPath(); c.moveTo(bx - 4, by - 4 - k * 4); c.lineTo(bx, by - 1 - k * 4); c.lineTo(bx + 4, by - 4 - k * 4); c.stroke();
+      c.beginPath(); c.moveTo(bx - 4.5, by - 4 - k * 4.5); c.lineTo(bx, by - 0.5 - k * 4.5); c.lineTo(bx + 4.5, by - 4 - k * 4.5); c.stroke();
     }
-    c.strokeStyle = '#ffd34d'; c.lineWidth = 1.8;
+    c.strokeStyle = '#ffd34d'; c.lineWidth = 2.2;
     for (let k = 0; k < Math.min(o.rank, 2); k++) {
-      c.beginPath(); c.moveTo(bx - 4, by - 4 - k * 4); c.lineTo(bx, by - 1 - k * 4); c.lineTo(bx + 4, by - 4 - k * 4); c.stroke();
+      c.beginPath(); c.moveTo(bx - 4.5, by - 4 - k * 4.5); c.lineTo(bx, by - 0.5 - k * 4.5); c.lineTo(bx + 4.5, by - 4 - k * 4.5); c.stroke();
     }
     if (o.rank >= 3) {
-      c.save(); c.translate(bx, by - 13);
+      c.save(); c.translate(bx, by - 14);
       c.beginPath();
-      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 2 : 4.6; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
-      c.closePath(); c.fillStyle = '#ffd34d'; c.fill(); c.strokeStyle = '#000'; c.lineWidth = 1; c.stroke();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 2.2 : 5.2; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+      c.closePath(); c.fillStyle = '#ffd34d'; c.fill(); c.strokeStyle = '#000'; c.lineWidth = 1.2; c.stroke();
       c.restore();
     }
   }
   if (o.tier) {
-    c.font = 'bold 8px sans-serif'; c.textAlign = 'right'; c.textBaseline = 'top';
-    c.strokeStyle = '#000'; c.lineWidth = 2.5; c.fillStyle = '#8fe3ff';
-    c.strokeText('改' + (o.tier > 1 ? o.tier : ''), cx + w / 2 - 12, top + 1.5); c.fillText('改' + (o.tier > 1 ? o.tier : ''), cx + w / 2 - 12, top + 1.5);
+    c.font = 'bold 10px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'top';
+    c.strokeStyle = '#000'; c.lineWidth = 3; c.fillStyle = '#7dd3fc';
+    c.strokeText('改' + (o.tier > 1 ? o.tier : ''), cx - w / 2 + 2, top + 1); c.fillText('改' + (o.tier > 1 ? o.tier : ''), cx - w / 2 + 2, top + 1);
   }
   if (o.order) {
-    c.fillStyle = '#ffd34d'; c.strokeStyle = '#000'; c.lineWidth = 1;
-    c.beginPath(); c.moveTo(cx + w / 2 - 9, top + h - 2); c.lineTo(cx + w / 2 - 9, top + h - 12); c.lineTo(cx + w / 2 - 2, top + h - 9.5); c.lineTo(cx + w / 2 - 9, top + h - 7); c.stroke(); c.fill();
+    c.fillStyle = '#ffd34d'; c.strokeStyle = '#000'; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(cx + w / 2 - 9, top + h - 2); c.lineTo(cx + w / 2 - 9, top + h - 13); c.lineTo(cx + w / 2 - 1, top + h - 10); c.lineTo(cx + w / 2 - 9, top + h - 7); c.stroke(); c.fill();
   }
 }
 
@@ -573,9 +567,10 @@ function drawMini() {
     mctx.fill();
   }
   for (const u of G.units) {
-    const [cx, cy] = tileCenter(u.x, u.y);
-    mctx.fillStyle = SIDES[u.side].color; circle(mctx, cx, cy, R * 0.62); mctx.fill();
-    mctx.strokeStyle = '#000'; mctx.lineWidth = 4; mctx.stroke();
+    const [cx, cy] = tileCenter(u.x, u.y), ud = UNITS[u.type];
+    mctx.fillStyle = typeof nationColor === 'function' ? nationColor(ud.nation, u.side) : SIDES[u.side].color;
+    circle(mctx, cx, cy, R * 0.65); mctx.fill();
+    mctx.strokeStyle = '#fff'; mctx.lineWidth = 3.5; mctx.stroke();
   }
   const [vw, vh] = viewSize();
   mctx.strokeStyle = '#ffe27a'; mctx.lineWidth = 2 / s;

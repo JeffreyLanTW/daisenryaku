@@ -341,10 +341,10 @@ function xpHTML(u) {
     ${evo ? `<div class="evo-row">⬆ 進化 ${evo}</div>` : ''}`;
 }
 function unitHTML(u) {
-  const d = UNITS[u.type], S = SIDES[u.side];
+  const d = UNITS[u.type], S = SIDES[u.side], ncol = typeof nationColor === 'function' ? nationColor(d.nation, u.side) : S.color;
   const fuelPct = d.fuel ? Math.max(0, Math.min(100, Math.round(u.fuel / d.fuel * 100))) : 0;
   const fuelLow = d.fuel !== undefined && u.fuel <= d.upkeep * 3;
-  return `<div class="uhead"><span class="dot" style="background:${S.color}"></span><b>${d.name}</b><span class="fac">${NATIONS[d.nation].name}</span>
+  return `<div class="uhead"><span class="dot" style="background:${ncol}"></span><b>${d.name}</b><span class="fac">${NATIONS[d.nation].name}</span>
     <span class="tag">${CLASS_NAME[d.cls]}</span></div>
     <div class="hpbar"><i style="width:${u.hp * 10}%;background:${u.hp <= 3 ? '#e2574c' : u.hp <= 6 ? '#e0b54a' : '#5cc26b'}"></i><span>HP ${u.hp}/10</span></div>
     ${d.fuel !== undefined ? `<div class="fuel-row ${fuelLow ? 'low' : ''}"><span class="fuel-lbl">⛽ 燃料</span><div class="fuel-bar"><i style="width:${fuelPct}%"></i></div><span class="fuel-num">${u.fuel}/${d.fuel}</span></div>` : ''}
@@ -466,10 +466,10 @@ function openProduction(x, y) {
 const nationOptions = sel => NATION_IDS.map(id => `<option value="${id}" ${id === sel ? 'selected' : ''}>${NATIONS[id].name}・${NATIONS[id].doctrine}</option>`).join('');
 const UNIQUE_BASES = ['marine', 'bomber', 'stealth'];
 function nationCard(id, side) {
-  const N = NATIONS[id];
+  const N = NATIONS[id], ncol = typeof nationColor === 'function' ? nationColor(id, side) : SIDES[side].color;
   const miss = Object.keys(BASE_UNITS).filter(b => !N.units[b] && !UNIQUE_BASES.includes(b)).map(b => BASE_DESC[b] ? ({ rocket: '火箭', sam: '長程防空', marine: '陸戰隊' }[b] || b) : b);
   const uniq = UNIQUE_BASES.filter(b => N.units[b]).map(b => N.units[b][0]);
-  return `<div class="fac-card" style="--c:${SIDES[side].color}"><b>${N.full}</b><small>作戰偏好：${N.doctrine}</small><p>${N.desc}</p>
+  return `<div class="fac-card" style="--c:${ncol}"><b><span class="dot" style="background:${ncol};display:inline-block;margin-right:6px"></span>${N.full}</b><small>作戰偏好：${N.doctrine}</small><p>${N.desc}</p>
     <div class="desc">${uniq.length ? `特殊兵種：${uniq.join('、')}　` : ''}${miss.length ? `缺少：${miss.join('、')}` : ''}</div></div>`;
 }
 function openRailConfirm(x, y) {
@@ -531,7 +531,7 @@ function openNations(sel) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v43</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v44</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -553,6 +553,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v44</span><span class="cl-date">2026.10.24</span><p>部隊圖示全面改版為「老花友善高對比單色系剪影」：移除方框外框、依 16 國專屬色系單色繪製、放大簡化兵種幾何特徵與血量/名稱標籤，一眼輕鬆辨識。</p></div>
         <div class="cl-item"><span class="cl-ver">v43</span><span class="cl-date">2026.10.24</span><p>全面盤點並增設戰役與自由對戰地圖前進機場；提升各型航空機油箱容量與降低巡航油耗；強化 AI 戰機返航避讓與機場容量控管，大幅降低墜機耗損。</p></div>
         <div class="cl-item"><span class="cl-ver">v42</span><span class="cl-date">2026.10.24</span><p>全面強化電腦 AI 陸海空運輸與兩棲登陸邏輯（動態建造運輸載具、自動集結登船/登機、跨海搶灘卸載與奪島）；升級無頭模擬器零干擾極簡遙測統計。</p></div>
         <div class="cl-item"><span class="cl-ver">v41</span><span class="cl-date">2026.10.24</span><p>新增專屬大戰略風格 SVG 瀏覽器圖示（六角格與主力戰車徽章）及 iOS/iPadOS 主畫面圖示支援。</p></div>
@@ -648,7 +649,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v43</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v44</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
