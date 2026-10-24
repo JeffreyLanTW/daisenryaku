@@ -252,10 +252,10 @@ vm.runInContext(`
       if (G.winner != null) break;
       endTurn();
     }
-    const P = G.pside, st = G.stats || { loads: 0, unloads: 0, amphibious_captures: 0 };
+    const P = G.pside, st = G.stats || { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 };
     return {
       win: G.result ? G.result.win : false, obj: G.result ? G.result.obj : 'stuck', turn: G.turn,
-      loads: st.loads || 0, unloads: st.unloads || 0, amph: st.amphibious_captures || 0,
+      loads: st.loads || 0, unloads: st.unloads || 0, amph: st.amphibious_captures || 0, crashes: st.crashes || 0,
       left: [G.units.filter(u => u.side === P).length, G.units.filter(u => u.side !== P).length],
     };
   }
@@ -264,7 +264,7 @@ vm.runInContext(`
 (async () => {
   const list = ids.length ? ids : vm.runInContext('Object.keys(MISSIONS)', ctx);
   console.log(`\n每種組合模擬 ${RUNS} 場（AI 扮演雙方 + 友軍；零干擾極簡遙測）`);
-  console.log('任務   旗標                     勝率   平均回合   搭載/卸載/渡海佔領   結果分布');
+  console.log('任務   旗標                     勝率   平均回合   搭/卸/渡海/墜機   結果分布');
   for (const id of list) {
     for (const f of FLAGS ? [FLAGS] : (DEFAULT_FLAGS[id] || [{}])) {
       const res = [];
@@ -273,7 +273,7 @@ vm.runInContext(`
       for (const r of res) { const key = (r.win ? '勝:' : '敗:') + r.obj; dist[key] = (dist[key] || 0) + 1; }
       const avg = a => a.length ? (a.reduce((s, r) => s + r.turn, 0) / a.length).toFixed(1) : '-';
       const avgS = k => (res.reduce((s, r) => s + r[k], 0) / RUNS).toFixed(1);
-      const trStr = `${avgS('loads').padStart(4)}/${avgS('unloads').padStart(4)}/${avgS('amph').padStart(4)}`;
+      const trStr = `${avgS('loads').padStart(4)}/${avgS('unloads').padStart(4)}/${avgS('amph').padStart(4)}/${avgS('crashes').padStart(4)}`;
       console.log(`${id.padEnd(6)} ${JSON.stringify(f).padEnd(24)} ${String(Math.round(wins.length / RUNS * 100)).padStart(3)}%    ${avg(wins).padStart(5)}      ${trStr.padEnd(18)} ${Object.entries(dist).map(([k, v]) => k + '×' + v).join(' ')}`);
     }
   }

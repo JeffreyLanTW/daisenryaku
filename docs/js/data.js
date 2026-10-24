@@ -43,21 +43,21 @@ const BASE_UNITS = {
   rocket:    { cls: 'hard', cat: 'land', mt: 'tread', cost: 800,  move: 4, range: [3, 5], atk: [9, 7, 0, 6] },
   aa:        { cls: 'hard', cat: 'land', mt: 'tread', cost: 450,  move: 5, range: [1, 1], atk: [5, 2, 7, 0] },
   sam:       { cls: 'hard', cat: 'land', mt: 'tread', cost: 700,  move: 4, range: [2, 5], atk: [0, 0, 9, 0] },
-  heli:      { cls: 'air',  cat: 'air',  mt: 'air',   cost: 700,  move: 6, range: [1, 1], atk: [6, 9, 3, 4], fuel: 40, upkeep: 2 },
-  fighter:   { cls: 'air',  cat: 'air',  mt: 'air',   cost: 900,  move: 9, range: [1, 1], atk: [0, 0, 8, 0], fuel: 50, upkeep: 5 },
-  attacker:  { cls: 'air',  cat: 'air',  mt: 'air',   cost: 1000, move: 8, range: [1, 1], atk: [7, 8, 0, 8], fuel: 45, upkeep: 5 },
+  heli:      { cls: 'air',  cat: 'air',  mt: 'air',   cost: 700,  move: 6, range: [1, 1], atk: [6, 9, 3, 4], fuel: 48, upkeep: 2 },
+  fighter:   { cls: 'air',  cat: 'air',  mt: 'air',   cost: 900,  move: 9, range: [1, 1], atk: [0, 0, 8, 0], fuel: 65, upkeep: 4 },
+  attacker:  { cls: 'air',  cat: 'air',  mt: 'air',   cost: 1000, move: 8, range: [1, 1], atk: [7, 8, 0, 8], fuel: 60, upkeep: 4 },
   destroyer: { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 900,  move: 3, range: [1, 1], atk: [4, 4, 5, 7] },
 };
 
 // 專屬兵種（只有部分國家擁有）
 Object.assign(BASE_UNITS, {
   marine:  { cls: 'soft', cat: 'land', mt: 'amph', cost: 300, move: 4, range: [1, 1], atk: [5, 3, 0, 1], capture: true },
-  bomber:  { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 7, range: [1, 1], atk: [9, 9, 0, 9], fuel: 60, upkeep: 5 },
-  stealth: { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 8, range: [1, 1], atk: [8, 9, 0, 8], fuel: 45, upkeep: 5, stealth: true },
+  bomber:  { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 7, range: [1, 1], atk: [9, 9, 0, 9], fuel: 75, upkeep: 4 },
+  stealth: { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 8, range: [1, 1], atk: [8, 9, 0, 8], fuel: 60, upkeep: 4, stealth: true },
   // 搭載兵種：carry.cap 容量、allow 可搭載的移動類型、light 只能載輕型（價格 ≤ 500）、runway 須停在據點上才能卸載
   truck:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 200, move: 6, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 2, allow: ['foot'] } },
-  thelico: { cls: 'air', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0], fuel: 40, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
-  airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0], fuel: 60, upkeep: 4, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
+  thelico: { cls: 'air', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0], fuel: 48, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
+  airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0], fuel: 75, upkeep: 3, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
   lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 3, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
   carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 3, range: [1, 1], atk: [1, 1, 4, 1], carry: { cap: 4, allow: ['air'], deck: true } },
   train:   { cls: 'hard', cat: 'land', mt: 'rail', cost: 400, move: 12, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 4, allow: ['foot', 'tread', 'amph'] } },

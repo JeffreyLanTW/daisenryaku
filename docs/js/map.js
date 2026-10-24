@@ -81,6 +81,8 @@ function generateMap(w, h, seed) {
   }
   placeNear('factory', 2, 3);
   placeNear('airport', 3, 5);
+  if (N >= 600) placeNear('airport', 7, 11);
+  if (N >= 1100) placeNear('airport', 12, 16);
 
   // 港口：靠近首都、鄰接足夠大海域的海岸
   function seaSize(start) {

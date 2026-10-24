@@ -427,7 +427,12 @@ function startTurn() {
       if (onBase) u.fuel = d.fuel;
       else {
         u.fuel -= d.upkeep;
-        if (u.fuel <= 0) { u.hp = 0; addLog(`${SIDES[s].name}${d.name} 燃料耗盡墜毀`, s); continue; }
+        if (u.fuel <= 0) {
+          u.hp = 0;
+          if (G.stats) G.stats.crashes = (G.stats.crashes || 0) + 1;
+          addLog(`${SIDES[s].name}${d.name} 燃料耗盡墜毀`, s);
+          continue;
+        }
       }
     }
     if (onBase && u.hp < 10) {
@@ -470,7 +475,7 @@ function initState(m, opts) {
     nextId: 1, log: [], missionId: opts.missionId || null, result: null, nations: opts.nations || ['TW', 'CN'],
     allies: opts.allies || [], allyAI: !!opts.allyAI,
     firedEvents: [], pendingDialogs: [],
-    stats: { loads: 0, unloads: 0, amphibious_captures: 0 },
+    stats: { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 },
   };
   applyNations(G.nations, G.allies);
   for (const [type, i, side, extra] of m.start) {

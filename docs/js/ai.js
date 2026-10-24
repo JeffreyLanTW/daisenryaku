@@ -39,6 +39,13 @@ function ownBases(side, cat, self = null) {
     if (self && o && o !== self) continue;
     m.set(i, 0);
   }
+  // 若所有機場皆被佔用，退而將所有己方機場列為集結點（偏移 +6）避免無目標迷航
+  if (cat === 'air' && !m.size) {
+    for (let i = 0; i < G.owner.length; i++) {
+      const t = TERRAIN[G.terrain[i]];
+      if (G.owner[i] === side && t.heal && t.heal.includes('air')) m.set(i, 6);
+    }
+  }
   return m;
 }
 
@@ -59,7 +66,8 @@ function aiGoals(u, baseField) {
   const here = idxOf(u.x, u.y);
   const mg = missionAIGoals(u);
   if (u.vip && mg.length) return { goals: new Map(mg), mode: 'vip' };
-  const lowFuel = baseField && u.fuel <= baseField[here] + d.upkeep * 2 + 3;
+  const rTurns = baseField ? Math.ceil(Math.max(1, baseField[here]) / d.move) : 1;
+  const lowFuel = baseField && u.fuel <= baseField[here] + d.upkeep * (rTurns + 2) + 4;
   const hurt = u.hp <= (d.capture && aiAggression(s) > 1.3 ? 1 : 3);
   if (hurt || lowFuel) {
     const bases = ownBases(s, d.cat, u);
@@ -172,6 +180,7 @@ async function aiAct(u, token) {
     }
   }
   const enemies = G.units.filter(e => e.side !== s);
+  const thirstyOthers = d.cat === 'air' && G.units.some(o => o !== u && o.side === s && UNITS[o.type].fuel !== undefined && o.fuel <= UNITS[o.type].fuel * 0.55);
   const ag = aiAggression(s);
   let best = { score: -Infinity, dest: start, act: null };
 
@@ -213,8 +222,13 @@ async function aiAct(u, token) {
     }
     if (baseField) {
       const home = baseField[i];
-      if (u.fuel - v.cost < home + d.upkeep * Math.ceil(Math.max(1, home) / d.move) + 1) base -= 3000;
-      if (home === 0 && mode === 'retreat') base += 500;
+      const need = home + d.upkeep * Math.ceil(Math.max(1, home) / d.move) + d.upkeep * 2 + 2;
+      if (u.fuel - v.cost < need) base -= 4000 + Math.min(3000, (need - (u.fuel - v.cost)) * 120);
+      if (t.heal && t.heal.includes('air') && G.owner[i] === s) {
+        if (mode === 'retreat') base += 1200;
+        else if (u.fuel < d.fuel * 0.7 || u.hp < 8) base += 220;
+        else base -= 200;
+      }
     }
     base += Math.random() * 2;
 
@@ -286,11 +300,14 @@ function aiProduce(s) {
   for (const i of sites) {
     const [x, y] = ixy(i);
     const f = G.funds[s];
-    // 只有快沒油、而且飛得到的飛機才需要讓出降落的基地
+    // 有缺油或受損飛機在附近時，讓出機場或首都供其降落補給
     if (TERRAIN[G.terrain[i]].heal.includes('air') && thirsty.some(u => {
       const dd = hexDist(u.x, u.y, x, y), ud = UNITS[u.type];
-      return dd <= ud.move && u.fuel <= dd + ud.upkeep * 3 + 2;
+      return dd <= ud.move * 2 && (u.fuel <= dd + ud.upkeep * 4 + 4 || u.hp <= 6);
     })) continue;
+    const airBases = G.owner.filter((o, idx) => o === s && TERRAIN[G.terrain[idx]].heal && TERRAIN[G.terrain[idx]].heal.includes('air')).length;
+    const myAir = G.units.filter(u => u.side === s && UNITS[u.type].cat === 'air').length;
+    const airFull = myAir >= Math.max(2, Math.ceil(airBases * 1.4));
     const siteDist = footField ? footField[i] : 6;
     const needSea = seaGap || siteDist === Infinity;
     const needFar = longMarch || (siteDist > 10 && siteDist < Infinity);
@@ -303,17 +320,17 @@ function aiProduce(s) {
       rocket: 1.4,
       aa: 0.3 + enemyAir * 1.5,
       sam: enemyAir * 1.0,
-      heli: 1.4 + enemyHard * 0.25,
-      fighter: 0.2 + enemyAir * 1.6,
-      attacker: 1 + enemyShip,
+      heli: airFull ? 0 : 1.4 + enemyHard * 0.25,
+      fighter: airFull ? 0 : 0.2 + enemyAir * 1.6,
+      attacker: airFull ? 0 : 1 + enemyShip,
       destroyer: cnt('destroyer') >= Math.min(3, 1 + enemyShip) ? 0 : 0.3 + enemyShip * 0.8,
-      stealth: 1.2,
-      bomber: cnt('bomber') >= 3 ? 0.3 : 1.1,
+      stealth: airFull ? 0 : 1.2,
+      bomber: airFull ? 0 : (cnt('bomber') >= 3 ? 0.3 : 1.1),
       marine: capturers < Math.min(7, 2 + openProps / 2) ? (needSea ? 4.5 : 3) : 0.8,
       lst: cnt('lst') < 2 && needSea && capturers >= 1 ? 2.2 : 0,
-      thelico: cnt('thelico') < 2 && (needSea || needFar) && capturers >= 1 ? 1.6 : 0,
+      thelico: !airFull && cnt('thelico') < 2 && (needSea || needFar) && capturers >= 1 ? 1.6 : 0,
       truck: cnt('truck') < 2 && !needSea && needFar && capturers >= 2 ? 1.2 : 0,
-      airlift: cnt('airlift') < 1 && (needSea || needFar) && openProps >= 3 ? 0.8 : 0,
+      airlift: !airFull && cnt('airlift') < 1 && (needSea || needFar) && openProps >= 3 ? 0.8 : 0,
     };
     const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     if (!opts.length) continue;
@@ -374,7 +391,13 @@ async function aiTurn() {
     const d = UNITS[u.type];
     if (isIndirect(u.type)) return 0;
     if (d.carry && !d.carry.deck) return (u.cargo || []).length ? 1 : 4;
-    return d.capture ? 3 : d.cat === 'air' ? 2 : 1;
+    if (d.cat === 'air') {
+      const onAirBase = G.owner[idxOf(u.x, u.y)] === s && TERRAIN[G.terrain[idxOf(u.x, u.y)]].heal && TERRAIN[G.terrain[idxOf(u.x, u.y)]].heal.includes('air');
+      if (onAirBase && u.fuel >= d.fuel * 0.75) return 1.2;
+      if (d.fuel !== undefined && u.fuel <= d.fuel * 0.45) return 1.5;
+      return 2;
+    }
+    return d.capture ? 3 : 1;
   };
   const units = G.units.filter(u => u.side === s && !u.done).sort((a, b) => prio(a) - prio(b));
   for (const u of units) {
