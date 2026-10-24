@@ -531,7 +531,7 @@ function openNations(sel) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v36</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v37</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -553,20 +553,21 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
-        <div class="cl-item"><span class="cl-ver">v36</span><span class="cl-date">2026.10</span><p>部隊卡片精簡：移除價格、射程、移動；字體放大；進化路線與剩餘燃料改為醒目標示（燃料不足時紅色閃爍警示）。</p></div>
-        <div class="cl-item"><span class="cl-ver">v35</span><span class="cl-date">2026.10</span><p>主選單標題旁新增版本號標籤。</p></div>
-        <div class="cl-item"><span class="cl-ver">v34</span><span class="cl-date">2026.10</span><p>修正小螢幕（iPad Mini）配置畫面遮擋地圖上方格子無法點擊的問題：配置列改為停靠於地圖下方。</p></div>
-        <div class="cl-item"><span class="cl-ver">v33</span><span class="cl-date">2026.10</span><p>修復說明視窗模板字串語法錯誤；優化 iPad Mini 與觸控螢幕首回配置介面佈局（支援名單收合折疊）；補齊 v1–v25 歷史重大里程碑紀錄。</p></div>
-        <div class="cl-item"><span class="cl-ver">v31</span><span class="cl-date">2026.10</span><p>專案發布目錄架構重組（隔離 tools 與 docs 生產資產），新增說明視窗版本號與開發歷史展示。</p></div>
-        <div class="cl-item"><span class="cl-ver">v30</span><span class="cl-date">2026.10</span><p>戰役同陣營援軍預設改為玩家手動指揮；船艦移動力降為 3；部隊圖示全面依各國真實型號與迷彩重繪；解放軍改以人海數量平衡機制。</p></div>
-        <div class="cl-item"><span class="cl-ver">v29</span><span class="cl-date">2026.10</span><p>新增「福爾摩沙之盾」後三章 54×33 超大地圖（全島防衛、台海制海、第一島鏈）；各章 AI 勝率與繼承部隊難度平衡。</p></div>
-        <div class="cl-item"><span class="cl-ver">v28</span><span class="cl-date">2026.10</span><p>新增劇情戰役「福爾摩沙之盾」：台灣主角部隊跨章節延續養成，支援美軍/日本自衛隊/菲律賓援軍；敵軍老兵化與配置回合機制。</p></div>
-        <div class="cl-item"><span class="cl-ver">v27</span><span class="cl-date">2026.10</span><p>導入 16 個真實國家裝備與陣營平衡科技樹；新增「第三次世界大戰」分支劇情戰役。</p></div>
-        <div class="cl-item"><span class="cl-ver">v26</span><span class="cl-date">2026.10</span><p>完善存檔系統（具名存檔欄、自動存檔、匯出匯入）；手機橫向 UI 優化；支援跨回合移動命令與 Web Audio 合成音樂音效。</p></div>
-        <div class="cl-item"><span class="cl-ver">v21–v25</span><span class="cl-date">2026.10</span><p>操作體驗與介面全面革新：新增觸控與滑鼠通用取消按鈕、側邊欄部隊與地形卡片排版重整、大地圖點擊保護機制，並擴充多段兵力平衡模擬工具。</p></div>
-        <div class="cl-item"><span class="cl-ver">v11–v20</span><span class="cl-date">2026.10</span><p>史實現代戰爭體系奠定：二元堆積（Binary Heap）A* 大地圖尋路、陸海空六大載具運輸、兵種經驗進化樹、鐵路網建設與合成音效。</p></div>
-        <div class="cl-item"><span class="cl-ver">v6–v10</span><span class="cl-date">2026.10</span><p>存檔機制升級為具名多存檔欄位、自動存檔與 JSON 匯出匯入；新增帝國篇「鐵血征途」劇情；建立無頭模擬平衡檢驗工具。</p></div>
-        <div class="cl-item"><span class="cl-ver">v1–v5</span><span class="cl-date">2026.10</span><p>大戰略 Web 原生六角格戰略遊戲核心建置：地形防禦、ZOC 控制區、間接射擊、佔領與生產體系、隨機地圖生成與啟發式 AI。</p></div>
+        <div class="cl-item"><span class="cl-ver">v37</span><span class="cl-date">2026.10.24</span><p>版本紀錄日期精確到「日」。</p></div>
+        <div class="cl-item"><span class="cl-ver">v36</span><span class="cl-date">2026.10.24</span><p>部隊卡片精簡：移除價格、射程、移動；字體放大；進化路線與剩餘燃料改為醒目標示（燃料不足時紅色閃爍警示）。</p></div>
+        <div class="cl-item"><span class="cl-ver">v35</span><span class="cl-date">2026.10.24</span><p>主選單標題旁新增版本號標籤。</p></div>
+        <div class="cl-item"><span class="cl-ver">v34</span><span class="cl-date">2026.10.24</span><p>修正小螢幕（iPad Mini）配置畫面遮擋地圖上方格子無法點擊的問題：配置列改為停靠於地圖下方。</p></div>
+        <div class="cl-item"><span class="cl-ver">v33</span><span class="cl-date">2026.10.24</span><p>修復說明視窗模板字串語法錯誤；優化 iPad Mini 與觸控螢幕首回配置介面佈局（支援名單收合折疊）；補齊 v1–v25 歷史重大里程碑紀錄。</p></div>
+        <div class="cl-item"><span class="cl-ver">v31</span><span class="cl-date">2026.10.24</span><p>專案發布目錄架構重組（隔離 tools 與 docs 生產資產），新增說明視窗版本號與開發歷史展示。</p></div>
+        <div class="cl-item"><span class="cl-ver">v30</span><span class="cl-date">2026.10.23</span><p>戰役同陣營援軍預設改為玩家手動指揮；船艦移動力降為 3；部隊圖示全面依各國真實型號與迷彩重繪；解放軍改以人海數量平衡機制。</p></div>
+        <div class="cl-item"><span class="cl-ver">v29</span><span class="cl-date">2026.10.23</span><p>新增「福爾摩沙之盾」後三章 54×33 超大地圖（全島防衛、台海制海、第一島鏈）；各章 AI 勝率與繼承部隊難度平衡。</p></div>
+        <div class="cl-item"><span class="cl-ver">v28</span><span class="cl-date">2026.10.22</span><p>新增劇情戰役「福爾摩沙之盾」：台灣主角部隊跨章節延續養成，支援美軍/日本自衛隊/菲律賓援軍；敵軍老兵化與配置回合機制。</p></div>
+        <div class="cl-item"><span class="cl-ver">v27</span><span class="cl-date">2026.10.21</span><p>導入 16 個真實國家裝備與陣營平衡科技樹；新增「第三次世界大戰」分支劇情戰役。</p></div>
+        <div class="cl-item"><span class="cl-ver">v26</span><span class="cl-date">2026.10.21</span><p>完善存檔系統（具名存檔欄、自動存檔、匯出匯入）；手機橫向 UI 優化；支援跨回合移動命令與 Web Audio 合成音樂音效。</p></div>
+        <div class="cl-item"><span class="cl-ver">v21–v25</span><span class="cl-date">2026.10.22</span><p>操作體驗與介面全面革新：新增觸控與滑鼠通用取消按鈕、側邊欄部隊與地形卡片排版重整、大地圖點擊保護機制，並擴充多段兵力平衡模擬工具。</p></div>
+        <div class="cl-item"><span class="cl-ver">v11–v20</span><span class="cl-date">2026.10.21</span><p>史實現代戰爭體系奠定：二元堆積（Binary Heap）A* 大地圖尋路、陸海空六大載具運輸、兵種經驗進化樹、鐵路網建設與合成音效。</p></div>
+        <div class="cl-item"><span class="cl-ver">v6–v10</span><span class="cl-date">2026.10.21</span><p>存檔機制升級為具名多存檔欄位、自動存檔與 JSON 匯出匯入；新增帝國篇「鐵血征途」劇情；建立無頭模擬平衡檢驗工具。</p></div>
+        <div class="cl-item"><span class="cl-ver">v1–v5</span><span class="cl-date">2026.10.20</span><p>大戰略 Web 原生六角格戰略遊戲核心建置：地形防禦、ZOC 控制區、間接射擊、佔領與生產體系、隨機地圖生成與啟發式 AI。</p></div>
       </div>
     </details>
     </div><div class="row"><button id="hNations">📚 國家圖鑑</button><span class="spacer"></span><button class="close primary">了解</button></div>`, box => {
@@ -622,7 +623,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v36</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v37</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
