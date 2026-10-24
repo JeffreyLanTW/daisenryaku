@@ -389,6 +389,24 @@ function buildOptions(x, y, side) {
   return Object.keys(UNITS).filter(k => UNITS[k].side === side && !UNITS[k].tier && !UNITS[k].ally && t.build.includes(UNITS[k].cat)
     && (UNITS[k].base !== 'train' || (G.rails && G.rails.length)));
 }
+// 取得某方目前無部隊駐守且資金足夠生產至少一種兵種的己方據點
+function pendingProductionBases(side) {
+  if (!G || !G.owner || G.funds[side] === undefined) return [];
+  const funds = G.funds[side];
+  const list = [];
+  for (let i = 0; i < G.owner.length; i++) {
+    if (G.owner[i] !== side) continue;
+    const t = TERRAIN[G.terrain[i]];
+    if (!t || !t.build) continue;
+    const [x, y] = ixy(i);
+    if (unitAt(x, y)) continue;
+    const opts = buildOptions(x, y, side);
+    if (opts.some(k => funds >= UNITS[k].cost)) {
+      list.push({ x, y, i, t });
+    }
+  }
+  return list;
+}
 function produce(type, x, y, side) {
   const d = UNITS[type];
   if (G.funds[side] < d.cost) return null;

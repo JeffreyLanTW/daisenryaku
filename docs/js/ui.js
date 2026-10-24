@@ -352,6 +352,35 @@ function unitHTML(u) {
     ${d.carry ? `<div class="desc">🚚 搭載 ${(u.cargo || []).length}/${d.carry.cap}：${(u.cargo || []).map(c => UNITS[c.type].name).join('、') || '空'}</div>` : ''}
     ${atkTable(u.type)}<div class="desc">${d.model}${d.armor ? `・承傷 ×${d.armor.toFixed(2)}` : ''}${d.jungle ? `・叢林 +${d.jungle}%` : ''}${d.stealth ? '・攻擊不受反擊' : ''}${u.order != null ? '<br>🚩 已設定移動命令' : ''}</div>`;
 }
+function updateNextUnitButton() {
+  const btn = $('#btnNext');
+  if (!btn || !G) return;
+  const human = isHumanTurn() && UIS.mode !== 'busy' && UIS.mode !== 'deploy';
+  btn.disabled = !human;
+  if (!human) {
+    btn.className = '';
+    btn.textContent = '下一部隊';
+    btn.title = '下一個未行動部隊 (Tab)';
+    return;
+  }
+  const unmoved = G.units.filter(u => u.side === G.cur && !u.done && !(UNITS[u.type].ally && G.allyAI));
+  if (unmoved.length > 0) {
+    btn.className = '';
+    btn.textContent = `下一部隊 (${unmoved.length})`;
+    btn.title = `下一個未行動部隊 (Tab) · 剩餘 ${unmoved.length} 隊未行動`;
+  } else {
+    const bases = typeof pendingProductionBases === 'function' ? pendingProductionBases(G.cur) : [];
+    if (bases.length > 0 && !UIS.skippedBases) {
+      btn.className = 'btn-prod';
+      btn.textContent = `生產據點 (${bases.length})`;
+      btn.title = `前往可生產據點 (Tab) · 剩餘 ${bases.length} 處可生產`;
+    } else {
+      btn.className = 'btn-ready-end primary';
+      btn.textContent = '結束回合 ✓';
+      btn.title = '所有行動與生產已就緒 · 點擊結束回合 (Tab)';
+    }
+  }
+}
 function refreshPanel() {
   if (!G) return;
   const S = SIDES[G.cur];
@@ -363,7 +392,7 @@ function refreshPanel() {
   const over = G.winner != null && $('#modal').classList.contains('hidden');
   $('#resultBar').classList.toggle('hidden', !over);
   if (over) $('#resultText').textContent = G.missionId ? (G.result && G.result.win ? '作戰成功' : '作戰失敗') : `${SIDES[G.winner].name} 勝利`;
-  $('#btnNext').disabled = !isHumanTurn();
+  updateNextUnitButton();
 
   // 任務目標
   const oc = $('#objCard');
@@ -457,6 +486,7 @@ function openProduction(x, y) {
     box.querySelectorAll('.prod').forEach(b => b.onclick = () => {
       produce(b.dataset.k, x, y, G.cur);
       sfx('build');
+      UIS.lastBaseIdx = -1;
       closeModal(); refreshPanel();
     });
     box.querySelector('.close').onclick = closeModal;
@@ -633,7 +663,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v47</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v48</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -655,6 +685,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v48</span><span class="cl-date">2026.10.24</span><p>「下一部隊」按鈕動態狀態切換：顯示未行動部隊剩餘數量，當全軍行動完畢且無可生產據點時，按鈕動態轉化為「結束回合 ✓」高亮就緒狀態；支援 Tab 鍵全回合無縫串接操作。</p></div>
         <div class="cl-item"><span class="cl-ver">v47</span><span class="cl-date">2026.10.24</span><p>側欄佈局優化：調整右側欄元件顯示順序，將「章節任務卡」緊接置於「小地圖」正下方，其下依序排列「地形資訊」與「部隊資訊」，作戰目標與地形地貌一目了然。</p></div>
         <div class="cl-item"><span class="cl-ver">v46</span><span class="cl-date">2026.10.24</span><p>升級「國家圖鑑」：整合 16 國國旗、專屬色徽章與主力兵種剪影展示；兵種規格表完整整合 Q 版圖示；新增層級式導覽與「返回上一頁 / 返回國家總覽」按鈕，查閱體驗更流暢直覺。</p></div>
         <div class="cl-item"><span class="cl-ver">v45</span><span class="cl-date">2026.10.24</span><p>部隊圖示改為 Q 版卡通軍武風格，步兵系改以大尺寸卡通鋼盔呈現（步兵星章鋼盔、反甲火箭筒鋼盔、陸戰隊船錨海浪鋼盔）；日本自衛隊改為純白色系，戰場各國顏色鮮明區隔。</p></div>
@@ -754,7 +785,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v47</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v48</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -775,6 +806,8 @@ function showBanner(text, color) {
 
 // ----- 回合流程 -----
 async function turnIntro() {
+  UIS.skippedBases = false;
+  UIS.lastBaseIdx = -1;
   const token = gameToken;
   refreshPanel();
   showBanner(`第 ${G.turn} 回合　${SIDES[G.cur].name}`, SIDES[G.cur].color);
@@ -823,17 +856,42 @@ async function endTurnClicked() {
   turnIntro();
 }
 function nextUnit() {
-  if (!isHumanTurn() || UIS.mode === 'busy') return;
+  if (!isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy') return;
   const list = G.units.filter(u => u.side === G.cur && !u.done && !(UNITS[u.type].ally && G.allyAI));
-  if (!list.length) return;
-  const k = UIS.sel ? (list.indexOf(UIS.sel) + 1) % list.length : 0;
-  if (UIS.mode === 'menu') cancelMove();
-  selectUnit(list[k]);
-  const [cx, cy] = tileCenter(list[k].x, list[k].y);
-  centerOn(cx, cy);
+  if (list.length) {
+    const k = UIS.sel ? (list.indexOf(UIS.sel) + 1) % list.length : 0;
+    if (UIS.mode === 'menu') cancelMove();
+    selectUnit(list[k]);
+    const [cx, cy] = tileCenter(list[k].x, list[k].y);
+    centerOn(cx, cy);
+    return;
+  }
+  // 若已無未行動部隊，檢查是否有可生產據點引導生產
+  const bases = typeof pendingProductionBases === 'function' ? pendingProductionBases(G.cur) : [];
+  if (bases.length && !UIS.skippedBases) {
+    const lastIdx = UIS.lastBaseIdx !== undefined ? UIS.lastBaseIdx : -1;
+    const nextIdx = lastIdx + 1;
+    if (nextIdx < bases.length) {
+      UIS.lastBaseIdx = nextIdx;
+      const b = bases[nextIdx];
+      clearSel();
+      const [cx, cy] = tileCenter(b.x, b.y);
+      centerOn(cx, cy);
+      openProduction(b.x, b.y);
+      return;
+    }
+    // 已瀏覽完畢所有生產據點，標記跳過並就緒結束回合
+    UIS.skippedBases = true;
+    refreshPanel();
+    return;
+  }
+  // 已無未行動部隊且無待生產據點（或已瀏覽完畢）：執行結束回合
+  endTurnClicked();
 }
 
 function startGame(opts) {
+  UIS.skippedBases = false;
+  UIS.lastBaseIdx = -1;
   clearSel(); setInspect(null); FX.length = 0;
   newGame(opts);
   buildTerrain();
