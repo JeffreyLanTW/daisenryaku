@@ -329,30 +329,28 @@ function atkTable(type) {
   return `<div class="atk">${a.map((v, k) => `<span class="${v ? '' : 'zero'}"><b>${CLASS_SHORT[k]}</b>${v}</span>`).join('')}</div>`;
 }
 function xpHTML(u) {
-  if (noRank(u)) return `<div class="desc">${NATIONS[UNITS[u.type].nation].army}沒有經驗升級、王牌與進化（以數量取勝）</div>`;
+  if (noRank(u)) return `<div class="desc">${NATIONS[UNITS[u.type].nation].army}無升級與進化（以量取勝）</div>`;
   const r = rankOf(u), R = RANKS[r], nx = RANKS[r + 1], xp = u.xp || 0;
   const pct = nx ? Math.round((xp - R.xp) / (nx.xp - R.xp) * 100) : 100;
   const d = UNITS[u.type];
-  const evo = (d.next || []).map(k => `${UNITS[k].name}（需${RANKS[UNITS[k].tier].name}）`).join('、');
+  const evo = (d.next || []).map(k => `<b>${UNITS[k].name}</b><small>（${RANKS[UNITS[k].tier].name}）</small>`).join('、');
   return `<div class="xprow"><span class="rankbadge r${r}">${r ? '★'.repeat(r) + ' ' : ''}${R.name}</span>
       <div class="xpbar r${r}"><i style="width:${pct}%"></i></div>
-      <span class="xpnum">${nx ? `${xp} / ${nx.xp}` : `${xp}・最高階`}</span></div>
-    <div class="stats small"><span>攻擊 +${Math.round((R.atk - 1) * 100)}%</span><span>迴避 ${Math.round(R.evade * 100)}%</span>
-      ${nx ? `<span>下一階：${nx.name}</span>` : ''}</div>
-    ${evo ? `<div class="desc">⬆ 可進化：${evo}</div>` : d.tier ? '' : '<div class="desc">此型號沒有後繼進化</div>'}`;
+      <span class="xpnum">${nx ? `${xp}/${nx.xp}` : `${xp}・滿階`}</span></div>
+    <div class="stats"><span>攻擊 +${Math.round((R.atk - 1) * 100)}%</span><span>迴避 ${Math.round(R.evade * 100)}%</span></div>
+    ${evo ? `<div class="evo-row">⬆ 進化 ${evo}</div>` : ''}`;
 }
 function unitHTML(u) {
   const d = UNITS[u.type], S = SIDES[u.side];
-  const rng = d.range[0] === d.range[1] ? d.range[0] : `${d.range[0]}-${d.range[1]}`;
+  const fuelPct = d.fuel ? Math.max(0, Math.min(100, Math.round(u.fuel / d.fuel * 100))) : 0;
+  const fuelLow = d.fuel !== undefined && u.fuel <= d.upkeep * 3;
   return `<div class="uhead"><span class="dot" style="background:${S.color}"></span><b>${d.name}</b><span class="fac">${NATIONS[d.nation].name}</span>
     <span class="tag">${CLASS_NAME[d.cls]}</span></div>
     <div class="hpbar"><i style="width:${u.hp * 10}%;background:${u.hp <= 3 ? '#e2574c' : u.hp <= 6 ? '#e0b54a' : '#5cc26b'}"></i><span>HP ${u.hp}/10</span></div>
+    ${d.fuel !== undefined ? `<div class="fuel-row ${fuelLow ? 'low' : ''}"><span class="fuel-lbl">⛽ 燃料</span><div class="fuel-bar"><i style="width:${fuelPct}%"></i></div><span class="fuel-num">${u.fuel}/${d.fuel}</span></div>` : ''}
     ${xpHTML(u)}
-    <div class="stats"><span>移動 ${d.move}</span><span>射程 ${rng}</span>
-    ${d.fuel !== undefined ? `<span class="${u.fuel <= d.upkeep * 3 ? 'warn' : ''}">燃料 ${u.fuel}/${d.fuel}</span>` : ''}
-    <span>價值 ${d.cost}</span></div>
     ${d.carry ? `<div class="desc">🚚 搭載 ${(u.cargo || []).length}/${d.carry.cap}：${(u.cargo || []).map(c => UNITS[c.type].name).join('、') || '空'}</div>` : ''}
-    ${atkTable(u.type)}<div class="desc">${d.model}・${d.desc}${d.armor ? `・承受傷害 ×${d.armor.toFixed(2)}` : ''}${d.jungle ? `・叢林防禦 +${d.jungle}%` : ''}${d.stealth ? '・攻擊時不受反擊' : ''}${u.order != null ? '<br>🚩 已設定移動命令' : ''}</div>`;
+    ${atkTable(u.type)}<div class="desc">${d.model}${d.armor ? `・承傷 ×${d.armor.toFixed(2)}` : ''}${d.jungle ? `・叢林 +${d.jungle}%` : ''}${d.stealth ? '・攻擊不受反擊' : ''}${u.order != null ? '<br>🚩 已設定移動命令' : ''}</div>`;
 }
 function refreshPanel() {
   if (!G) return;
@@ -533,7 +531,7 @@ function openNations(sel) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v35</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v36</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -555,6 +553,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v36</span><span class="cl-date">2026.10</span><p>部隊卡片精簡：移除價格、射程、移動；字體放大；進化路線與剩餘燃料改為醒目標示（燃料不足時紅色閃爍警示）。</p></div>
         <div class="cl-item"><span class="cl-ver">v35</span><span class="cl-date">2026.10</span><p>主選單標題旁新增版本號標籤。</p></div>
         <div class="cl-item"><span class="cl-ver">v34</span><span class="cl-date">2026.10</span><p>修正小螢幕（iPad Mini）配置畫面遮擋地圖上方格子無法點擊的問題：配置列改為停靠於地圖下方。</p></div>
         <div class="cl-item"><span class="cl-ver">v33</span><span class="cl-date">2026.10</span><p>修復說明視窗模板字串語法錯誤；優化 iPad Mini 與觸控螢幕首回配置介面佈局（支援名單收合折疊）；補齊 v1–v25 歷史重大里程碑紀錄。</p></div>
@@ -623,7 +622,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v35</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v36</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
