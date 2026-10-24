@@ -467,10 +467,33 @@ const nationOptions = sel => NATION_IDS.map(id => `<option value="${id}" ${id ==
 const UNIQUE_BASES = ['marine', 'bomber', 'stealth'];
 function nationCard(id, side) {
   const N = NATIONS[id], ncol = typeof nationColor === 'function' ? nationColor(id, side) : SIDES[side].color;
+  const light = typeof isLightNation === 'function' && isLightNation(id);
   const miss = Object.keys(BASE_UNITS).filter(b => !N.units[b] && !UNIQUE_BASES.includes(b)).map(b => BASE_DESC[b] ? ({ rocket: '火箭', sam: '長程防空', marine: '陸戰隊' }[b] || b) : b);
   const uniq = UNIQUE_BASES.filter(b => N.units[b]).map(b => N.units[b][0]);
-  return `<div class="fac-card" style="--c:${ncol}"><b><span class="dot" style="background:${ncol};display:inline-block;margin-right:6px"></span>${N.full}</b><small>作戰偏好：${N.doctrine}</small><p>${N.desc}</p>
-    <div class="desc">${uniq.length ? `特殊兵種：${uniq.join('、')}　` : ''}${miss.length ? `缺少：${miss.join('、')}` : ''}</div></div>`;
+  const flag = (typeof NATION_FLAGS !== 'undefined' && NATION_FLAGS[id]) || '🌐';
+  const reps = typeof getRepresentativeUnits === 'function' ? getRepresentativeUnits(id, side) : [];
+  return `<div class="fac-card" style="--c:${ncol}">
+    <div class="fac-header">
+      <span class="fac-flag">${flag}</span>
+      <div class="fac-title-block">
+        <b><span class="nat-badge" style="background:${ncol};color:${light ? '#0f172a' : '#fff'};border:1px solid ${light ? '#64748b' : 'rgba(255,255,255,0.2)'}">${id}</span> ${N.full}</b>
+        <small>作戰偏好：${N.doctrine}</small>
+      </div>
+    </div>
+    <p>${N.desc}</p>
+    <div class="desc">${uniq.length ? `特殊兵種：<b>${uniq.join('、')}</b>　` : ''}${miss.length ? `缺少：<span style="color:#ef4444">${miss.join('、')}</span>` : ''}</div>
+    ${reps.length ? `<div class="fac-showcase">
+      <div class="showcase-label">主力裝備剪影：</div>
+      <div class="showcase-icons">
+        ${reps.map(u => `
+          <span class="showcase-unit" title="${u.name} (${u.model})">
+            <img src="${unitIconDataURL(u)}" class="showcase-img" alt="${u.name}">
+            <span>${u.name}</span>
+          </span>
+        `).join('')}
+      </div>
+    </div>` : ''}
+  </div>`;
 }
 function openRailConfirm(x, y) {
   openModal(`<h2>🛤 鋪設鐵路</h2><div class="sub">在此格延伸鐵路網，花費 💰${RAIL_COST}（目前資金 💰${G.funds[G.cur]}）。列車可沿鐵路快速運兵。</div>
@@ -513,25 +536,104 @@ function openNewGame() {
   });
 }
 
-// 國家圖鑑
-function openNations(sel) {
+// 國家圖鑑：支援 16 國陣營總覽與特定國家兵種規格詳情（含 Q 版剪影與層級返回導覽）
+function openNations(sel, backFn, fromTitle) {
+  if (!sel || sel === 'all' || sel === 'list') {
+    return openNationsOverview(backFn, fromTitle);
+  }
+  return openNationDetail(sel, () => openNationsOverview(backFn, fromTitle), backFn, fromTitle);
+}
+
+function openNationsOverview(backFn, fromTitle) {
+  openModal(`<h2>📚 國家圖鑑 <span class="ver-badge">16 國</span></h2>
+    <div class="desc" style="margin-bottom:10px">點擊任一國家卡片，查看詳細作戰特性、兵種數據與全武器裝備剪影：</div>
+    <div class="nations-grid">
+      ${NATION_IDS.map(id => {
+        const N = NATIONS[id];
+        const ncol = typeof nationColor === 'function' ? nationColor(id, 0) : '#2563eb';
+        const light = typeof isLightNation === 'function' && isLightNation(id);
+        const flag = (typeof NATION_FLAGS !== 'undefined' && NATION_FLAGS[id]) || '🌐';
+        const reps = typeof getRepresentativeUnits === 'function' ? getRepresentativeUnits(id, 0) : [];
+        return `<div class="fac-card nat-grid-item" data-id="${id}" style="--c:${ncol}">
+          <div class="fac-header">
+            <span class="fac-flag">${flag}</span>
+            <div class="fac-title-block">
+              <b><span class="nat-badge" style="background:${ncol};color:${light ? '#0f172a' : '#fff'};border:1px solid ${light ? '#64748b' : 'rgba(255,255,255,0.2)'}">${id}</span> ${N.name}・${N.army}</b>
+              <small>作戰偏好：${N.doctrine}</small>
+            </div>
+          </div>
+          <p style="font-size:11.5px;margin:5px 0 6px">${N.desc.slice(0, 52)}…</p>
+          <div class="fac-showcase" style="margin-top:4px;padding-top:4px">
+            <div class="showcase-icons">
+              ${reps.map(u => `
+                <span class="showcase-unit" title="${u.name} (${u.model})">
+                  <img src="${unitIconDataURL(u)}" class="showcase-img" alt="${u.name}">
+                  <span>${u.name}</span>
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="row">
+      ${backFn ? `<button id="ovBack" class="primary">← 返回${fromTitle || '上一頁'}</button>` : ''}
+      <span class="spacer"></span>
+      <button class="close ${backFn ? '' : 'primary'}">關閉</button>
+    </div>`, box => {
+    box.querySelectorAll('.nat-grid-item').forEach(el => {
+      el.onclick = () => {
+        openNationDetail(el.dataset.id, () => openNationsOverview(backFn, fromTitle), backFn, fromTitle);
+      };
+    });
+    if (box.querySelector('#ovBack')) {
+      box.querySelector('#ovBack').onclick = () => { if (backFn) backFn(); else closeModal(); };
+    }
+    box.querySelector('.close').onclick = closeModal;
+  }, true);
+}
+
+function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
   sel = sel || (G && G.nations ? G.nations[0] : 'TW');
   const N = NATIONS[sel];
   const rows = Object.keys(N.units).map(b => nationUnit(sel, b, 0)).filter(Boolean);
-  openModal(`<h2>國家圖鑑</h2>
-    <div class="form"><label>國家<select id="nsSel">${nationOptions(sel)}</select></label></div>
+  const flag = (typeof NATION_FLAGS !== 'undefined' && NATION_FLAGS[sel]) || '🌐';
+  openModal(`<h2>📚 國家圖鑑 <small>・ ${flag} ${N.name}</small></h2>
+    <div class="comp-nav">
+      <button id="ndBackNav" class="primary">← 返回國家總覽</button>
+      <label class="comp-select-wrap">
+        <span>快速切換：</span>
+        <select id="nsSel">${nationOptions(sel)}</select>
+      </label>
+    </div>
     <div class="facs one">${nationCard(sel, 0)}</div>
     <div class="tablewrap"><table class="ut"><tr><th>兵種</th><th>型號</th><th>價格</th><th>移動</th><th>射程</th><th>步</th><th>甲</th><th>空</th><th>艦</th></tr>
-    ${rows.map(d => `<tr class="${UNIQUE_BASES.includes(d.base) ? 'uniq' : ''}"><td>${d.name}</td><td class="model">${d.model}${d.armor ? `<small>（承傷×${d.armor.toFixed(2)}）</small>` : ''}${d.jungle ? `<small>（叢林+${d.jungle}%）</small>` : ''}</td><td>${d.cost}</td><td>${d.move}</td><td>${d.range.join('-')}</td>${d.atk.map(v => `<td class="${v ? '' : 'zero'}">${v}</td>`).join('')}</tr>`).join('')}</table></div>
+    ${rows.map(d => `<tr class="${UNIQUE_BASES.includes(d.base) ? 'uniq' : ''}">
+      <td><span class="unit-icon-cell"><img src="${unitIconDataURL(d)}" class="ut-icon" alt="${d.name}">${d.name}</span></td>
+      <td class="model">${d.model}${d.armor ? `<small>（承傷×${d.armor.toFixed(2)}）</small>` : ''}${d.jungle ? `<small>（叢林+${d.jungle}%）</small>` : ''}</td>
+      <td>${d.cost}</td><td>${d.move}</td><td>${d.range.join('-')}</td>
+      ${d.atk.map(v => `<td class="${v ? '' : 'zero'}">${v}</td>`).join('')}
+    </tr>`).join('')}</table></div>
     <div class="desc">裝備以 1990 年代初期為準，數值為遊戲平衡後的抽象化表現。</div>
-    <div class="row"><button class="close primary">關閉</button></div>`, box => {
-    box.querySelector('#nsSel').onchange = e => openNations(e.target.value);
+    <div class="row">
+      <button id="ndBackBottom">← 返回國家總覽</button>
+      ${rootBackFn ? `<button id="ndRootBack">← 返回${fromTitle || '上一頁'}</button>` : ''}
+      <span class="spacer"></span>
+      <button class="close">關閉</button>
+    </div>`, box => {
+    box.querySelector('#nsSel').onchange = e => openNationDetail(e.target.value, prevFn, rootBackFn, fromTitle);
+    const goPrev = () => { if (prevFn) prevFn(); else openNationsOverview(rootBackFn, fromTitle); };
+    box.querySelector('#ndBackNav').onclick = goPrev;
+    box.querySelector('#ndBackBottom').onclick = goPrev;
+    if (box.querySelector('#ndRootBack')) {
+      box.querySelector('#ndRootBack').onclick = () => { if (rootBackFn) rootBackFn(); else closeModal(); };
+    }
     box.querySelector('.close').onclick = closeModal;
   }, true);
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v45</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v46</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -553,6 +655,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v46</span><span class="cl-date">2026.10.24</span><p>升級「國家圖鑑」：整合 16 國國旗、專屬色徽章與主力兵種剪影展示；兵種規格表完整整合 Q 版圖示；新增層級式導覽與「返回上一頁 / 返回國家總覽」按鈕，查閱體驗更流暢直覺。</p></div>
         <div class="cl-item"><span class="cl-ver">v45</span><span class="cl-date">2026.10.24</span><p>部隊圖示改為 Q 版卡通軍武風格，步兵系改以大尺寸卡通鋼盔呈現（步兵星章鋼盔、反甲火箭筒鋼盔、陸戰隊船錨海浪鋼盔）；日本自衛隊改為純白色系，戰場各國顏色鮮明區隔。</p></div>
         <div class="cl-item"><span class="cl-ver">v44</span><span class="cl-date">2026.10.24</span><p>部隊圖示全面改版為「老花友善高對比單色系剪影」：移除方框外框、依 16 國專屬色系單色繪製、放大簡化兵種幾何特徵與血量/名稱標籤，一眼輕鬆辨識。</p></div>
         <div class="cl-item"><span class="cl-ver">v43</span><span class="cl-date">2026.10.24</span><p>全面盤點並增設戰役與自由對戰地圖前進機場；提升各型航空機油箱容量與降低巡航油耗；強化 AI 戰機返航避讓與機場容量控管，大幅降低墜機耗損。</p></div>
@@ -580,7 +683,7 @@ function openHelp() {
     </details>
     </div><div class="row"><button id="hNations">📚 國家圖鑑</button><span class="spacer"></span><button class="close primary">了解</button></div>`, box => {
     box.querySelector('.close').onclick = closeModal;
-    box.querySelector('#hNations').onclick = () => openNations();
+    box.querySelector('#hNations').onclick = () => openNations(null, openHelp, '作戰說明');
   }, true);
 }
 
@@ -634,7 +737,7 @@ function openMoreMenu() {
     box.querySelector('#moLoad').onclick = openLoadDialog;
     box.querySelector('#moFull').onclick = () => { closeModal(); toggleFullscreen(); };
     box.querySelector('#moHelp').onclick = openHelp;
-    box.querySelector('#moNations').onclick = () => openNations();
+    box.querySelector('#moNations').onclick = () => openNations(null, openMoreMenu, '選單');
     box.querySelector('#moMusic').onclick = () => { $('#zMusic').click(); openMoreMenu(); };
     box.querySelector('#moTrack').onclick = openTrackMenu;
     box.querySelector('#moSfx').onclick = () => { $('#zSfx').click(); openMoreMenu(); };
@@ -650,7 +753,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v45</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v46</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>

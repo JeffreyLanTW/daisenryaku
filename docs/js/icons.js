@@ -21,7 +21,45 @@ const NATION_PALETTE = {
   IL: '#06b6d4', // 以軍：青色
 };
 
+// 16 國國旗 Emoji
+const NATION_FLAGS = {
+  TW: '🇹🇼', CN: '🇨🇳', US: '🇺🇸', JP: '🇯🇵',
+  KR: '🇰🇷', KP: '🇰🇵', PH: '🇵🇭', VN: '🇻🇳',
+  RU: '🇷🇺', IN: '🇮🇳', PK: '🇵🇰', GB: '🇬🇧',
+  FR: '🇫🇷', DE: '🇩🇪', AU: '🇦🇺', IL: '🇮🇱',
+};
+
 const isLightNation = nid => nid === 'JP' || nid === 'AU';
+
+// 產生兵種圖示 Data URL 快取（用於 HTML 介面與國家圖鑑）
+function unitIconDataURL(d) {
+  if (!d || typeof iconImage !== 'function') return '';
+  const col = typeof nationColor === 'function' ? nationColor(d.nation, d.side || 0) : '';
+  const k = `_durl_${d.nation}_${d.base}_${col}`;
+  if (d[k]) return d[k];
+  try {
+    const cv = iconImage(d, false);
+    return (d[k] = cv && typeof cv.toDataURL === 'function' ? cv.toDataURL() : '');
+  } catch (e) {
+    return '';
+  }
+}
+
+// 取得國家代表性主力兵種（戰車、戰鬥機、特殊武器/直升機、步兵/陸戰隊）
+function getRepresentativeUnits(nid, side = 0) {
+  if (typeof NATIONS === 'undefined' || !NATIONS[nid] || !NATIONS[nid].units) return [];
+  const N = NATIONS[nid];
+  const candidates = ['tank', 'fighter', 'stealth', 'bomber', 'heli', 'marine', 'rocket', 'inf', 'destroyer', 'arty'];
+  const res = [];
+  for (const b of candidates) {
+    if (N.units[b] && !res.some(u => u.base === b)) {
+      const u = typeof nationUnit === 'function' ? nationUnit(nid, b, side) : null;
+      if (u) res.push(u);
+      if (res.length >= 4) break;
+    }
+  }
+  return res;
+}
 
 function nationColor(nid, side) {
   let c = NATION_PALETTE[nid] || (side === 1 ? '#dc2626' : '#2563eb');

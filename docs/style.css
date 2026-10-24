@@ -203,6 +203,30 @@ button.muted { color: var(--muted); background: transparent; }
 .ut tr.uniq td { color: var(--gold); font-weight: 700; }
 .tablewrap { overflow-x: auto; }
 
+/* 陣營與國家圖鑑強化 */
+.fac-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.fac-flag { font-size: 22px; line-height: 1; flex: none; }
+.fac-title-block { flex: 1; min-width: 0; }
+.nat-badge { font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 4px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+.fac-showcase { margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.12); display: flex; flex-direction: column; gap: 4px; }
+.showcase-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+.showcase-icons { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.showcase-unit { display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; padding: 2px 6px; font-size: 11px; color: #cbd5e1; white-space: nowrap; }
+.showcase-img { width: 22px; height: 17px; object-fit: contain; }
+
+/* 兵種表格圖示 */
+.ut-icon { width: 24px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px; }
+.unit-icon-cell { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+
+/* 國家圖鑑 16 國總覽網格 */
+.nations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; max-height: 56vh; overflow-y: auto; padding: 4px 2px; margin: 10px 0; }
+.nat-grid-item { cursor: pointer; transition: transform .12s, border-color .12s, background .12s, box-shadow .12s; text-align: left; }
+.nat-grid-item:hover { transform: translateY(-2px); border-color: var(--gold); background: #1e2a38; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.nat-grid-item:active { transform: translateY(0); }
+.comp-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.comp-select-wrap { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; }
+.comp-select-wrap select { min-width: 140px; }
+
 /* ----- 共用新元件 ----- */
 #btnMore { display: none; font-size: 16px; padding: 4px 10px; }
 #btnPanel {
@@ -289,6 +313,7 @@ button, #map { touch-action: manipulation; }
   .ending p { font-size: 13px; line-height: 1.7; }
   .facs { margin-top: 8px; }
   .fac-card p { display: none; }
+  .nations-grid { max-height: 48vh; grid-template-columns: 1fr 1fr; }
   .form { gap: 6px; grid-template-columns: 1fr 1fr; column-gap: 16px; }
   .form select, .form input { min-width: 0; padding: 5px; }
 }
