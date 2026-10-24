@@ -686,6 +686,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v58</span><span class="cl-date">2026.10.25</span><p>新增「音訊模式」選單（自動／原始／固定 48kHz／固定 44.1kHz／相容模式），供 iPad 主畫面網頁 App 實機逐一測試；相容模式將背景音樂轉為 WAV 交由 HTML 媒體播放器播放，完全繞過 Web Audio 輸出。</p></div>
         <div class="cl-item"><span class="cl-ver">v57</span><span class="cl-date">2026.10.25</span><p>針對 iPad「加入主畫面」網頁 App 的重複怪音與音高／速度錯誤：修正 iOS AudioContext 取樣率錯配 bug（建立後播放空白樣本、關閉並重建 context），並將 iOS 音訊工作階段固定為 playback；僅於主畫面 App 模式套用，Safari／Chrome 分頁不受影響；選單診斷資訊加入延遲與音訊工作階段類型。</p></div>
         <div class="cl-item"><span class="cl-ver">v56</span><span class="cl-date">2026.10.25</span><p>修正 iPad「加入主畫面」網頁 App 重複怪音、音樂與怪音並放及音高／速度錯誤：整個工作階段只使用單一 AudioContext，靜音與轉入背景時不再 suspend／close（避免硬體輸出卡住重複播放與重建 context 取樣率錯誤），改為停止所有節點並將增益歸零；主畫面 App 回到前景時自動檢查新版本並顯示更新按鈕；選單顯示音訊診斷資訊。</p></div>
         <div class="cl-item"><span class="cl-ver">v55</span><span class="cl-date">2026.10.25</span><p>修正 iPad Mini 關閉音樂／音效後仍持續播放背景音樂：關閉音樂時直接關閉整個 AudioContext 並於同一觸控內重建音效專用 context，釋放硬體輸出，WebKit 未生效的 stop()／disconnect()／suspend() 不再殘留聲音；音樂與音效全關時不保留任何音訊引擎；頁面離開或進入 bfcache 時亦自動關閉，避免背景舊頁面持續播放。</p></div>
@@ -766,6 +767,16 @@ function openTrackMenu() {
     box.querySelector('.close').onclick = closeModal;
   }, true);
 }
+function openAudioModeMenu() {
+  openModal(`<h2>🔧 音訊模式</h2><div class="sub">若主畫面網頁 App 出現怪音，請逐一嘗試。切換後頁面會重新載入（進行中的戰局請先存檔）。</div>
+    <div class="moregrid">${Object.keys(AUDIO_MODES).map(k => `<button class="ambtn ${k === AUDIO.mode ? 'primary' : ''}" data-m="${k}">${AUDIO_MODES[k]}${k === AUDIO.mode ? ' ✓' : ''}</button>`).join('')}</div>
+    <div class="sub" style="text-align:center">${audioDiag()}</div>
+    <div class="row"><button id="amBack">← 返回選單</button><span class="spacer"></span><button class="close primary">完成</button></div>`, box => {
+    box.querySelectorAll('.ambtn').forEach(b => b.onclick = () => { if (b.dataset.m !== AUDIO.mode) setAudioMode(b.dataset.m); });
+    box.querySelector('#amBack').onclick = openMoreMenu;
+    box.querySelector('.close').onclick = closeModal;
+  }, true);
+}
 function openMoreMenu() {
   openModal(`<h2>選單</h2><div class="moregrid">
     <button id="moCamp">📖 劇情・對戰</button><button id="moNations">📚 國家圖鑑</button>
@@ -773,6 +784,7 @@ function openMoreMenu() {
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
     <button id="moMusic">🎵 音樂：${AUDIO.on.music ? '開' : '關'}</button><button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button>
     <button id="moTrack">🎼 曲目：${TRACKS[AUDIO.on.track] ? TRACKS[AUDIO.on.track].name : TRACKS[0].name}</button><button id="moMain">🏠 主選單</button>
+    <button id="moAudioMode" style="grid-column:1/-1">🔧 音訊模式：${AUDIO_MODES[AUDIO.mode]}</button>
     <button class="close" style="grid-column:1/-1">✕ 關閉</button></div>
     <div class="sub" style="text-align:center;margin-top:6px">${audioDiag()}</div>`, box => {
     box.querySelector('#moCamp').onclick = () => openCampaignMenu();
@@ -783,6 +795,7 @@ function openMoreMenu() {
     box.querySelector('#moNations').onclick = () => openNations(null, openMoreMenu, '選單');
     box.querySelector('#moMusic').onclick = () => { $('#zMusic').click(); openMoreMenu(); };
     box.querySelector('#moTrack').onclick = openTrackMenu;
+    box.querySelector('#moAudioMode').onclick = openAudioModeMenu;
     box.querySelector('#moSfx').onclick = () => { $('#zSfx').click(); openMoreMenu(); };
     box.querySelector('#moMain').onclick = openMainMenu;
     box.querySelector('.close').onclick = closeModal;
@@ -796,7 +809,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v57</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v58</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -1117,7 +1130,7 @@ function audioDiag() {
   const c = AUDIO.ctx;
   const sess = navigator.audioSession ? navigator.audioSession.type : '—';
   const lat = c && c.baseLatency ? ` · ${Math.round(c.baseLatency * 1000)}ms` : '';
-  return `音訊：${c ? `${c.sampleRate}Hz · ${c.state}${lat}` : '未啟動'} · ${IS_STANDALONE ? '主畫面 App' : '瀏覽器'} · session ${sess}${AUDIO.recreated ? ' · 重建' : ''}`;
+  return `音訊：${c ? `${c.sampleRate}Hz · ${c.state}${lat}` : '未啟動'} · ${IS_STANDALONE ? '主畫面 App' : '瀏覽器'} · session ${sess}${AUDIO.recreated ? ' · 重建' : ''} · 模式 ${AUDIO.mode}`;
 }
 
 window.addEventListener('DOMContentLoaded', () => {

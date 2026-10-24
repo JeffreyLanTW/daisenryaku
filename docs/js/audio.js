@@ -146,11 +146,35 @@ const IS_STANDALONE = typeof window !== 'undefined' && (
   (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches)
 );
 
+// 音訊模式（供 iPad 主畫面 App 實機測試不同引擎組合；切換後重新載入頁面生效）
+const AUDIO_MODES = {
+  auto: '自動（取樣率修正）',
+  plain: '原始（無修正）',
+  '48k': '固定 48kHz',
+  '44k': '固定 44.1kHz',
+  html: '相容模式（HTML 音樂）',
+};
+AUDIO.mode = 'auto';
+try {
+  const m = localStorage.getItem('daisenryaku_audio_mode');
+  if (m && AUDIO_MODES[m]) AUDIO.mode = m;
+} catch (e) { /* 忽略 */ }
+
+function setAudioMode(m) {
+  if (!AUDIO_MODES[m]) return;
+  try { localStorage.setItem('daisenryaku_audio_mode', m); } catch (e) { /* 忽略 */ }
+  location.reload();
+}
+
 // 建立 AudioContext。主畫面網頁 App 專用修正（Safari 分頁不受影響）：
 // 1. 將 iOS 音訊工作階段固定為 playback，避免 standalone 程序的工作階段類別與硬體取樣率不穩定；
 // 2. iOS 取樣率錯配 bug（WebKit 154538）：context 回報的取樣率與硬體實際渲染速率不同，
 //    造成失真、重複怪音與音高／速度錯誤。已知解法：建立後播放一個空白樣本、立即關閉，再建立新的 context。
 function createAudioContext(AC) {
+  if (AUDIO.mode === '48k' || AUDIO.mode === '44k') {
+    try { return new AC({ sampleRate: AUDIO.mode === '48k' ? 48000 : 44100 }); } catch (e) { return new AC(); }
+  }
+  if (AUDIO.mode !== 'auto') return new AC();
   if (IS_STANDALONE && window.navigator.audioSession) {
     try { window.navigator.audioSession.type = 'playback'; } catch (e) { /* 忽略 */ }
   }
@@ -255,6 +279,9 @@ function audioInit() {
 // 強制同步關閉並斷開所有 BGM 節點（實體斷線保證 iPad Safari 100% 立即靜音）
 function stopMusic() {
   AUDIO.bgmGen++;
+  if (AUDIO.htmlEl) {
+    try { AUDIO.htmlEl.pause(); } catch (e) { /* 忽略 */ }
+  }
   const list = AUDIO.activeList.splice(0, AUDIO.activeList.length);
   if (AUDIO.bgmSource || AUDIO.bgmBus) {
     list.push({ src: AUDIO.bgmSource, bus: AUDIO.bgmBus });
@@ -267,7 +294,7 @@ function stopMusic() {
       setParam(item.bus.gain, 0);
       try { item.bus.disconnect(); } catch (e) { /* 忽略 */ }
     }
-    if (item.src) {
+    if (item.src && !item.src.html) {
       try { item.src.onended = null; item.src.loop = false; } catch (e) { /* 忽略 */ }
       try { item.src.stop(0); } catch (e) {
         try { item.src.stop(); } catch (err) { /* 忽略 */ }
@@ -956,6 +983,10 @@ function startMusic() {
   resumeCtx();
 
   const trackIdx = ((AUDIO.on.track % TRACKS.length) + TRACKS.length) % TRACKS.length;
+  if (AUDIO.mode === 'html') {
+    startHtmlMusic(trackIdx);
+    return;
+  }
   const buf = getTrackBufferSync(trackIdx);
   if (!buf) return;
 
@@ -982,6 +1013,53 @@ function startMusic() {
   AUDIO.bgmBus = bus;
   AUDIO.activeList.push({ src, bus });
   src.start(0);
+}
+
+// 相容模式：將同一份 PCM 迴圈轉成 16-bit WAV，交由 HTML <audio> 媒體管線播放（完全繞過 Web Audio 輸出）。
+// iOS 的 audio.volume 為唯讀，因此音量直接烘焙進波形。
+const HTML_MUSIC_GAIN = 0.32;
+
+function getTrackWavUrl(trackIdx) {
+  AUDIO.wavCache = AUDIO.wavCache || {};
+  if (AUDIO.wavCache[trackIdx]) return AUDIO.wavCache[trackIdx];
+  const buf = getTrackBufferSync(trackIdx);
+  if (!buf) return null;
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  const n = L.length, sr = buf.sampleRate;
+  const ab = new ArrayBuffer(44 + n * 4);
+  const v = new DataView(ab);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * 4, true); str(8, 'WAVE');
+  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true);
+  str(36, 'data'); v.setUint32(40, n * 4, true);
+  let o = 44;
+  for (let i = 0; i < n; i++) {
+    v.setInt16(o, Math.max(-1, Math.min(1, L[i] * HTML_MUSIC_GAIN)) * 32767, true);
+    v.setInt16(o + 2, Math.max(-1, Math.min(1, R[i] * HTML_MUSIC_GAIN)) * 32767, true);
+    o += 4;
+  }
+  const url = URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }));
+  AUDIO.wavCache[trackIdx] = url;
+  return url;
+}
+
+function startHtmlMusic(trackIdx) {
+  let el = AUDIO.htmlEl;
+  if (!el) {
+    el = new Audio();
+    el.loop = true;
+    el.preload = 'auto';
+    el.setAttribute('playsinline', '');
+    AUDIO.htmlEl = el;
+  }
+  const url = getTrackWavUrl(trackIdx);
+  if (!url) return;
+  if (el.src !== url) el.src = url;
+  try { el.currentTime = 0; } catch (e) { /* 忽略 */ }
+  const p = el.play();
+  if (p && p.catch) p.catch(() => {});
+  AUDIO.bgmSource = { html: true };
 }
 
 function setTrack(i, manual = true) {
@@ -1052,6 +1130,9 @@ if (typeof window !== 'undefined') {
   const quiet = () => {
     stopAllSfx();
     if (AUDIO.master) setParam(AUDIO.master.gain, 0);
+    if (AUDIO.htmlEl) {
+      try { AUDIO.htmlEl.pause(); } catch (e) { /* 忽略 */ }
+    }
   };
   window.addEventListener('pagehide', quiet);
   if (typeof document !== 'undefined') {
@@ -1062,6 +1143,10 @@ if (typeof window !== 'undefined') {
       } else if (!audioAllOff()) {
         setParam(AUDIO.master.gain, MASTER_GAIN);
         audioInit();
+        if (AUDIO.htmlEl && AUDIO.on.music && AUDIO.bgmSource && AUDIO.bgmSource.html) {
+          const p = AUDIO.htmlEl.play();
+          if (p && p.catch) p.catch(() => {});
+        }
       }
     });
   }
