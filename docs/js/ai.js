@@ -176,7 +176,7 @@ function aiProduce(s) {
   const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => u.side !== s);
   const cnt = k => G.units.filter(u => u.side === s && UNITS[u.type].base === k).length;
   const ecls = c => foes.filter(u => UNITS[u.type].cls === c).length;
-  const enemyAir = ecls('air') + ecls('heli'), enemyHard = ecls('hard'), enemySoft = ecls('soft'), enemyShip = ecls('ship');
+  const enemyAir = ecls('air'), enemyHard = ecls('hard'), enemySoft = ecls('soft'), enemyShip = ecls('ship');
   const capturers = mine.filter(u => UNITS[u.type].capture).length;
   let openProps = 0;
   for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) openProps++;
@@ -205,7 +205,7 @@ function aiProduce(s) {
       rocket: 1.4,
       aa: 0.3 + enemyAir * 1.5,
       sam: enemyAir * 1.0,
-      heli: 1.6,
+      heli: 1.4 + enemyHard * 0.25,
       fighter: 0.2 + enemyAir * 1.6,
       attacker: 1 + enemyShip,
       destroyer: cnt('destroyer') >= Math.min(3, 1 + enemyShip) ? 0 : 0.3 + enemyShip * 0.8,

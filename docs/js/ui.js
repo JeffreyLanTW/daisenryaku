@@ -521,7 +521,7 @@ function openNations(sel) {
   openModal(`<h2>國家圖鑑</h2>
     <div class="form"><label>國家<select id="nsSel">${nationOptions(sel)}</select></label></div>
     <div class="facs one">${nationCard(sel, 0)}</div>
-    <div class="tablewrap"><table class="ut"><tr><th>兵種</th><th>型號</th><th>價格</th><th>移動</th><th>射程</th><th>步</th><th>甲</th><th>直</th><th>空</th><th>艦</th></tr>
+    <div class="tablewrap"><table class="ut"><tr><th>兵種</th><th>型號</th><th>價格</th><th>移動</th><th>射程</th><th>步</th><th>甲</th><th>空</th><th>艦</th></tr>
     ${rows.map(d => `<tr class="${UNIQUE_BASES.includes(d.base) ? 'uniq' : ''}"><td>${d.name}</td><td class="model">${d.model}${d.armor ? `<small>（承傷×${d.armor.toFixed(2)}）</small>` : ''}${d.jungle ? `<small>（叢林+${d.jungle}%）</small>` : ''}</td><td>${d.cost}</td><td>${d.move}</td><td>${d.range.join('-')}</td>${d.atk.map(v => `<td class="${v ? '' : 'zero'}">${v}</td>`).join('')}</tr>`).join('')}</table></div>
     <div class="desc">裝備以 1990 年代初期為準，數值為遊戲平衡後的抽象化表現。</div>
     <div class="row"><button class="close primary">關閉</button></div>`, box => {
@@ -531,7 +531,7 @@ function openNations(sel) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v39</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v40</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -553,6 +553,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v40</span><span class="cl-date">2026.10.24</span><p>合併「直」與「空」兵種分類為統一的「空」（步/甲/空/艦），強化攻擊直升機反裝甲獵殺定位；9 首背景音樂依配置、關卡戰場與勝利情境自動切換。</p></div>
         <div class="cl-item"><span class="cl-ver">v39</span><span class="cl-date">2026.10.24</span><p>修復背景音樂重疊播放問題（單例播放鎖定與振盪器即時清除）；新增 8 首 90 年代大戰略風格合成軍武曲目與曲目選單。</p></div>
         <div class="cl-item"><span class="cl-ver">v38</span><span class="cl-date">2026.10.24</span><p>新增背景音樂「深海潛航・紅色十月」（D 小調合唱銅管、定音鼓、聲納），可由地圖右下角 🎼 或選單切換曲目。</p></div>
         <div class="cl-item"><span class="cl-ver">v37</span><span class="cl-date">2026.10.24</span><p>版本紀錄日期精確到「日」。</p></div>
@@ -580,8 +581,10 @@ function openHelp() {
 
 function showVictory() {
   if (G.winner == null) return;
-  if (!G.victorySfx) { G.victorySfx = true; sfx(G.players[G.winner] && !G.players[G.winner].ai ? 'win' : 'lose'); }
+  const humanWin = G.players[G.winner] && !G.players[G.winner].ai;
+  if (!G.victorySfx) { G.victorySfx = true; sfx(humanWin ? 'win' : 'lose'); }
   if (G.missionId) { refreshPanel(); return showDebrief(); }
+  if (humanWin && typeof playContextBGM === 'function') playContextBGM('victory');
   const S = SIDES[G.winner];
   openModal(`<div class="victory" style="--c:${S.color}"><div class="big">${S.name} 勝利！</div>
     <p>${G.winReason}　·　共 ${G.turn} 回合</p></div>
@@ -642,7 +645,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v39</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v40</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -729,6 +732,7 @@ function startGame(opts) {
   fitView();
   const [cx, cy] = idxCenter(G.caps[G.players[0].ai && !G.players[1].ai ? 1 : 0]);
   centerOn(cx, cy);
+  if (typeof playContextBGM === 'function') playContextBGM('combat', true);
   turnIntro();
 }
 function saveGame() { openSaveDialog(); }

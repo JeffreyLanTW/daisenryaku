@@ -4,7 +4,7 @@
 const AUDIO = {
   ctx: null, master: null, music: null, sfx: null, noise: null,
   on: { music: true, sfx: true, track: 0 },
-  bus: null, timer: null, gen: 0, nodes: [], step: 0, next: 0, tense: false,
+  bus: null, timer: null, gen: 0, nodes: [], step: 0, next: 0, tense: false, manual: false,
 };
 try {
   const a = JSON.parse(localStorage.getItem('daisenryaku_audio'));
@@ -436,13 +436,41 @@ function startMusic() {
   scheduleMusic(gen);
   AUDIO.timer = setInterval(() => scheduleMusic(gen), 60);
 }
-function setTrack(i) {
+function setTrack(i, manual = true) {
+  if (manual) AUDIO.manual = true;
   AUDIO.on.track = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length;
   saveAudio();
   if (!AUDIO.ctx) audioInit();
   if (AUDIO.ctx && AUDIO.on.music) startMusic();
 }
-function cycleTrack() { setTrack(AUDIO.on.track + 1); return TRACKS[AUDIO.on.track].name; }
+function cycleTrack() { setTrack(AUDIO.on.track + 1, true); return TRACKS[AUDIO.on.track].name; }
+
+// 戰役關卡與情境自動配樂對應表（涵蓋全部 9 首曲目）
+// 0:鋼鐵進行曲 1:裝甲突擊 2:蒼穹制空權 3:大洋艦隊 4:前線司令部 5:焦土防線 6:決戰黎明 7:凱旋榮光 8:深海潛航・紅色十月
+const MISSION_TRACK = {
+  t1: 0, t2: 2, t3: 5, c2: 3, c3: 5, c4: 1, c5: 6,
+  f1: 0, f2: 8, f3: 2, f4: 5, f5: 1, f6: 5, f7: 3, f8: 6,
+};
+function scenarioTrack(g) {
+  if (!g) return 0;
+  if (g.missionId && MISSION_TRACK[g.missionId] !== undefined) return MISSION_TRACK[g.missionId];
+  const seaCnt = Array.isArray(g.terrain) ? g.terrain.filter(t => t === 'sea').length : 0;
+  const seaRatio = g.terrain && g.terrain.length ? seaCnt / g.terrain.length : 0;
+  const seed = Math.abs(g.seed || 0);
+  if (seaRatio >= 0.35) return seed % 2 === 0 ? 3 : 8;
+  const landTracks = [0, 1, 2, 5, 6];
+  return landTracks[seed % landTracks.length];
+}
+function playContextBGM(phase, force = false) {
+  if (force) AUDIO.manual = false;
+  if (AUDIO.manual && phase !== 'victory') return;
+  const g = typeof G !== 'undefined' ? G : null;
+  let idx = 0;
+  if (phase === 'deploy') idx = 4;
+  else if (phase === 'victory') idx = 7;
+  else idx = scenarioTrack(g);
+  if (AUDIO.on.track !== idx || !AUDIO.timer) setTrack(idx, false);
+}
 function scheduleMusic(gen = AUDIO.gen) {
   if (gen !== AUDIO.gen) return;
   const c = AUDIO.ctx;

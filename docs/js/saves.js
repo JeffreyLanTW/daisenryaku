@@ -122,12 +122,20 @@ function applySave(obj) {
   G = g;
   if (!G.nations) G.nations = ['TW', 'CN'];
   applyNations(G.nations, G.allies || []);
-  for (const u of G.units) u.type = ftype(u.type, u.side);
+  const normUnit = u => {
+    if (u.cls === 'heli') u.cls = 'air';
+    if (u.mt === 'heli') u.mt = 'air';
+    u.type = ftype(u.type, u.side);
+    for (const c of u.cargo || []) normUnit(c);
+  };
+  for (const u of G.units) normUnit(u);
+  for (const u of G.reserve || []) normUnit(u);
   if (obj.camp) {
     loadCamp(obj.camp.id && CAMPAIGNS[obj.camp.id] ? obj.camp.id : campOf(MISSIONS[G.missionId]));
     CAMP.flags = obj.camp.flags || {};
     CAMP.current = obj.camp.current || G.missionId;
     CAMP.roster = obj.camp.roster || {};
+    for (const list of Object.values(CAMP.roster)) if (Array.isArray(list)) for (const r of list) { if (r.cls === 'heli') r.cls = 'air'; }
     CAMP.carryFunds = obj.camp.carryFunds || 0;
     saveCamp();
   }
@@ -136,6 +144,7 @@ function applySave(obj) {
   const [cx, cy] = idxCenter(G.caps[G.cur]); centerOn(cx, cy);
   showBanner('讀取完成', '#3a8a4a');
   UIS.mode = 'idle';
+  if (G.winner == null && typeof playContextBGM === 'function') playContextBGM('combat', true);
   if (G.winner != null) showVictory();
   else if (G.players[G.cur].ai) turnIntro();
   else refreshPanel();

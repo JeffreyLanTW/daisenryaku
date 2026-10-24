@@ -3,10 +3,10 @@
 
 const SQ3 = Math.sqrt(3);
 
-// 攻擊力陣列的對象順序
-const CLASSES = ['soft', 'hard', 'heli', 'air', 'ship'];
-const CLASS_NAME = { soft: '步兵', hard: '裝甲', heli: '直升機', air: '飛機', ship: '艦艇' };
-const CLASS_SHORT = ['步', '甲', '直', '空', '艦'];
+// 攻擊力陣列的對象順序（直升機與固定翼機統一併入「空」）
+const CLASSES = ['soft', 'hard', 'air', 'ship'];
+const CLASS_NAME = { soft: '步兵', hard: '裝甲', air: '空軍', ship: '艦艇', heli: '空軍' };
+const CLASS_SHORT = ['步', '甲', '空', '艦'];
 
 // 兩方的顯示色（名稱於開局時依國家設定）
 const SIDES = [
@@ -33,34 +33,34 @@ const TERRAIN = {
   port:     { name: '港口', def: 20, cost: { foot: 1, tread: 1, amph: 1, air: 1, sea: 1 }, income: 100, prop: true, heal: ['sea', 'land'], build: ['sea'] },
 };
 
-// 共通兵種基礎數值。atk: 對 [步兵, 裝甲, 直升機, 飛機, 艦艇] 的攻擊力（滿血時約造成的 HP 傷害）
+// 共通兵種基礎數值。atk: 對 [步兵, 裝甲, 空軍, 艦艇] 的攻擊力（滿血時約造成的 HP 傷害）
 const BASE_UNITS = {
-  inf:       { cls: 'soft', cat: 'land', mt: 'foot',  cost: 100,  move: 3, range: [1, 1], atk: [5, 1, 1, 0, 0], capture: true },
-  atinf:     { cls: 'soft', cat: 'land', mt: 'foot',  cost: 250,  move: 2, range: [1, 1], atk: [3, 6, 3, 0, 0], capture: true },
-  recon:     { cls: 'hard', cat: 'land', mt: 'tread', cost: 300,  move: 7, range: [1, 1], atk: [5, 2, 1, 0, 0] },
-  tank:      { cls: 'hard', cat: 'land', mt: 'tread', cost: 600,  move: 5, range: [1, 1], atk: [6, 6, 1, 0, 2] },
-  arty:      { cls: 'hard', cat: 'land', mt: 'tread', cost: 500,  move: 4, range: [2, 3], atk: [8, 6, 0, 0, 5] },
-  rocket:    { cls: 'hard', cat: 'land', mt: 'tread', cost: 800,  move: 4, range: [3, 5], atk: [9, 7, 0, 0, 6] },
-  aa:        { cls: 'hard', cat: 'land', mt: 'tread', cost: 450,  move: 5, range: [1, 1], atk: [5, 2, 8, 6, 0] },
-  sam:       { cls: 'hard', cat: 'land', mt: 'tread', cost: 700,  move: 4, range: [2, 5], atk: [0, 0, 9, 9, 0] },
-  heli:      { cls: 'heli', cat: 'air',  mt: 'air',   cost: 700,  move: 6, range: [1, 1], atk: [6, 7, 4, 0, 4], fuel: 40, upkeep: 2 },
-  fighter:   { cls: 'air',  cat: 'air',  mt: 'air',   cost: 900,  move: 9, range: [1, 1], atk: [0, 0, 7, 8, 0], fuel: 50, upkeep: 5 },
-  attacker:  { cls: 'air',  cat: 'air',  mt: 'air',   cost: 1000, move: 8, range: [1, 1], atk: [7, 8, 0, 0, 8], fuel: 45, upkeep: 5 },
-  destroyer: { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 900,  move: 3, range: [1, 1], atk: [4, 4, 4, 5, 7] },
+  inf:       { cls: 'soft', cat: 'land', mt: 'foot',  cost: 100,  move: 3, range: [1, 1], atk: [5, 1, 0, 0], capture: true },
+  atinf:     { cls: 'soft', cat: 'land', mt: 'foot',  cost: 250,  move: 2, range: [1, 1], atk: [3, 6, 0, 0], capture: true },
+  recon:     { cls: 'hard', cat: 'land', mt: 'tread', cost: 300,  move: 7, range: [1, 1], atk: [5, 2, 0, 0] },
+  tank:      { cls: 'hard', cat: 'land', mt: 'tread', cost: 600,  move: 5, range: [1, 1], atk: [6, 6, 0, 2] },
+  arty:      { cls: 'hard', cat: 'land', mt: 'tread', cost: 500,  move: 4, range: [2, 3], atk: [8, 6, 0, 5] },
+  rocket:    { cls: 'hard', cat: 'land', mt: 'tread', cost: 800,  move: 4, range: [3, 5], atk: [9, 7, 0, 6] },
+  aa:        { cls: 'hard', cat: 'land', mt: 'tread', cost: 450,  move: 5, range: [1, 1], atk: [5, 2, 7, 0] },
+  sam:       { cls: 'hard', cat: 'land', mt: 'tread', cost: 700,  move: 4, range: [2, 5], atk: [0, 0, 9, 0] },
+  heli:      { cls: 'air',  cat: 'air',  mt: 'air',   cost: 700,  move: 6, range: [1, 1], atk: [6, 9, 3, 4], fuel: 40, upkeep: 2 },
+  fighter:   { cls: 'air',  cat: 'air',  mt: 'air',   cost: 900,  move: 9, range: [1, 1], atk: [0, 0, 8, 0], fuel: 50, upkeep: 5 },
+  attacker:  { cls: 'air',  cat: 'air',  mt: 'air',   cost: 1000, move: 8, range: [1, 1], atk: [7, 8, 0, 8], fuel: 45, upkeep: 5 },
+  destroyer: { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 900,  move: 3, range: [1, 1], atk: [4, 4, 5, 7] },
 };
 
 // 專屬兵種（只有部分國家擁有）
 Object.assign(BASE_UNITS, {
-  marine:  { cls: 'soft', cat: 'land', mt: 'amph', cost: 300, move: 4, range: [1, 1], atk: [5, 3, 1, 0, 1], capture: true },
-  bomber:  { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 7, range: [1, 1], atk: [9, 9, 0, 0, 9], fuel: 60, upkeep: 5 },
-  stealth: { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 8, range: [1, 1], atk: [8, 9, 0, 0, 8], fuel: 45, upkeep: 5, stealth: true },
+  marine:  { cls: 'soft', cat: 'land', mt: 'amph', cost: 300, move: 4, range: [1, 1], atk: [5, 3, 0, 1], capture: true },
+  bomber:  { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 7, range: [1, 1], atk: [9, 9, 0, 9], fuel: 60, upkeep: 5 },
+  stealth: { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 8, range: [1, 1], atk: [8, 9, 0, 8], fuel: 45, upkeep: 5, stealth: true },
   // 搭載兵種：carry.cap 容量、allow 可搭載的移動類型、light 只能載輕型（價格 ≤ 500）、runway 須停在據點上才能卸載
-  truck:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 200, move: 6, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 2, allow: ['foot'] } },
-  thelico: { cls: 'heli', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0, 0], fuel: 40, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
-  airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0, 0], fuel: 60, upkeep: 4, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
-  lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 3, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
-  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 3, range: [1, 1], atk: [1, 1, 4, 3, 1], carry: { cap: 4, allow: ['air'], deck: true } },
-  train:   { cls: 'hard', cat: 'land', mt: 'rail', cost: 400, move: 12, range: [1, 1], atk: [0, 0, 0, 0, 0], carry: { cap: 4, allow: ['foot', 'tread', 'amph'] } },
+  truck:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 200, move: 6, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 2, allow: ['foot'] } },
+  thelico: { cls: 'air', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0], fuel: 40, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
+  airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0], fuel: 60, upkeep: 4, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
+  lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 3, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
+  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 3, range: [1, 1], atk: [1, 1, 4, 1], carry: { cap: 4, allow: ['air'], deck: true } },
+  train:   { cls: 'hard', cat: 'land', mt: 'rail', cost: 400, move: 12, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 4, allow: ['foot', 'tread', 'amph'] } },
 });
 const RAIL_COST = 200;
 // 各國搭載兵種（1990 年代初期）
@@ -85,7 +85,7 @@ const TRANSPORTS = {
 const BASE_DESC = {
   inf: '基本步兵，可佔領據點', atinf: '攜帶反戰車武器的步兵，可佔領據點', recon: '高機動偵察車，克制步兵',
   tank: '主力戰車，攻守兼備', arty: '間接攻擊，移動後不可射擊', rocket: '遠程火箭，移動後不可射擊',
-  aa: '近距離防空，對步兵也有效', sam: '遠程防空飛彈，移動後不可射擊', heli: '攻擊直升機，懼怕防空',
+  aa: '近距離防空，對步兵也有效', sam: '遠程防空飛彈，移動後不可射擊', heli: '反裝甲攻擊直升機，克制戰車但懼怕防空',
   fighter: '制空戰鬥機，每回合消耗燃料', attacker: '對地對艦攻擊機', destroyer: '水面作戰艦艇',
   marine: '兩棲陸戰隊，可渡海登陸並佔領據點', bomber: '重型轟炸機，對地對艦火力強大', stealth: '匿蹤攻擊機，攻擊時不會遭到反擊',
   truck: '運輸卡車，可搭載 2 隊步兵', thelico: '運輸直升機，可搭載 2 隊步兵，任何地點卸載',

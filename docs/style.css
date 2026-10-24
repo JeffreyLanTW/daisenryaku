@@ -57,7 +57,7 @@ main { display: grid; grid-template-columns: 1fr 300px; min-height: 0; }
 .hpbar { position: relative; height: 16px; background: #0d1217; border-radius: 4px; overflow: hidden; }
 .hpbar i { position: absolute; inset: 0 auto 0 0; transition: width .3s; }
 .hpbar span { position: relative; font-size: 11px; padding-left: 6px; line-height: 16px; font-weight: 700; text-shadow: 0 1px 1px #000; }
-.atk { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 6px; }
+.atk { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 6px; }
 .atk span { background: #2a3644; border-radius: 4px; text-align: center; font-size: 12px; padding: 2px 0; }
 .atk span b { color: var(--muted); font-weight: 400; margin-right: 3px; font-size: 11px; }
 .atk span.zero { opacity: .35; }
