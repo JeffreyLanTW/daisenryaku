@@ -379,11 +379,37 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 .citem input { width: 18px; height: 18px; flex: none; }
 @media (max-height: 520px) and (orientation: landscape) { .carry { grid-template-columns: 1fr 1fr 1fr; max-height: calc(100dvh - 150px); } }
 #deployBar {
-  position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; display: flex; gap: 10px; align-items: center;
-  background: rgba(14,30,20,.94); border: 1px solid #4fbf6f; border-radius: 10px; padding: 8px 12px; max-width: calc(100% - 80px);
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+  background: rgba(14, 28, 20, 0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #4fbf6f; border-radius: 10px; padding: 7px 12px;
+  width: min(720px, calc(100% - 90px)); max-height: calc(100% - 20px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
 }
-#deployBar span { font-size: 13px; }
-@media (max-height: 520px) and (orientation: landscape) { #deployBar { top: 6px; padding: 5px 8px; } #deployBar span { font-size: 11px; } }
+.deploy-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.deploy-actions {
+  display: flex; align-items: center; gap: 6px; flex: none;
+}
+#deployBar .dtitle { font-size: 13px; line-height: 1.4; }
+#deployBar .slots { color: var(--gold); font-weight: 700; margin-left: 4px; }
+.deploy-toggle { font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid #3a5c48; background: #17261d; }
+.deploy-toggle:hover { color: var(--gold); border-color: var(--gold); }
+#deployBar #deployGo { padding: 6px 16px; font-size: 13px; }
+#deployBar.minimized #reserveList { display: none; }
+#deployBar.minimized { gap: 0; padding: 6px 12px; }
+#reserveList {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.rchip { display: flex; align-items: center; gap: 4px; padding: 3px 8px 3px 3px; flex: none; }
+.rchip canvas { width: 44px; height: 34px; }
+.rchip span { display: flex; flex-direction: column; font-size: 12px; text-align: left; }
+.rchip small { color: var(--muted); font-size: 10px; }
+.rchip.on { border-color: #7dff9a; background: #1f3a28; }
+.rdone { font-size: 12px; color: var(--muted); padding: 6px; }
 #resultBar {
   position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; display: flex; gap: 10px; align-items: center;
   background: rgba(30,24,10,.94); border: 1px solid var(--gold); border-radius: 10px; padding: 8px 12px; max-width: calc(100% - 80px);
@@ -414,18 +440,36 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   #btnSave, #btnLoad, #btnHelp, .sep { display: none; }
   #btnMore { display: inline-block; }
 }
-#deployBar { flex-direction: column; align-items: stretch; gap: 6px; width: min(760px, calc(100% - 80px)); max-width: none; }
-#deployBar .dtitle { font-size: 13px; }
-#reserveList { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
-.rchip { display: flex; align-items: center; gap: 4px; padding: 3px 8px 3px 3px; flex: none; }
-.rchip canvas { width: 48px; height: 37px; }
-.rchip span { display: flex; flex-direction: column; font-size: 12px; text-align: left; }
-.rchip small { color: var(--muted); font-size: 10px; }
-.rchip.on { border-color: #7dff9a; background: #1f3a28; }
-.rdone { font-size: 12px; color: var(--muted); padding: 6px; }
-#deployBar #deployGo { align-self: flex-end; }
-@media (max-height: 520px) and (orientation: landscape) { .rchip canvas { width: 36px; height: 28px; } #deployBar .dtitle { font-size: 11px; } }
-#deployBar .slots { color: var(--gold); font-weight: 700; margin-left: 4px; }
+/* 平板與緊湊螢幕 (iPad Mini、小平板、直向視窗、低高度螢幕) */
+@media (max-width: 820px), (max-height: 700px) {
+  #deployBar {
+    top: 6px; padding: 5px 10px; gap: 4px;
+    width: min(660px, calc(100% - 90px));
+  }
+  #deployBar .dtitle { font-size: 12px; }
+  .rchip { padding: 2px 6px 2px 2px; }
+  .rchip canvas { width: 36px; height: 28px; }
+  .rchip span { font-size: 11px; }
+  #deployBar #deployGo { padding: 5px 12px; font-size: 12.5px; }
+  .deploy-toggle { padding: 3px 6px; font-size: 11px; }
+
+  #modal { padding: 10px; }
+  #modalBox {
+    padding: 14px 16px;
+    max-height: calc(100dvh - 24px);
+    width: min(580px, 100%);
+  }
+  .mtitle h2 { font-size: 24px !important; letter-spacing: 4px; }
+  ul.obj.big { font-size: 13.5px; margin: 10px 0; }
+  .allychoice { margin-top: 8px; padding: 6px 10px; font-size: 12px; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  #deployBar { top: 4px; padding: 4px 8px; width: min(560px, calc(100% - 90px)); }
+  #deployBar .dtitle { font-size: 11px; }
+  .rchip canvas { width: 32px; height: 24px; }
+  .rchip span { font-size: 10px; }
+}
 
 /* 說明面板：版本標籤與開發歷史 */
 .ver-badge {

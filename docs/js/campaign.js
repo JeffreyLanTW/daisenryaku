@@ -353,7 +353,10 @@ function startDeploy() {
   UIS.mode = 'deploy';
   UIS.deployZone = deployZone();
   UIS.deploySel = null;
-  $('#deployBar').classList.remove('hidden');
+  const bar = $('#deployBar');
+  bar.classList.remove('hidden', 'minimized');
+  const dt = $('#deployToggle');
+  if (dt) dt.textContent = '收合 ▴';
   renderDeployBar();
   refreshPanel();
 }
@@ -373,7 +376,9 @@ function renderDeployBar() {
 }
 function endDeploy() {
   if (G.reserve && G.reserve.length) autoDeploy();
-  $('#deployBar').classList.add('hidden');
+  const bar = $('#deployBar');
+  bar.classList.add('hidden');
+  bar.classList.remove('minimized');
   UIS.deployZone = null; UIS.deploySel = null;
   UIS.mode = 'idle';
   turnIntro();

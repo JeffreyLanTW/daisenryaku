@@ -34,7 +34,16 @@
       <div id="banner" class="hidden"></div>
       <div id="toast" class="hidden"></div>
       <div id="resultBar" class="hidden"><span>🏁 <b id="resultText">作戰結束</b>　正在檢視戰場</span><button id="resultGo" class="primary">查看結果</button></div>
-      <div id="deployBar" class="hidden"><div class="dtitle">🪖 <b>部隊配置</b>：從待命名單點選繼承部隊，再點綠色配置區放下</div><div id="reserveList"></div><button id="deployGo" class="primary">開始作戰</button></div>
+      <div id="deployBar" class="hidden">
+        <div class="deploy-header">
+          <div class="dtitle">🪖 <b>部隊配置</b>：從待命名單點選繼承部隊，再點綠色配置區放下</div>
+          <div class="deploy-actions">
+            <button id="deployToggle" class="muted deploy-toggle" title="收合/展開配置名單" type="button">收合 ▴</button>
+            <button id="deployGo" class="primary" type="button">開始作戰</button>
+          </div>
+        </div>
+        <div id="reserveList"></div>
+      </div>
       <button id="cancelBtn" class="hidden" title="取消（右鍵 / Esc）">✕ 取消</button>
       <button id="btnPanel" title="顯示/隱藏側欄">▤</button>
       <div id="zoomCtl"><button id="zMusic" title="背景音樂">♪</button><button id="zSfx" title="音效">🔊</button><button id="zLabel" title="顯示/隱藏兵種名稱">名</button><button id="zIn" title="放大">＋</button><button id="zOut" title="縮小">－</button></div>

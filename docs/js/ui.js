@@ -791,6 +791,12 @@ function setupInput() {
   $('#btnHelp').onclick = openHelp;
   $('#btnCampaign').onclick = () => openCampaignMenu();
   $('#deployGo').onclick = endDeploy;
+  const dt = $('#deployToggle');
+  if (dt) dt.onclick = () => {
+    const bar = $('#deployBar');
+    const isMin = bar.classList.toggle('minimized');
+    dt.textContent = isMin ? '名單 ▾' : '收合 ▴';
+  };
   $('#cancelBtn').onclick = e => { e.stopPropagation(); cancelAction(); };
   $('#resultGo').onclick = () => { if (G) { G.debriefShown = false; showVictory(); } };
   $('#btnMore').onclick = openMoreMenu;
