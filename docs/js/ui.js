@@ -686,6 +686,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v56</span><span class="cl-date">2026.10.25</span><p>修正 iPad「加入主畫面」網頁 App 重複怪音、音樂與怪音並放及音高／速度錯誤：整個工作階段只使用單一 AudioContext，靜音與轉入背景時不再 suspend／close（避免硬體輸出卡住重複播放與重建 context 取樣率錯誤），改為停止所有節點並將增益歸零；主畫面 App 回到前景時自動檢查新版本並顯示更新按鈕；選單顯示音訊診斷資訊。</p></div>
         <div class="cl-item"><span class="cl-ver">v55</span><span class="cl-date">2026.10.25</span><p>修正 iPad Mini 關閉音樂／音效後仍持續播放背景音樂：關閉音樂時直接關閉整個 AudioContext 並於同一觸控內重建音效專用 context，釋放硬體輸出，WebKit 未生效的 stop()／disconnect()／suspend() 不再殘留聲音；音樂與音效全關時不保留任何音訊引擎；頁面離開或進入 bfcache 時亦自動關閉，避免背景舊頁面持續播放。</p></div>
         <div class="cl-item"><span class="cl-ver">v54</span><span class="cl-date">2026.10.25</span><p>iPad Mini 音訊全面修正：AudioContext 解鎖改用單一 resume 互斥鎖與 BGM 世代權杖，杜絕觸控雙重觸發造成的雙重背景音樂；建立音效聲部與延遲計時器註冊表，音樂／音效全關時硬性清除所有排程、主增益歸零並暫停音訊引擎；柔化銅管與貝斯泛音、加入 7kHz 柔化低通、75Hz 次低頻高通與峰值限幅器，降低單聲部增益與平滑起音，消除小喇叭刺耳與破音。</p></div>
         <div class="cl-item"><span class="cl-ver">v53</span><span class="cl-date">2026.10.25</span><p>徹底修復 iPad Mini 6 音樂無法關閉、無法切換曲目與串音問題：廢除 WebKit 非同步 OfflineAudioContext，改用 100% 同步零延遲 PCM 波形合成與單音閘門控制（前後音符絕不重疊）；關閉音樂時實體斷開音訊匯流排；修正選單視窗連續點擊 0.4 秒防誤觸攔截問題。</p></div>
@@ -771,7 +772,8 @@ function openMoreMenu() {
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
     <button id="moMusic">🎵 音樂：${AUDIO.on.music ? '開' : '關'}</button><button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button>
     <button id="moTrack">🎼 曲目：${TRACKS[AUDIO.on.track] ? TRACKS[AUDIO.on.track].name : TRACKS[0].name}</button><button id="moMain">🏠 主選單</button>
-    <button class="close" style="grid-column:1/-1">✕ 關閉</button></div>`, box => {
+    <button class="close" style="grid-column:1/-1">✕ 關閉</button></div>
+    <div class="sub" style="text-align:center;margin-top:6px">${audioDiag()}</div>`, box => {
     box.querySelector('#moCamp').onclick = () => openCampaignMenu();
     box.querySelector('#moSave').onclick = openSaveDialog;
     box.querySelector('#moLoad').onclick = openLoadDialog;
@@ -793,7 +795,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v55</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v56</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -1087,7 +1089,38 @@ function initPanelOrder() {
   if (log) panel.appendChild(log);
 }
 
+// 「加入主畫面」網頁 App 不會像 Safari 分頁一樣重新載入：啟動與回到前景時檢查伺服器版本，
+// 有新版本時顯示更新按鈕（不自動重新載入，避免中斷進行中的戰局）
+function checkForUpdate() {
+  const el = document.querySelector('script[src*="ui.js?v="]');
+  const m = el && el.getAttribute('src').match(/v=(\d+)/);
+  if (!m || typeof fetch !== 'function' || location.protocol === 'file:') return;
+  fetch('./?_=' + Date.now(), { cache: 'no-store' })
+    .then(r => (r.ok ? r.text() : ''))
+    .then(html => {
+      const n = html.match(/ui\.js\?v=(\d+)/);
+      if (!n || +n[1] <= +m[1] || $('#updateBtn')) return;
+      const b = document.createElement('button');
+      b.id = 'updateBtn';
+      b.className = 'primary';
+      b.textContent = `🔄 有新版本 v${n[1]}，點此更新`;
+      b.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translateX(-50%);z-index:9999';
+      b.onclick = () => location.reload();
+      document.body.appendChild(b);
+    })
+    .catch(() => {});
+}
+
+// 音訊診斷資訊（選單顯示，方便於 iPad 主畫面 App 回報問題）
+function audioDiag() {
+  const standalone = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  const c = AUDIO.ctx;
+  return `音訊：${c ? `${c.sampleRate}Hz · ${c.state}` : '未啟動'} · ${standalone ? '主畫面 App' : '瀏覽器'}`;
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  checkForUpdate();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
   initAppIcon();
   initPanelOrder();
   cvs = $('#map'); ctx = cvs.getContext('2d');

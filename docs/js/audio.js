@@ -99,8 +99,7 @@ function createNoiseBuffers(ctx) {
 
 const audioAllOff = () => !AUDIO.on.music && !AUDIO.on.sfx;
 
-// 單一共用 resume 互斥鎖：touchend + click 等雙重觸發只會產生一個 resume()，
-// 若 resume 完成前使用者已全部靜音或頁面轉入背景，完成後立即重新 suspend
+// 單一共用 resume 互斥鎖：touchend + click 等雙重觸發只會產生一個 resume()
 function resumeCtx() {
   const c = AUDIO.ctx;
   if (!c) return Promise.resolve(false);
@@ -110,10 +109,6 @@ function resumeCtx() {
   try { p = Promise.resolve(c.resume()); } catch (e) { p = Promise.reject(e); }
   AUDIO.resumeP = p.then(() => {
     AUDIO.resumeP = null;
-    if (audioAllOff() || (typeof document !== 'undefined' && document.hidden)) {
-      try { c.suspend().catch(() => {}); } catch (e) { /* 忽略 */ }
-      return false;
-    }
     return c.state === 'running';
   }, () => {
     AUDIO.resumeP = null;
@@ -266,38 +261,22 @@ function stopAllSfx() {
   }
 }
 
-// 終極關閉開關：停止所有節點後直接 close() 整個 AudioContext。
-// iPad WebKit 的音訊在獨立程序中渲染，stop()/disconnect()/suspend() 偶有未生效而持續發聲；
-// close() 會釋放硬體輸出，該 context 產生的任何聲音（含漏網節點）都必定消失。
-function killContext() {
+// 全面硬靜音：清除排程、停止並斷開所有節點、主增益歸零。
+// 刻意不 suspend()／close()：iPad「加入主畫面」網頁 App 在 context 暫停或關閉時，
+// 硬體輸出會卡住重複播放最後一段緩衝（重複怪音），重建的 context 取樣率也可能錯誤（音高／速度不對）。
+// 因此整個工作階段只使用單一 AudioContext，靜音時讓它持續輸出純靜音。
+function stopAllAudio() {
   stopMusic();
   stopAllSfx();
-  const c = AUDIO.ctx;
-  if (!c) return;
-  if (AUDIO.master) {
-    setParam(AUDIO.master.gain, 0);
-    try { AUDIO.master.disconnect(); } catch (e) { /* 忽略 */ }
+  if (AUDIO.master) setParam(AUDIO.master.gain, 0);
+  if (AUDIO.music) {
+    setParam(AUDIO.music.gain, 0);
+    if (AUDIO.musicConnected) {
+      try { AUDIO.music.disconnect(); } catch (e) { /* 忽略 */ }
+      AUDIO.musicConnected = false;
+    }
   }
-  AUDIO.ctx = null;
-  AUDIO.master = null;
-  AUDIO.comp = null;
-  AUDIO.bgmFilter = null;
-  AUDIO.music = null;
-  AUDIO.musicConnected = false;
-  AUDIO.sfx = null;
-  AUDIO.noiseWhite = null;
-  AUDIO.noisePink = null;
-  AUDIO.resumeP = null;
-  AUDIO.bgmCache = {};
-  try {
-    const p = c.close ? c.close() : c.suspend();
-    if (p && p.catch) p.catch(() => {});
-  } catch (e) { /* 忽略 */ }
-}
-
-// 全面硬靜音：清除排程、停止所有節點並關閉 AudioContext
-function stopAllAudio() {
-  killContext();
+  if (AUDIO.sfx) setParam(AUDIO.sfx.gain, 0);
 }
 
 function setAudio(kind, on) {
@@ -308,25 +287,26 @@ function setAudio(kind, on) {
     stopAllAudio();
     return;
   }
-  if (kind === 'music' && !AUDIO.on.music) {
-    // 關閉音樂：整個 context 關閉重建（於同一觸控手勢內，iOS 允許新 context 立即運作），
-    // 保證舊 BGM 無論處於何種狀態都不可能繼續發聲；音效改由新 context 播放
-    killContext();
-    audioInit();
-    return;
-  }
   if (!AUDIO.ctx) {
     audioInit();
-    return;
+    if (!AUDIO.ctx) return;
   }
-  if (kind === 'sfx') {
-    if (!AUDIO.on.sfx) stopAllSfx();
-    setParam(AUDIO.sfx.gain, AUDIO.on.sfx ? SFX_GAIN : 0);
+
+  if (kind === 'music' && !AUDIO.on.music) {
+    // 立即同步停止所有音源並將 BGM 匯流排從主輸出實體斷開
+    stopMusic();
+    setParam(AUDIO.music.gain, 0);
+    if (AUDIO.musicConnected) {
+      try { AUDIO.music.disconnect(); } catch (e) { /* 忽略 */ }
+      AUDIO.musicConnected = false;
+    }
   }
-  // 至少一項開啟：恢復主增益並（經互斥鎖）解除 suspend
+  if (!AUDIO.on.sfx) stopAllSfx();
+  setParam(AUDIO.sfx.gain, AUDIO.on.sfx ? SFX_GAIN : 0);
+  // 至少一項開啟：恢復主增益並（經互斥鎖）解除 iOS 的中斷狀態
   setParam(AUDIO.master.gain, MASTER_GAIN);
   resumeCtx();
-  if (kind === 'music' && AUDIO.on.music && !AUDIO.bgmSource) startMusic();
+  if (AUDIO.on.music && !AUDIO.bgmSource) startMusic();
 }
 
 // ----- 戰術音效合成基礎積木 -----
@@ -942,7 +922,7 @@ function startMusic() {
     try { AUDIO.music.connect(AUDIO.bgmFilter); AUDIO.musicConnected = true; } catch (e) { /* 忽略 */ }
   }
   setParam(AUDIO.music.gain, MUSIC_GAIN);
-  // 由硬靜音狀態直接切換曲目時，恢復主增益並解除 suspend
+  // 由全靜音狀態直接切換曲目時，恢復主增益
   if (AUDIO.master) setParam(AUDIO.master.gain, MASTER_GAIN);
   resumeCtx();
 
@@ -1038,15 +1018,20 @@ if (typeof window !== 'undefined') {
   ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev =>
     window.addEventListener(ev, audioInit, { once: false, passive: true })
   );
-  // 頁面離開或進入 bfcache 時直接關閉 context，避免背景頁面殘留的舊實例持續播放音樂
-  window.addEventListener('pagehide', killContext);
+  // 轉入背景／離開頁面：只停止音效並將主增益歸零，不自行 suspend（避免主畫面 App 輸出卡住重複播放），
+  // 由 iOS 自行中斷背景音訊；回到前景時恢復增益並經互斥鎖 resume
+  const quiet = () => {
+    stopAllSfx();
+    if (AUDIO.master) setParam(AUDIO.master.gain, 0);
+  };
+  window.addEventListener('pagehide', quiet);
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (!AUDIO.ctx) return;
       if (document.hidden) {
-        stopAllSfx();
-        if (AUDIO.ctx.state === 'running') AUDIO.ctx.suspend().catch(() => {});
+        quiet();
       } else if (!audioAllOff()) {
+        setParam(AUDIO.master.gain, MASTER_GAIN);
         audioInit();
       }
     });
