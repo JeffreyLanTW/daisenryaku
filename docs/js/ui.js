@@ -664,7 +664,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v50</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v51</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -686,7 +686,8 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
-        <div class="cl-item"><span class="cl-ver">v50</span><span class="cl-date">2026.10.25</span><p>全面重製 Web Audio 戰術音效引擎並移除背景音樂：導入 1/f 粉紅噪音濾波消除刺耳白噪音、修正 iOS/Safari 暫停佇列爆音與按鈕音效重疊問題，重新調校 15 種武器射擊、爆炸、載具移動与戰術號角音效。</p></div>
+        <div class="cl-item"><span class="cl-ver">v51</span><span class="cl-date">2026.10.25</span><p>導入 90 年代《大戰略》工業管弦無縫迴圈 BGM 引擎（48kHz 離線立體聲渲染、尾韻交叉淡化零交越接縫、-16 LUFS 母帶響度校準與中高頻挖空濾波，確保戰術音效清晰穿透）。</p></div>
+        <div class="cl-item"><span class="cl-ver">v50</span><span class="cl-date">2026.10.25</span><p>全面重製 Web Audio 戰術音效引擎：導入 1/f 粉紅噪音濾波消除刺耳白噪音、修正 iOS/Safari 暫停佇列爆音與按鈕音效重疊問題，重新調校 15 種武器射擊、爆炸、載具移動與戰術號角音效。</p></div>
         <div class="cl-item"><span class="cl-ver">v49</span><span class="cl-date">2026.10.24</span><p>修復 iPad / iOS Safari 從 iCloud Drive 匯入存檔問題：採用原生 DOM 觸發結構解決 WebKit 手勢限制、放寬 MIME 格式防止檔案反灰不可選取、改以 FileReader 串流讀取，並新增「貼上代碼匯入」與「匯出複製至剪貼簿」雙重備援。</p></div>
         <div class="cl-item"><span class="cl-ver">v48</span><span class="cl-date">2026.10.24</span><p>「下一部隊」按鈕動態狀態切換：顯示未行動部隊剩餘數量，當全軍行動完畢且無可生產據點時，按鈕動態轉化為「結束回合 ✓」高亮就緒狀態；支援 Tab 鍵全回合無縫串接操作。</p></div>
         <div class="cl-item"><span class="cl-ver">v47</span><span class="cl-date">2026.10.24</span><p>側欄佈局優化：調整右側欄元件顯示順序，將「章節任務卡」緊接置於「小地圖」正下方，其下依序排列「地形資訊」與「部隊資訊」，作戰目標與地形地貌一目了然。</p></div>
@@ -727,6 +728,7 @@ function showVictory() {
   const humanWin = G.players[G.winner] && !G.players[G.winner].ai;
   if (!G.victorySfx) { G.victorySfx = true; sfx(humanWin ? 'win' : 'lose'); }
   if (G.missionId) { refreshPanel(); return showDebrief(); }
+  if (humanWin && typeof playContextBGM === 'function') playContextBGM('victory');
   const S = SIDES[G.winner];
   openModal(`<div class="victory" style="--c:${S.color}"><div class="big">${S.name} 勝利！</div>
     <p>${G.winReason}　·　共 ${G.turn} 回合</p></div>
@@ -742,12 +744,29 @@ function toggleFullscreen() {
   if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
   else if (el.requestFullscreen || el.webkitRequestFullscreen) (el.requestFullscreen || el.webkitRequestFullscreen).call(el).catch?.(() => {});
 }
+function openTrackMenu() {
+  openModal(`<h2>🎼 選擇背景音樂曲目</h2><div class="sub">點擊曲目立即切換（共 ${TRACKS.length} 首 90 年代工業管弦無縫迴圈曲目）</div>
+    <div class="moregrid">${TRACKS.map((tr, i) => `<button class="trbtn ${i === AUDIO.on.track ? 'primary' : ''}" data-i="${i}">
+      <b>${i + 1}. ${tr.name}${i === AUDIO.on.track ? ' ✓' : ''}</b><br><small style="color:var(--muted);font-weight:400">${tr.desc || ''} · ${tr.bpm} BPM</small></button>`).join('')}</div>
+    <div class="row"><button id="trBack">← 返回選單</button><span class="spacer"></span><button class="close primary">完成</button></div>`, box => {
+    box.querySelectorAll('.trbtn').forEach(b => b.onclick = () => {
+      const idx = +b.dataset.i;
+      if (!AUDIO.on.music) { setAudio('music', true); $('#zMusic').classList.add('on'); }
+      setTrack(idx);
+      showToast('🎼 ' + TRACKS[idx].name);
+      openTrackMenu();
+    });
+    box.querySelector('#trBack').onclick = openMoreMenu;
+    box.querySelector('.close').onclick = closeModal;
+  }, true);
+}
 function openMoreMenu() {
   openModal(`<h2>選單</h2><div class="moregrid">
     <button id="moCamp">📖 劇情・對戰</button><button id="moNations">📚 國家圖鑑</button>
     <button id="moSave">💾 存檔</button><button id="moLoad">📂 讀檔</button>
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
-    <button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button><button id="moMain">🏠 主選單</button>
+    <button id="moMusic">🎵 音樂：${AUDIO.on.music ? '開' : '關'}</button><button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button>
+    <button id="moTrack">🎼 曲目：${TRACKS[AUDIO.on.track] ? TRACKS[AUDIO.on.track].name : TRACKS[0].name}</button><button id="moMain">🏠 主選單</button>
     <button class="close" style="grid-column:1/-1">✕ 關閉</button></div>`, box => {
     box.querySelector('#moCamp').onclick = () => openCampaignMenu();
     box.querySelector('#moSave').onclick = openSaveDialog;
@@ -755,6 +774,8 @@ function openMoreMenu() {
     box.querySelector('#moFull').onclick = () => { closeModal(); toggleFullscreen(); };
     box.querySelector('#moHelp').onclick = openHelp;
     box.querySelector('#moNations').onclick = () => openNations(null, openMoreMenu, '選單');
+    box.querySelector('#moMusic').onclick = () => { $('#zMusic').click(); openMoreMenu(); };
+    box.querySelector('#moTrack').onclick = openTrackMenu;
     box.querySelector('#moSfx').onclick = () => { $('#zSfx').click(); openMoreMenu(); };
     box.querySelector('#moMain').onclick = openMainMenu;
     box.querySelector('.close').onclick = closeModal;
@@ -768,7 +789,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v50</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v51</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -795,6 +816,7 @@ async function turnIntro() {
   refreshPanel();
   showBanner(`第 ${G.turn} 回合　${SIDES[G.cur].name}`, SIDES[G.cur].color);
   sfx('turn');
+  setMusicTense(!!G.players[G.cur].ai);
   if (G.winner != null) return showVictory();
   if (G.pendingDialogs && G.pendingDialogs.length) {
     UIS.mode = 'busy';
@@ -881,6 +903,7 @@ function startGame(opts) {
   fitView();
   const [cx, cy] = idxCenter(G.caps[G.players[0].ai && !G.players[1].ai ? 1 : 0]);
   centerOn(cx, cy);
+  if (typeof playContextBGM === 'function') playContextBGM('combat', true);
   turnIntro();
 }
 function saveGame() { openSaveDialog(); }
@@ -986,10 +1009,17 @@ function setupInput() {
   $('#rotateOk').onclick = () => document.body.classList.add('rotate-ok');
   document.addEventListener('gesturestart', e => e.preventDefault());
   $('#btnMenu').onclick = openMainMenu;
-  const sb = $('#zSfx');
-  const syncAudioBtns = () => { sb.classList.toggle('on', AUDIO.on.sfx); sb.textContent = AUDIO.on.sfx ? '🔊' : '🔇'; };
+  const mb = $('#zMusic'), sb = $('#zSfx');
+  const syncAudioBtns = () => { mb.classList.toggle('on', AUDIO.on.music); sb.classList.toggle('on', AUDIO.on.sfx); sb.textContent = AUDIO.on.sfx ? '🔊' : '🔇'; };
   syncAudioBtns();
+  mb.onclick = () => { setAudio('music', !AUDIO.on.music); syncAudioBtns(); showToast(AUDIO.on.music ? '背景音樂：開' : '背景音樂：關'); };
   sb.onclick = () => { setAudio('sfx', !AUDIO.on.sfx); syncAudioBtns(); if (AUDIO.on.sfx) sfx('click'); showToast(AUDIO.on.sfx ? '音效：開' : '音效：關'); };
+  $('#zTrack').onclick = () => {
+    if (!AUDIO.on.music) setAudio('music', true);
+    const n = cycleTrack();
+    syncAudioBtns();
+    showToast(`🎼 ${AUDIO.on.track + 1}/${TRACKS.length} ${n}`);
+  };
   document.addEventListener('click', e => { if (e.target.closest('button')) sfx('click'); });
   const lb = $('#zLabel');
   lb.classList.toggle('on', SETTINGS.labels);

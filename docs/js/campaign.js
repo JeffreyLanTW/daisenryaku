@@ -350,8 +350,10 @@ const deploySlots = () => { const M = MISSIONS[G.missionId]; return M && M.slots
 const slotsLeft = () => deploySlots() - G.units.filter(u => u.vet && u.side === G.pside).length;
 function startDeploy() {
   if (!G.reserve || !G.reserve.length) {
+    if (typeof playContextBGM === 'function') playContextBGM('combat', true);
     return turnIntro();
   }
+  if (typeof playContextBGM === 'function') playContextBGM('deploy', true);
   UIS.mode = 'deploy';
   UIS.deployZone = deployZone();
   UIS.deploySel = null;
@@ -385,6 +387,7 @@ function endDeploy() {
   $('#mapWrap').classList.remove('deploying');
   UIS.deployZone = null; UIS.deploySel = null;
   UIS.mode = 'idle';
+  if (typeof playContextBGM === 'function') playContextBGM('combat');
   turnIntro();
 }
 // 配置回合點擊：只有繼承部隊可以部署或移動，任務原有部隊固定
@@ -436,6 +439,7 @@ function showDebrief() {
   if (G.debriefShown) return;
   G.debriefShown = true;
   const M = MISSIONS[G.missionId], r = G.result, f = CAMP.flags;
+  if (r.win && typeof playContextBGM === 'function') playContextBGM('victory');
   const gained = {};
   const bonusLines = [];
   if (r.win) for (const b of M.bonus || []) {

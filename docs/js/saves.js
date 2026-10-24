@@ -144,6 +144,7 @@ function applySave(obj) {
   const [cx, cy] = idxCenter(G.caps[G.cur]); centerOn(cx, cy);
   showBanner('讀取完成', '#3a8a4a');
   UIS.mode = 'idle';
+  if (G.winner == null && typeof playContextBGM === 'function') playContextBGM('combat', true);
   if (G.winner != null) showVictory();
   else if (G.players[G.cur].ai) turnIntro();
   else refreshPanel();
