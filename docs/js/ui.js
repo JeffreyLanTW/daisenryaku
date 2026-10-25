@@ -777,7 +777,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v61</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v62</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -801,6 +801,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v62</span><span class="cl-date">2026.10.25</span><p>【熱修復】主選單版號標章同步校準；嚴格鎖定右側欄層級順序（部隊資訊卡置頂於小地圖正下方，優先於章節任務、地形與戰報），全裝置與不同解析度下無需滾動即可即時掌握部隊狀態。</p></div>
         <div class="cl-item"><span class="cl-ver">v61</span><span class="cl-date">2026.10.25</span><p>【澤火革・第一島鏈變易大改版】重磅推出 64x64 易經 49 卦戰役全 6 章；開放動態 maxHp（旗艦 14~24、蜂群 6~8）；新增 11 國戰略教條 AI；航母打擊群防空護航（CAP 空中巡邏攔截減免空襲傷害並反擊）、航母相鄰戰機自動補給油修；新增台積電矽盾光環與美商演算法火控；右側欄全面優化部隊資訊卡、嵌入雙向革變科技樹；支援頂部「友軍操控模式」即時切換。</p></div>
         <div class="cl-item"><span class="cl-ver">v60</span><span class="cl-date">2026.10.25</span><p>iPad 主畫面網頁 App 異音已確認排除（成因為 iOS 系統音訊程序卡住循環播放）；移除測試用「音訊模式」選單與 HTML 相容音樂引擎，保留主畫面 App 的 ambient 音訊工作階段與取樣率修正。</p></div>
         <div class="cl-item"><span class="cl-ver">v59</span><span class="cl-date">2026.10.25</span><p>iPad 主畫面網頁 App 音訊工作階段改為 ambient（原為 playback）：鎖定螢幕與休眠時由系統自動靜音、不再於背景持續播放；系統凍結頁面前亦先行靜音。</p></div>
@@ -915,7 +916,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v60</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v62</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
@@ -1208,11 +1209,11 @@ function initAppIcon() {
   } catch (e) { /* 忽略 */ }
 }
 
-// 側欄元件順序（小圖 mini → 章節卡 objCard → 地形卡 tileInfo → 部隊卡 unitInfo → 戰鬥預測 forecast → 戰報 logcard）
+// 側欄元件順序（小圖 mini → 部隊卡 unitInfo → 戰鬥預測 forecast → 章節卡 objCard → 地形卡 tileInfo → 戰報 logcard）
 function initPanelOrder() {
   const panel = $('#panel');
   if (!panel) return;
-  const ids = ['mini', 'objCard', 'tileInfo', 'unitInfo', 'forecast'];
+  const ids = ['mini', 'unitInfo', 'forecast', 'objCard', 'tileInfo'];
   for (const id of ids) {
     const el = document.getElementById(id);
     if (el) panel.appendChild(el);
