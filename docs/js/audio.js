@@ -1007,6 +1007,7 @@ function cycleTrack() {
 const MISSION_TRACK = {
   t1: 0, t2: 2, t3: 4, c2: 3, c3: 1, c4: 2, c5: 4,
   f1: 0, f2: 3, f3: 2, f4: 1, f5: 2, f6: 1, f7: 3, f8: 4,
+  q1: 0, q2: 1, q3: 2, q4: 3, q5: 2, q6: 4,
 };
 
 function scenarioTrack(g) {

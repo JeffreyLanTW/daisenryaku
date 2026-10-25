@@ -6,9 +6,9 @@
 
 | 地圖 | 已知收錄作品 | 備註 | 來源 |
 |---|---|---|---|
-| バナナ・リパブリック（Banana Republic，香蕉共和國） | 『大戦略II』（1987）首次收錄；『大戦略SSB2』（2026）復刻，列於地圖一覽第 5 號 | SSB2 攻略站有地圖圖片，但該頁拒絕自動擷取（HTTP 403） | [アルテマ：大戦略SSB2 マップ一覧](https://altema.jp/daisenryakussb2/mapichiran)、[4Gamer：SSB2 發售消息](https://www.4gamer.net/games/946/G094686/20250919043/) |
-| アイランドキャンペーン（Island Campaign） | 初代『現代大戦略』（1985），之後多部作品重製收錄 | 系列代表性地圖 | [AKIBA PC Hotline!：現代大戦略](https://akiba-pc.watch.impress.co.jp/docs/column/retrosoft/1218046.html) |
-| 大海戦 | **未查到** | 可能名稱不同或屬其他作品，請提供更多線索（作品名、年份） | — |
+| バナナ・リパブリック（Banana Republic，香蕉共和國） | 『大戦略II』（1987）首次收錄；MD『スーパー大戦略』（1989，2 方對戰）；『大戦略SSB2』（2026）復刻，列於地圖一覽第 5 號 | SSB2 攻略站有地圖圖片，但該頁拒絕自動擷取（HTTP 403） | [アルテマ：大戦略SSB2 マップ一覧](https://altema.jp/daisenryakussb2/mapichiran)、[4Gamer：SSB2 發售消息](https://www.4gamer.net/games/946/G094686/20250919043/) |
+| アイランドキャンペーン（Island Campaign） | 初代『現代大戦略』（1985）；MD『スーパー大戦略』（1989）等多部作品重製收錄 | 系列代表性地圖 | [AKIBA PC Hotline!：現代大戦略](https://akiba-pc.watch.impress.co.jp/docs/column/retrosoft/1218046.html) |
+| 大海戦 | **未查到**（MD スーパー大戦略 36 張地圖中也沒有此名稱，見 [`sega.md`](sega.md)） | 可能名稱不同或屬其他作品，請提供更多線索（作品名、年份） | — |
 
 ## 地圖資料的可能取得途徑
 
