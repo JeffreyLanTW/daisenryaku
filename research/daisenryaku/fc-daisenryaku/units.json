@@ -1,0 +1,258 @@
+{
+  "source": {
+    "title": "大戦略取説のようなもの",
+    "url": "https://taotao54321.github.io/fc-daisenryaku/",
+    "repo": "https://github.com/taotao54321/fc-daisenryaku",
+    "author": "taotao54321",
+    "license": "未標示（無 LICENSE 檔）— 此處僅整理遊戲數值事實，未複製原文與圖片",
+    "game": "大戦略（ファミリーコンピュータ, 1988, ボーステック／システムソフト）"
+  },
+  "notes": [
+    "價格為基準價，實際價格 = 基準價 × 浮動匯率",
+    "每方部隊上限 32 支"
+  ],
+  "units": [
+    {
+      "name": "F-16C",
+      "type": "戦闘機",
+      "price": 2500,
+      "move": 12,
+      "move_type": "A",
+      "fuel": 55,
+      "weapons": [
+        {
+          "weapon": "ミサイル",
+          "ammo": 4
+        },
+        {
+          "weapon": "機関砲",
+          "ammo": 5
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "ハリアー",
+      "type": "戦闘機",
+      "price": 1800,
+      "move": 10,
+      "move_type": "A",
+      "fuel": 45,
+      "weapons": [
+        {
+          "weapon": "ミサイル",
+          "ammo": 2
+        },
+        {
+          "weapon": "機関砲",
+          "ammo": 4
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "A-10",
+      "type": "攻撃機",
+      "price": 1800,
+      "move": 8,
+      "move_type": "A",
+      "fuel": 45,
+      "weapons": [
+        {
+          "weapon": "爆弾",
+          "ammo": 4
+        },
+        {
+          "weapon": "機関砲",
+          "ammo": 4
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "コルセア",
+      "type": "攻撃機",
+      "price": 1500,
+      "move": 10,
+      "move_type": "A",
+      "fuel": 55,
+      "weapons": [
+        {
+          "weapon": "爆弾",
+          "ammo": 2
+        },
+        {
+          "weapon": "機関砲",
+          "ammo": 4
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "ヒューイコブラ",
+      "type": "攻撃ヘリ",
+      "price": 700,
+      "move": 7,
+      "move_type": "A",
+      "fuel": 45,
+      "weapons": [
+        {
+          "weapon": "ミサイル",
+          "ammo": 4
+        },
+        {
+          "weapon": "機関砲",
+          "ammo": 5
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "イロコイス",
+      "type": "輸送ヘリ",
+      "price": 200,
+      "move": 6,
+      "move_type": "A",
+      "fuel": 45,
+      "weapons": [
+        {
+          "weapon": "機関砲",
+          "ammo": 4
+        }
+      ],
+      "note": "歩兵or工兵1ユニットを輸送可能"
+    },
+    {
+      "name": "レオパルドII",
+      "type": "戦車",
+      "price": 600,
+      "move": 6,
+      "move_type": "B",
+      "fuel": 60,
+      "weapons": [
+        {
+          "weapon": "砲弾",
+          "ammo": 8
+        },
+        {
+          "weapon": "機関砲",
+          "ammo": 4
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "AMX10-RC",
+      "type": "装甲車",
+      "price": 250,
+      "move": 8,
+      "move_type": "B",
+      "fuel": 80,
+      "weapons": [
+        {
+          "weapon": "砲弾",
+          "ammo": 5
+        },
+        {
+          "weapon": "機関砲",
+          "ammo": 3
+        }
+      ],
+      "note": "川を渡れる(移動力3消費)。山に登れる(移動力4消費)"
+    },
+    {
+      "name": "ゲパルト",
+      "type": "対空戦車",
+      "price": 400,
+      "move": 6,
+      "move_type": "B",
+      "fuel": 55,
+      "weapons": [
+        {
+          "weapon": "機関砲",
+          "ammo": 8
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "ローランドII",
+      "type": "地対空ミサイル",
+      "price": 400,
+      "move": 6,
+      "move_type": "B",
+      "fuel": 50,
+      "weapons": [
+        {
+          "weapon": "ミサイル",
+          "ammo": 4
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "補給車",
+      "type": null,
+      "price": 150,
+      "move": 6,
+      "move_type": "C",
+      "fuel": 99,
+      "weapons": [
+        {
+          "weapon": "機関銃",
+          "ammo": 4
+        }
+      ],
+      "note": "荒地は通れない"
+    },
+    {
+      "name": "輸送トラック",
+      "type": null,
+      "price": 100,
+      "move": 6,
+      "move_type": "C",
+      "fuel": 80,
+      "weapons": [
+        {
+          "weapon": "機関銃",
+          "ammo": 4
+        }
+      ],
+      "note": "歩兵or工兵1ユニットを輸送可能"
+    },
+    {
+      "name": "歩兵",
+      "type": null,
+      "price": 100,
+      "move": 3,
+      "move_type": "D",
+      "fuel": 99,
+      "weapons": [
+        {
+          "weapon": "機関銃",
+          "ammo": 9
+        }
+      ],
+      "note": null
+    },
+    {
+      "name": "工兵",
+      "type": null,
+      "price": 200,
+      "move": 2,
+      "move_type": "D",
+      "fuel": 99,
+      "weapons": [
+        {
+          "weapon": "ミサイル",
+          "ammo": 3
+        },
+        {
+          "weapon": "機関銃",
+          "ammo": 3
+        }
+      ],
+      "note": null
+    }
+  ]
+}

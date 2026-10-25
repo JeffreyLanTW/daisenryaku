@@ -1,0 +1,177 @@
+{
+  "source": {
+    "title": "大戦略取説のようなもの",
+    "url": "https://taotao54321.github.io/fc-daisenryaku/",
+    "repo": "https://github.com/taotao54321/fc-daisenryaku",
+    "author": "taotao54321",
+    "license": "未標示（無 LICENSE 檔）— 此處僅整理遊戲數值事實，未複製原文與圖片",
+    "game": "大戦略（ファミリーコンピュータ, 1988, ボーステック／システムソフト）"
+  },
+  "notes": [
+    "移動消耗：數字為消耗移動力，null 表示不可進入",
+    "移動類型 A（航空）在所有地形消耗 1，且航空部隊不受地形防禦加成",
+    "移動類型：A=航空、B=履帶/戰鬥車輛、C=輪型（補給車、卡車）、D=步兵（依兵種表推定）"
+  ],
+  "terrain": [
+    {
+      "name": "平地",
+      "cost": {
+        "B": 1,
+        "C": 2,
+        "D": 1
+      },
+      "defense_pct": 5,
+      "note": null
+    },
+    {
+      "name": "森",
+      "cost": {
+        "B": 2,
+        "C": 2,
+        "D": 1
+      },
+      "defense_pct": 50,
+      "note": null
+    },
+    {
+      "name": "道路",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 0,
+      "note": null
+    },
+    {
+      "name": "砂漠",
+      "cost": {
+        "B": 2,
+        "C": 2,
+        "D": 1
+      },
+      "defense_pct": 10,
+      "note": null
+    },
+    {
+      "name": "荒地",
+      "cost": {
+        "B": 3,
+        "C": 3,
+        "D": 2
+      },
+      "defense_pct": 15,
+      "note": "補給車は通過不能"
+    },
+    {
+      "name": "川",
+      "cost": {
+        "B": null,
+        "C": null,
+        "D": 2
+      },
+      "defense_pct": 0,
+      "note": "AMX10-RCは通過可能(移動力3消費)"
+    },
+    {
+      "name": "海",
+      "cost": {
+        "B": null,
+        "C": null,
+        "D": null
+      },
+      "defense_pct": 0,
+      "note": null
+    },
+    {
+      "name": "山",
+      "cost": {
+        "B": null,
+        "C": null,
+        "D": 2
+      },
+      "defense_pct": 60,
+      "note": "AMX10-RCは通過可能(移動力4消費)"
+    },
+    {
+      "name": "自軍首都",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 50,
+      "note": null
+    },
+    {
+      "name": "自軍空港",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 10,
+      "note": null
+    },
+    {
+      "name": "自軍都市",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 20,
+      "note": null
+    },
+    {
+      "name": "敵軍首都",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 50,
+      "note": null
+    },
+    {
+      "name": "敵軍空港",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 10,
+      "note": null
+    },
+    {
+      "name": "敵軍都市",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 20,
+      "note": null
+    },
+    {
+      "name": "中立空港",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 10,
+      "note": null
+    },
+    {
+      "name": "中立都市",
+      "cost": {
+        "B": 1,
+        "C": 1,
+        "D": 1
+      },
+      "defense_pct": 20,
+      "note": null
+    }
+  ]
+}
