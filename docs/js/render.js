@@ -331,6 +331,8 @@ function draw(now) {
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(terrainCvs, 0, 0, terrainCvs.width / TS, terrainCvs.height / TS);
   drawProps();
+  // 夜間：地形與據點蒙上一層夜色，部隊仍清楚可見
+  if (isNight()) { ctx.fillStyle = 'rgba(8,16,48,0.38)'; ctx.fillRect(0, 0, terrainCvs.width / TS, terrainCvs.height / TS); }
   drawMissionMarks(now, false);
   drawOverlays(now);
   drawUnits();
@@ -424,7 +426,7 @@ function drawOverlays(now) {
     }
   }
   if (UIS.mode === 'selected' && UIS.reach) {
-    for (const [i, v] of UIS.reach) fillHex(i, v.canStop ? 'rgba(70,160,255,0.5)' : 'rgba(70,160,255,0.2)');
+    for (const [i, v] of UIS.reach) fillHex(i, v.merge ? 'rgba(90,220,120,0.55)' : v.canStop ? 'rgba(70,160,255,0.5)' : 'rgba(70,160,255,0.2)');
     if (isIndirect(sel.type)) {
       const [a, b] = UNITS[sel.type].range;
       for (let i = 0; i < G.terrain.length; i++) {

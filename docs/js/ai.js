@@ -112,6 +112,12 @@ function aiGoals(u, baseField) {
   const here = idxOf(u.x, u.y);
   const mg = missionAIGoals(u);
   if (u.vip && mg.length) return { goals: new Map(mg), mode: 'vip' };
+  // 沒有護送目標的要員（如指揮組）：退守己方首都隱蔽，不主動出擊
+  if (u.vip) {
+    const home = new Map();
+    G.terrain.forEach((t, i) => { if (t === 'capital' && G.owner[i] === s) home.set(i, 0); });
+    if (home.size) return { goals: home, mode: 'vip' };
+  }
   const nat = unitNation(u);
   const doc = getDoctrine(nat);
   const uMax = u.maxHp || d.maxHp || 10;

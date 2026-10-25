@@ -120,6 +120,15 @@ async function moveSelectedTo(i, keepOrder = false) {
     clearSel(); refreshPanel();
     return;
   }
+  if (lv && lv.merge) {
+    const u = UIS.sel, t = unitById(lv.merge), reach = UIS.reach;
+    UIS.mode = 'busy'; UIS.path = null;
+    await doMove(u, reachPath(reach, i), reach.get(i).cost, 85);
+    mergeInto(u, t);
+    sfx('build'); showToast(`合流完成：${UNITS[t.type].name} 兵力 ${t.hp}`);
+    clearSel(); refreshPanel();
+    return;
+  }
   if (!keepOrder) { UIS.newOrder = false; if (UIS.sel.order != null) { UIS.prevOrder = UIS.sel.order; UIS.newOrder = true; UIS.sel.order = null; } }
   const u = UIS.sel, reach = UIS.reach;
   UIS.mode = 'busy'; UIS.path = null;
@@ -224,7 +233,7 @@ function handleClick(x, y) {
       }
       if (u === s) return moveSelectedTo(i);
       const r = UIS.reach.get(i);
-      if (r && r.canStop) return moveSelectedTo(i);
+      if (r && (r.canStop || r.merge)) return moveSelectedTo(i);
       if (!u && orderPath(s, i)) return setMoveOrder(s, i);
       clearSel();
       if (u && u.side === G.cur && !u.done) return selectUnit(u);
@@ -256,7 +265,7 @@ function handleHover(x, y) {
   UIS.hover = [x, y];
   if (UIS.mode === 'selected' && inMap(x, y)) {
     const i = idxOf(x, y), u = unitAt(x, y), r = UIS.reach.get(i);
-    if (r && r.canStop) { UIS.lastReachHover = i; UIS.path = reachPath(UIS.reach, i); }
+    if (r && (r.canStop || r.merge)) { UIS.lastReachHover = i; UIS.path = reachPath(UIS.reach, i); }
     else if (u && UIS.attackSet.has(u.id)) {
       const ai = attackTileFor(u);
       UIS.path = ai >= 0 ? reachPath(UIS.reach, ai) : null;
@@ -491,7 +500,7 @@ function updateNextUnitButton() {
 function refreshPanel() {
   if (!G) return;
   const S = SIDES[G.cur];
-  $('#turnInfo').innerHTML = `第 <b>${G.turn}</b> 回合 · <span style="color:${S.light}">${S.name}${G.players[G.cur].ai ? '（電腦）' : ''}</span>`;
+  $('#turnInfo').innerHTML = `第 <b>${G.turn}</b> 回合${isNight() ? ' · 🌙 夜間' : ''} · <span style="color:${S.light}">${S.name}${G.players[G.cur].ai ? '（電腦）' : ''}</span>`;
   $('#funds').innerHTML = SIDES.map((s, k) =>
     `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${s.name} 💰${G.funds[k]} <small>+${incomeOf(k)}</small> · ${G.units.filter(u => u.side === k).length}隊</span>`).join('');
   $('#btnEnd').disabled = !isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy';
@@ -777,14 +786,17 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v63</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v64</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
       <li>點擊目的地後選擇行動：攻擊、佔領、待機或取消。直接點擊紅色敵軍可自動移動並攻擊。</li>
       <li><b>移動命令</b>：點擊範圍外的地點，部隊會設定該處為最終目的地，之後每回合開始自動前進（右下角黃旗）。選取部隊後可取消命令。</li>
       <li>拖曳平移地圖、滾輪/雙指縮放；取消選取可按地圖下方的「✕ 取消」、右鍵或 Esc；Tab 切換下一個未行動部隊。</li>
-      <li>點擊敵軍可查看其威脅範圍（橘色）。</li></ul>
+      <li>點擊敵軍可查看其威脅範圍（橘色）。</li>
+      <li><b>合流</b>：同型、同陣營且至少一方受損的部隊，移動到另一支身上（<span style="color:#5ad87a">綠色格</span>）即可合併兵力；經驗值依兵力加權平均，合流後本回合不能再行動。</li>
+      <li><b>夜間</b>：部分劇情任務有夜間回合（畫面變暗、上方顯示 🌙）；夜間直接攻擊 −20%、間接火力缺乏觀測 −40%。</li>
+      <li><b>要員（★）</b>：劇情中標示 ★ 的指揮組等要員陣亡即作戰失敗，要讓它遠離敵軍火力。</li></ul>
     <h4>經濟與生產</h4><ul>
       <li>每回合依據點獲得收入：首都 300、工廠 150、其他 100。</li>
       <li>點擊己方空的<b>首都/工廠</b>生產地面部隊、<b>首都/機場</b>生產航空部隊、<b>港口</b>生產艦艇。</li>
@@ -801,6 +813,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v64</span><span class="cl-date">2026.10.25</span><p>參考世嘉／FC 大戰略資料強化遊戲：新增「合流」（MD スーパー大戰略式，同型受損部隊合併兵力）、劇情「夜間」回合（ADVANCED WORLD WAR 晝夜制，夜間攻擊力下降、畫面變暗）、要員（★）護衛（鋼鉄の戦風司令部式）。乾卦篇強化：初九加入潛龍指揮組、九三夜戰、九四作戰代號「島嶼戰役」、各章額外目標影響後續戰局（少一波登陸、增派艦艇與戰機、菲律賓援軍）、新增真結局「乾元：元亨利貞」，並重新平衡。</p></div>
         <div class="cl-item"><span class="cl-ver">v63</span><span class="cl-date">2026.10.25</span><p>新劇情「2031 乾為天・六龍御天」：依《易經》乾卦六爻，初九潛龍勿用（花東縱谷）、九二見龍在田（嘉南平原，美軍會師）、九三終日乾乾（中部海岸晝夜波狀登陸）、九四或躍在淵（可選渡海奪港或固守，影響下一章兵力）、九五飛龍在天（美日聯合擊沉敵航艦戰鬥群）、上九亢龍有悔（攻陷敵都得「亢龍有悔」，持盈守成得「用九・群龍无首，吉」）；共 6 章 3 結局，經 AI 對戰平衡。</p></div>
         <div class="cl-item"><span class="cl-ver">v62</span><span class="cl-date">2026.10.25</span><p>【熱修復】主選單版號標章同步校準；嚴格鎖定右側欄層級順序（部隊資訊卡置頂於小地圖正下方，優先於章節任務、地形與戰報），全裝置與不同解析度下無需滾動即可即時掌握部隊狀態。</p></div>
         <div class="cl-item"><span class="cl-ver">v61</span><span class="cl-date">2026.10.25</span><p>【澤火革・第一島鏈變易大改版】重磅推出 64x64 易經 49 卦戰役全 6 章；開放動態 maxHp（旗艦 14~24、蜂群 6~8）；新增 11 國戰略教條 AI；航母打擊群防空護航（CAP 空中巡邏攔截減免空襲傷害並反擊）、航母相鄰戰機自動補給油修；新增台積電矽盾光環與美商演算法火控；右側欄全面優化部隊資訊卡、嵌入雙向革變科技樹；支援頂部「友軍操控模式」即時切換。</p></div>
@@ -917,7 +930,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v63</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v64</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>

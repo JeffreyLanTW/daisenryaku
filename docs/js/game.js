@@ -124,6 +124,8 @@ function computeReach(u) {
     const o = occ[i];
     v.canStop = !o || o === u;
     if (o && o !== u && canLoad(o, u)) { v.canStop = true; v.load = o.id; }
+    // 合流目標不設 canStop：只有玩家點擊會觸發，AI、攻擊位置與移動命令都不會停在友軍格上
+    else if (o && o !== u && canMerge(o, u)) v.merge = o.id;
   }
   return dist;
 }
@@ -181,6 +183,29 @@ function loadInto(u, t) {
   t.cargo = t.cargo || [];
   t.cargo.push(u);
   addLog(`${armyName(u)}${UNITS[u.type].name} 搭上 ${UNITS[t.type].name}`, u.side);
+}
+// 合流（スーパー大戦略式）：同型、同陣營且至少一方受損的部隊可合併兵力；經驗值依兵力加權平均
+function canMerge(t, u) {
+  if (!t || !u || t === u || t.side !== u.side || t.type !== u.type || t.vip || u.vip) return false;
+  if ((t.cargo && t.cargo.length) || (u.cargo && u.cargo.length)) return false;
+  const tm = t.maxHp || UNITS[t.type].maxHp || 10, um = u.maxHp || UNITS[u.type].maxHp || 10;
+  return t.hp < tm || u.hp < um;
+}
+function mergeInto(u, t) {
+  const max = t.maxHp || UNITS[t.type].maxHp || 10, total = t.hp + u.hp;
+  t.xp = Math.round(((t.xp || 0) * t.hp + (u.xp || 0) * u.hp) / total);
+  t.hp = Math.min(max, total);
+  if (UNITS[t.type].fuel !== undefined) t.fuel = Math.max(t.fuel, u.fuel);
+  t.done = t.moved = true;
+  G.units = G.units.filter(e => e !== u);
+  if (G.stats) G.stats.merges = (G.stats.merges || 0) + 1;
+  addLog(`${armyName(t)}${UNITS[t.type].name} 完成合流，兵力回復至 ${t.hp}`, t.side);
+}
+// 夜間（夕惕若厲）：任務以 night(turn) 指定夜間回合；夜間直接攻擊 ×0.8、間接火力缺乏觀測 ×0.6
+function isNight() {
+  if (!G || !G.missionId || typeof MISSIONS === 'undefined') return false;
+  const M = MISSIONS[G.missionId];
+  return !!(M && M.night && M.night(G.turn));
 }
 // 可卸載的相鄰格
 function unloadTiles(t, c) {
@@ -271,7 +296,8 @@ function baseDamage(attType, attHp, def, dx, dy, attRank = 0) {
   let td = dd.cat === 'land' ? TERRAIN[tk].def : 0;
   if (dd.jungle && (tk === 'forest' || tk === 'hills' || tk === 'mountain')) td += dd.jungle;
   const defAura = unitAura(def);
-  return a * (attHp / 10) * (100 - td) / 100 * (UNITS[def.type].armor || 1) * RANKS[attRank].atk * defAura.defMod;
+  const night = isNight() ? (isIndirect(attType) ? 0.6 : 0.8) : 1;
+  return a * (attHp / 10) * (100 - td) / 100 * (UNITS[def.type].armor || 1) * RANKS[attRank].atk * defAura.defMod * night;
 }
 // 取得航母/空母上待命或周遭 2 格內的最佳空優護衛機（CAP 空中戰鬥巡邏）
 function carrierEscort(def) {

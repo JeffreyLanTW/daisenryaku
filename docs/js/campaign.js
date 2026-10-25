@@ -188,6 +188,7 @@ function missionTurnStart() {
     if (o.type === 'survive' && G.turn > o.turn) return setResult(true, o.id, o.text);
   }
   if (M.turnLimit && G.turn > M.turnLimit) return setResult(false, 'time', `超過 ${M.turnLimit} 回合時限`);
+  if (M.night && M.night(G.turn) !== M.night(G.turn - 1)) addLog(M.night(G.turn) ? '🌙 入夜：直接攻擊 −20%、間接火力 −40%' : '☀️ 天亮了：戰力恢復');
   for (const [k, ev] of (M.events || []).entries()) {
     if (ev.turn !== G.turn || G.firedEvents.includes(k)) continue;
     if (ev.when && !ev.when(G.campFlags || {})) continue;

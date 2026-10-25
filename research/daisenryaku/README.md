@@ -20,6 +20,7 @@
 | [`fc-daisenryaku/matchup.json`](fc-daisenryaku/matchup.json) | FC 版 14×14 攻擊相性表（◎○△×） |
 | [`fc-daisenryaku/rules.md`](fc-daisenryaku/rules.md) | FC 版規則重點（勝利條件、生產、補給、經驗、運輸、AI 行為） |
 | [`classic-maps.md`](classic-maps.md) | 經典地圖：已知收錄作品、資料來源與取得途徑 |
+| [`downloads/`](downloads/) | 下載的第三方專案清單（版本、授權）；收錄 MIT 授權的 MiniStr 設計文件 |
 | [`sega.md`](sega.md) | 世嘉主機（MD／SS／DC）大戰略：作品年表、MD スーパー大戦略 36 張地圖與 12 種生產類型、規則、戰役結構（9 組來源） |
 | [`sources.md`](sources.md) | 其他 GitHub 專案與網站：用途、授權、可參考之處 |
 
