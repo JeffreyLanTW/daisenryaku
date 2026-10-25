@@ -237,11 +237,36 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
     c.fillStyle = o.done ? '#cbd5e1' : (light ? '#0f172a' : '#fff'); c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(d.name, cx, top + h + 5.5);
   }
-  if (o.hp !== undefined && o.hp < 10) {
+  // 生命值圓標：一般部隊 <10 時顯示；次世代旗艦 (maxHp > 10) 或蜂群 (maxHp < 10) 隨時顯示
+  const isSpecialHp = o.maxHp && o.maxHp !== 10;
+  if (o.hp !== undefined && (o.hp < 10 || isSpecialHp)) {
+    const isHeavy = o.maxHp && o.maxHp > 10;
+    const isSwarm = o.maxHp && o.maxHp < 10;
     const hx = cx + w / 2 - 3, hy = top + 3;
-    circle(c, hx, hy, 9.5); c.fillStyle = o.hp <= 3 ? '#b91c1c' : '#111827'; c.fill();
-    c.fillStyle = o.hp <= 3 ? '#fef08a' : '#fff'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const rad = isHeavy ? 11 : 9.5;
+    circle(c, hx, hy, rad);
+    c.fillStyle = isHeavy ? '#0f766e' : (isSwarm ? '#854d0e' : (o.hp <= 3 ? '#b91c1c' : '#111827'));
+    c.fill();
+    c.strokeStyle = isHeavy ? '#2dd4bf' : (isSwarm ? '#f59e0b' : '#000');
+    c.lineWidth = isHeavy || isSwarm ? 1.6 : 1.2;
+    c.stroke();
+    c.fillStyle = isHeavy ? '#ccfbf1' : (o.hp <= 3 ? '#fef08a' : '#fff');
+    c.font = `bold ${isHeavy && o.hp >= 10 ? 10 : 13}px sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(o.hp, hx, hy + 0.5);
+  }
+  if (o.hasEscort) {
+    // 航母 CAP 戰機護衛中狀態
+    c.font = 'bold 8px sans-serif';
+    roundRect(c, cx - w / 2 + 1, top + 2, 18, 10, 3); c.fillStyle = '#2563eb'; c.fill();
+    c.strokeStyle = '#93c5fd'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('護衛', cx - w / 2 + 10, top + 7.2);
+  } else if (o.hasAura) {
+    // 矽盾/演算法光環加成狀態
+    c.font = 'bold 8px sans-serif';
+    roundRect(c, cx - w / 2 + 1, top + 2, 18, 10, 3); c.fillStyle = '#0891b2'; c.fill();
+    c.strokeStyle = '#67e8f9'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('光環', cx - w / 2 + 10, top + 7.2);
   }
   if (o.vip) {
     c.save(); c.translate(cx, top - 2);
@@ -458,6 +483,9 @@ function drawUnits() {
     const d = UNITS[u.type];
     drawCounter(ctx, cx, cy, u.type, u.side, {
       hp: u.hp,
+      maxHp: u.maxHp || d.maxHp || 10,
+      hasAura: typeof unitAura === 'function' ? unitAura(u).hasAura : false,
+      hasEscort: (d.base === 'carrier' || d.base === 'wingman_carrier') && typeof carrierEscort === 'function' ? !!carrierEscort(u) : false,
       done: u.done && u.side === G.cur && !u._anim,
       fuelLow: d.fuel !== undefined && u.fuel <= d.upkeep * 3,
       highlight: UIS.inspect === u,

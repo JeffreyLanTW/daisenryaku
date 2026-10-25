@@ -21,7 +21,7 @@ const ctx = {
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
 };
 vm.createContext(ctx);
-for (const f of ['data', 'game', 'map', 'ai', 'campaign', 'campaign_tw', 'campaign_fs']) {
+for (const f of ['data', 'game', 'map', 'ai', 'campaign', 'campaign_tw', 'campaign_fs', 'campaign_ge']) {
   vm.runInContext(fs.readFileSync(path.join(root, 'js', f + '.js'), 'utf8'), ctx, { filename: f + '.js' });
 }
 vm.runInContext(`

@@ -244,6 +244,25 @@ function targetsFrom(u, x, y) {
   }
   return out;
 }
+// 計算戰術光環：TSMC 矽盾堡壘（2格內友軍承受傷害×0.9）與 US-Corp 演算法火控母艦（2格內友軍攻擊×1.1）
+function unitAura(u) {
+  if (!u || !G || !G.units) return { atkMod: 1.0, defMod: 1.0, hasAura: false };
+  let atkMod = 1.0, defMod = 1.0;
+  if (G.moraleDebuff && G.moraleDebuff[u.side]) atkMod *= (1 - G.moraleDebuff[u.side]);
+  for (const a of G.units) {
+    if (a.hp <= 0) continue;
+    const d = hexDist(u.x, u.y, a.x, a.y);
+    if (d > 2) continue;
+    const ab = UNITS[a.type].base;
+    if (a.side === u.side) {
+      if (ab === 'euv_fortress') defMod *= 0.90; // TSMC EUV 矽盾電磁防護
+      if (ab === 'palantir_arty' || ab === 'wingman_carrier') atkMod *= 1.10; // US-Corp 演算法火控光環
+    } else {
+      if (ab === 'euv_fortress' || ab === 'palantir_arty') atkMod *= 0.95; // 敵方電磁干擾
+    }
+  }
+  return { atkMod, defMod, hasAura: atkMod !== 1.0 || defMod !== 1.0 };
+}
 // 未取整的期望傷害；防守方站在 (dx,dy)
 function baseDamage(attType, attHp, def, dx, dy, attRank = 0) {
   const a = UNITS[attType].atk[CLASSES.indexOf(UNITS[def.type].cls)];
@@ -251,19 +270,52 @@ function baseDamage(attType, attHp, def, dx, dy, attRank = 0) {
   const dd = UNITS[def.type], tk = G.terrain[dy * G.w + dx];
   let td = dd.cat === 'land' ? TERRAIN[tk].def : 0;
   if (dd.jungle && (tk === 'forest' || tk === 'hills' || tk === 'mountain')) td += dd.jungle;
-  return a * (attHp / 10) * (100 - td) / 100 * (UNITS[def.type].armor || 1) * RANKS[attRank].atk;
+  const defAura = unitAura(def);
+  return a * (attHp / 10) * (100 - td) / 100 * (UNITS[def.type].armor || 1) * RANKS[attRank].atk * defAura.defMod;
+}
+// 取得航母/空母上待命或周遭 2 格內的最佳空優護衛機（CAP 空中戰鬥巡邏）
+function carrierEscort(def) {
+  if (!def || !G || !G.units) return null;
+  const defBase = UNITS[def.type].base;
+  if (defBase !== 'carrier' && defBase !== 'wingman_carrier') return null;
+  // 1. 優先由艦載戰機升空護航
+  if (def.cargo && def.cargo.length) {
+    const onDeck = def.cargo.find(c => c.hp > 0 && UNITS[c.type].cls === 'air' && UNITS[c.type].atk && UNITS[c.type].atk[2] > 0);
+    if (onDeck) return { unit: onDeck, dist: 0 };
+  }
+  // 2. 周遭 2 格內巡邏的友軍戰機/僚機母機
+  for (const f of G.units) {
+    if (f.hp <= 0 || f.side !== def.side || f === def) continue;
+    const fd = UNITS[f.type];
+    if (fd.cls === 'air' && fd.atk && fd.atk[2] > 0) {
+      const d = hexDist(f.x, f.y, def.x, def.y);
+      if (d <= 2) return { unit: f, dist: d };
+    }
+  }
+  return null;
 }
 function canCounter(def, att, ax, ay) {
   if (UNITS[att.type].stealth) return false;
+  // 航母若搭載護衛戰機或2格內有友軍空優戰機，遭受敵方空軍突擊時可立即實施 CAP 防空攔截
+  if (UNITS[att.type].cls === 'air' && carrierEscort(def)) return true;
   return hexDist(ax, ay, def.x, def.y) === 1 && UNITS[def.type].range[0] === 1 && canHit(def.type, att);
 }
 // 攻擊方從 (ax,ay) 出手時的預估結果
 function forecast(att, def, ax, ay) {
-  const dmg = Math.min(def.hp, Math.round(baseDamage(att.type, att.hp, def, def.x, def.y, rankOf(att))));
+  const esc = UNITS[att.type].cls === 'air' ? carrierEscort(def) : null;
+  const escU = esc ? esc.unit : null;
+  const attAura = unitAura(att);
+  let rawDmg = baseDamage(att.type, att.hp, def, def.x, def.y, rankOf(att)) * attAura.atkMod;
+  if (escU) rawDmg *= (esc.dist === 0 ? 0.65 : 0.80); // 護衛機巡邏攔截削弱空襲傷害
+  const dmg = Math.min(def.hp, Math.round(rawDmg));
   let counter = 0;
   const left = def.hp - dmg;
   if (left > 0 && canCounter(def, att, ax, ay)) {
-    counter = Math.min(att.hp, Math.round(baseDamage(def.type, left, att, ax, ay, rankOf(def))));
+    if (escU) {
+      counter = Math.min(att.hp, Math.round(baseDamage(escU.type, escU.hp, att, ax, ay, rankOf(escU))));
+    } else {
+      counter = Math.min(att.hp, Math.round(baseDamage(def.type, left, att, ax, ay, rankOf(def))));
+    }
   }
   return { dmg, counter };
 }
@@ -272,15 +324,26 @@ function rollDamage(base, maxHp) {
   return Math.max(0, Math.min(maxHp, Math.round(base * (0.9 + Math.random() * 0.2))));
 }
 function resolveAttack(att, def) {
+  const esc = UNITS[att.type].cls === 'air' ? carrierEscort(def) : null;
+  const escU = esc ? esc.unit : null;
+  const attAura = unitAura(att);
   const evaded = Math.random() < RANKS[rankOf(def)].evade;
-  const dmg = evaded ? 0 : rollDamage(baseDamage(att.type, att.hp, def, def.x, def.y, rankOf(att)), def.hp);
+  let rawDmg = baseDamage(att.type, att.hp, def, def.x, def.y, rankOf(att)) * attAura.atkMod;
+  if (escU) rawDmg *= (esc.dist === 0 ? 0.65 : 0.80); // 護衛戰機巡邏防空攔截
+  const dmg = evaded ? 0 : rollDamage(rawDmg, def.hp);
   def.hp -= dmg;
   let counter = 0, countered = false, cEvaded = false;
   if (def.hp > 0 && canCounter(def, att, att.x, att.y)) {
     countered = true;
     cEvaded = Math.random() < RANKS[rankOf(att)].evade;
-    counter = cEvaded ? 0 : rollDamage(baseDamage(def.type, def.hp, att, att.x, att.y, rankOf(def)), att.hp);
-    att.hp -= counter;
+    if (escU) {
+      counter = cEvaded ? 0 : rollDamage(baseDamage(escU.type, escU.hp, att, att.x, att.y, rankOf(escU)), att.hp);
+      att.hp -= counter;
+      if (!noRank(escU)) escU.xp = (escU.xp || 0) + counter * 5 + (att.hp <= 0 ? 15 : 0);
+    } else {
+      counter = cEvaded ? 0 : rollDamage(baseDamage(def.type, def.hp, att, att.x, att.y, rankOf(def)), att.hp);
+      att.hp -= counter;
+    }
   }
   // 經驗值：造成傷害、擊破、反擊與承受攻擊都會累積
   const r0 = [rankOf(att), rankOf(def)];
@@ -290,8 +353,15 @@ function resolveAttack(att, def) {
   for (const u of promoted) addLog(`${SIDES[u.side].name}${UNITS[u.type].name} 升級為${RANKS[rankOf(u)].name}！`, u.side);
   const an = `${SIDES[att.side].name}${UNITS[att.type].name}`, dn = `${SIDES[def.side].name}${UNITS[def.type].name}`;
   let msg = `${an} 攻擊 ${dn}，造成 ${dmg} 傷害`;
+  if (escU) {
+    msg += `（CAP 護衛機 ${UNITS[escU.type].name} 實施防空攔截，減免傷害並反擊 ${counter}！）`;
+    if (typeof fxText === 'function') {
+      const [ex, ey] = tileCenter(def.x, def.y);
+      fxText(ex, ey, '護衛攔截！', '#38bdf8');
+    }
+  }
   if (def.hp <= 0) msg += '，擊破！';
-  else if (countered) msg += `；反擊 ${counter}` + (att.hp <= 0 ? '，攻擊方被擊破！' : '');
+  else if (countered && !escU) msg += `；反擊 ${counter}` + (att.hp <= 0 ? '，攻擊方被擊破！' : '');
   if (evaded) msg += '（迴避！）';
   addLog(msg, att.side);
   return { dmg, counter, countered, evaded, cEvaded, promoted };
@@ -300,6 +370,16 @@ function removeDead() {
   for (const u of G.units) if (u.hp <= 0) {
     clearCapture(u);
     if (u.cargo && u.cargo.length) addLog(`搭載的 ${u.cargo.length} 支部隊隨 ${UNITS[u.type].name} 一同損失`, u.side);
+    // 澤火革「小人革面」：若敵方旗艦（航母/EUV要塞）被擊沉，敵方軍心瓦解，攻擊力下降 15%
+    const ub = UNITS[u.type].base;
+    if ((ub === 'carrier' || ub === 'wingman_carrier' || ub === 'euv_fortress') && G.moraleDebuff && !G.moraleDebuff[u.side]) {
+      G.moraleDebuff[u.side] = 0.15;
+      addLog(`【澤火革・小人革面】${SIDES[u.side].name}旗艦${UNITS[u.type].name}殞落！全軍軍心瓦解，攻擊力下降 15%！`, 1 - u.side);
+      if (typeof fxText === 'function') {
+        const [cx, cy] = tileCenter(u.x, u.y);
+        fxText(cx, cy, '小人革面！軍心瓦解', '#ef4444');
+      }
+    }
   }
   G.units = G.units.filter(u => u.hp > 0);
 }
@@ -327,6 +407,7 @@ function doCapture(u) {
   }
   const prev = G.owner[i];
   G.owner[i] = u.side;
+  if (G.bNation) G.bNation[i] = u.nation || normNat(SIDES[u.side].nation);
   delete G.capture[i];
   if (G.stats && (u.shipped || UNITS[u.type].mt === 'amph')) G.stats.amphibious_captures = (G.stats.amphibious_captures || 0) + 1;
   addLog(`${SIDES[u.side].name}佔領了${tname}！`, u.side);
@@ -347,10 +428,26 @@ function clearCapture(u) {
 // 可進化的型號：需達到階級，且停在己方可補給的據點上
 function evoOptions(u) {
   const d = UNITS[u.type];
-  if (!d.next || !d.next.length || u.done) return [];
+  if (u.done) return [];
   const i = idxOf(u.x, u.y), t = TERRAIN[G.terrain[i]];
   if (G.owner[i] !== u.side || !t.heal || !t.heal.includes(d.cat)) return [];
-  return d.next.filter(k => rankOf(u) >= UNITS[k].tier && G.funds[u.side] >= evoCost(u, k));
+  const r = rankOf(u);
+  const opts = [];
+  if (d.next && d.next.length) {
+    for (const k of d.next) {
+      if (r >= UNITS[k].tier && G.funds[u.side] >= evoCost(u, k)) opts.push(k);
+    }
+  }
+  // 澤火革：三星王牌部隊解鎖台積電/美商科技革變
+  if (r >= 3 && typeof getGeEvoTargets === 'function') {
+    const geList = getGeEvoTargets(u);
+    for (const gk of geList) {
+      if (UNITS[gk] && G.funds[u.side] >= evoCost(u, gk) && !opts.includes(gk)) {
+        opts.push(gk);
+      }
+    }
+  }
+  return opts;
 }
 // 進化費用：新舊型號價差（至少 100）
 function evoCost(u, key) { return Math.max(100, UNITS[key].cost - UNITS[u.type].cost); }
@@ -358,8 +455,14 @@ function evolve(u, key) {
   const from = UNITS[u.type].name;
   G.funds[u.side] -= evoCost(u, key);
   u.type = key;
-  if (UNITS[key].fuel !== undefined) u.fuel = UNITS[key].fuel;
-  addLog(`${SIDES[u.side].name}${from} 進化為 ${UNITS[key].name}！`, u.side);
+  const nd = UNITS[key];
+  if (nd.maxHp) {
+    u.maxHp = nd.maxHp;
+    u.hp = nd.maxHp;
+  }
+  if (nd.nation) u.nation = normNat(nd.nation);
+  if (nd.fuel !== undefined) u.fuel = nd.fuel;
+  addLog(`${SIDES[u.side].name}${from} 革變為 ${nd.name}！`, u.side);
 }
 function markDone(u) {
   u.done = true;
@@ -370,11 +473,20 @@ function markDone(u) {
 // ----- 生產 -----
 function makeUnit(type, side, x, y, extra) {
   type = extra && extra.ally ? atype(type, side, extra.ally) : ftype(type, side);
-  return Object.assign({ id: G.nextId++, type, side, x, y, hp: 10, fuel: UNITS[type].fuel, moved: false, done: false, xp: 0 }, extra || {});
+  const def = UNITS[type] || {};
+  const maxHp = (extra && extra.maxHp) || def.maxHp || 10;
+  const hp = (extra && extra.hp !== undefined) ? extra.hp : maxHp;
+  const nation = normNat((extra && extra.nation) || (extra && extra.ally) || def.nation || (SIDES[side] ? SIDES[side].nation : 'TW'));
+  return Object.assign({ id: G.nextId++, type, side, x, y, hp, maxHp, nation, fuel: def.fuel, moved: false, done: false, xp: 0 }, extra || {});
 }
 // 建立部隊：支援友軍（extra.ally）與預先搭載（extra.load）
 function spawnUnit(type, side, x, y, extra) {
-  const { load, ...rest } = extra || {};
+  let { load, ...rest } = extra || {};
+  const def = UNITS[type] || {};
+  // 航母預設配置護衛空優機與攻擊機，大幅提高生存率與戰術防空能力
+  if (load === undefined && (def.base === 'carrier' || type.startsWith('carrier') || def.base === 'wingman_carrier' || type.startsWith('wingman_carrier'))) {
+    load = ['fighter', 'attacker'];
+  }
   const u = makeUnit(type, side, x, y, rest);
   if (load) u.cargo = load.map(t => {
     const cu = makeUnit(t, side, x, y, rest.ally ? { ally: rest.ally } : null);
@@ -386,8 +498,15 @@ function spawnUnit(type, side, x, y, extra) {
 function buildOptions(x, y, side) {
   const i = idxOf(x, y), t = TERRAIN[G.terrain[i]];
   if (!t.build || G.owner[i] !== side || unitAt(x, y)) return [];
-  return Object.keys(UNITS).filter(k => UNITS[k].side === side && !UNITS[k].tier && !UNITS[k].ally && t.build.includes(UNITS[k].cat)
-    && (UNITS[k].base !== 'train' || (G.rails && G.rails.length)));
+  const bn = G.bNation && G.bNation[i] ? normNat(G.bNation[i]) : (SIDES[side] ? SIDES[side].nation : 'TW');
+  return Object.keys(UNITS).filter(k => {
+    const uDef = UNITS[k];
+    if (uDef.side !== side || uDef.tier || !t.build.includes(uDef.cat)) return false;
+    if (uDef.base === 'train' && (!G.rails || !G.rails.length)) return false;
+    if (uDef.nation === bn || (uDef.ally && normNat(uDef.ally) === bn)) return true;
+    if ((bn === 'TSMC' || bn === 'USCORP') && uDef.nation === bn) return true;
+    return !uDef.ally && (!bn || bn === SIDES[side].nation);
+  });
 }
 // 取得某方目前無部隊駐守且資金足夠生產至少一種兵種的己方據點
 function pendingProductionBases(side) {
@@ -411,7 +530,8 @@ function produce(type, x, y, side) {
   const d = UNITS[type];
   if (G.funds[side] < d.cost) return null;
   G.funds[side] -= d.cost;
-  const u = makeUnit(type, side, x, y);
+  const bn = G.bNation ? G.bNation[idxOf(x, y)] : null;
+  const u = spawnUnit(type, side, x, y, bn ? { nation: bn } : null);
   u.done = u.moved = true;
   G.units.push(u);
   addLog(`${SIDES[side].name}生產了${d.name}`, side);
@@ -436,7 +556,8 @@ function startTurn() {
       c.moved = c.done = false;
       if (UNITS[u.type].carry && UNITS[u.type].carry.deck) {
         if (UNITS[c.type].fuel !== undefined) c.fuel = UNITS[c.type].fuel;
-        c.hp = Math.min(10, c.hp + 2);
+        const cMax = c.maxHp || UNITS[c.type].maxHp || 10;
+        c.hp = Math.min(cMax, c.hp + 2);
       }
     }
     const d = UNITS[u.type], i = idxOf(u.x, u.y), t = TERRAIN[G.terrain[i]];
@@ -453,9 +574,19 @@ function startTurn() {
         }
       }
     }
-    if (onBase && u.hp < 10) {
-      const per = Math.ceil(d.cost / 10);
-      let h = Math.min(2, 10 - u.hp);
+    // 航母補給與維修光環：位於己方航母上或相鄰 1 格內的友軍飛機，自動補給燃料與修復 +2 HP
+    if (d.cat === 'air') {
+      const nearCarrier = G.units.some(cv => cv.hp > 0 && cv.side === s && (UNITS[cv.type].base === 'carrier' || UNITS[cv.type].base === 'wingman_carrier') && hexDist(u.x, u.y, cv.x, cv.y) <= 1);
+      if (nearCarrier) {
+        if (d.fuel !== undefined) u.fuel = Math.min(d.fuel, u.fuel + Math.ceil(d.fuel * 0.5));
+        const uMax = u.maxHp || d.maxHp || 10;
+        u.hp = Math.min(uMax, u.hp + 2);
+      }
+    }
+    const uMax = u.maxHp || d.maxHp || 10;
+    if (onBase && u.hp < uMax) {
+      const per = Math.ceil(d.cost / uMax);
+      let h = Math.min(2, uMax - u.hp);
       while (h > 0 && G.funds[s] < per * h) h--;
       if (h > 0) { u.hp += h; G.funds[s] -= per * h; }
     }
@@ -492,10 +623,17 @@ function initState(m, opts) {
     players: opts.players, capture: {}, winner: null, winReason: '',
     nextId: 1, log: [], missionId: opts.missionId || null, result: null, nations: opts.nations || ['TW', 'CN'],
     allies: opts.allies || [], allyAI: !!opts.allyAI,
+    bNation: m.bNation ? [...m.bNation] : new Array(m.w * m.h).fill(null),
     firedEvents: [], pendingDialogs: [],
     stats: { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 },
   };
   applyNations(G.nations, G.allies);
+  for (let i = 0; i < G.owner.length; i++) {
+    if (G.owner[i] >= 0 && !G.bNation[i]) {
+      const nid = SIDES[G.owner[i]] ? SIDES[G.owner[i]].nation : (G.owner[i] === 0 ? 'TW' : 'CN');
+      G.bNation[i] = normNat(nid);
+    }
+  }
   for (const [type, i, side, extra] of m.start) {
     const [x, y] = ixy(i);
     G.units.push(spawnUnit(type, side, x, y, extra));

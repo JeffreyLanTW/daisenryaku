@@ -59,13 +59,24 @@ Object.assign(BASE_UNITS, {
   thelico: { cls: 'air', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0], fuel: 48, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
   airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0], fuel: 75, upkeep: 3, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
   lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 3, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },
-  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 3, range: [1, 1], atk: [1, 1, 4, 1], carry: { cap: 4, allow: ['air'], deck: true } },
+  carrier: { cls: 'ship', cat: 'sea', mt: 'sea', cost: 2400, move: 3, range: [1, 2], atk: [1, 1, 6, 2], maxHp: 20, armor: 0.8, carry: { cap: 4, allow: ['air'], deck: true } },
   train:   { cls: 'hard', cat: 'land', mt: 'rail', cost: 400, move: 12, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 4, allow: ['foot', 'tread', 'amph'] } },
+  // 澤火革 次世代自主科技/晶圓防禦兵種（動態 maxHp 與自主作戰）
+  euv_fortress:    { cls: 'hard', cat: 'land', mt: 'tread', cost: 1600, move: 4, range: [1, 2], atk: [8, 10, 6, 7], maxHp: 20, armor: 0.75 },
+  wafer_inf:       { cls: 'soft', cat: 'land', mt: 'foot',  cost: 400,  move: 4, range: [1, 1], atk: [7, 7, 3, 2], maxHp: 14, capture: true },
+  laser_aa:        { cls: 'hard', cat: 'land', mt: 'tread', cost: 1000, move: 5, range: [1, 4], atk: [6, 4, 12, 2], maxHp: 15 },
+  nano_swarm:      { cls: 'air',  cat: 'air',  mt: 'air',   cost: 550,  move: 7, range: [1, 1], atk: [8, 9, 5, 6], maxHp: 6, fuel: 50, upkeep: 2, stealth: true },
+  anduril_tank:    { cls: 'hard', cat: 'land', mt: 'tread', cost: 650,  move: 6, range: [1, 1], atk: [7, 8, 0, 3], maxHp: 8 },
+  palantir_arty:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 1200, move: 4, range: [3, 7], atk: [10, 9, 0, 8], maxHp: 14 },
+  wingman_carrier: { cls: 'air',  cat: 'air',  mt: 'air',   cost: 2000, move: 8, range: [1, 2], atk: [7, 8, 9, 7], maxHp: 16, fuel: 75, upkeep: 3, carry: { cap: 3, allow: ['air'], deck: true } },
+  usv_wolfpack:    { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 700,  move: 5, range: [1, 1], atk: [5, 5, 3, 9], maxHp: 8, stealth: true },
 });
 const RAIL_COST = 200;
 // 各國搭載兵種（1990 年代初期）
 const TRANSPORTS = {
   TW: { truck: ['M35卡車', 'M35 2.5 噸卡車'], thelico: ['UH-1H', 'UH-1H 通用直升機'], airlift: ['C-130H', 'C-130H 力士型運輸機'], lst: ['中字號', '中字號戰車登陸艦'] },
+  TSMC: { truck: ['晶圓運輸車', '重裝甲半導體運輸車'], thelico: ['奈米運載機', '智慧自律運輸直升機'], airlift: ['矽盾運輸機', '高速次世代戰術運輸機'], lst: ['神山登陸艦', '重型兩棲運載巡防艦'] },
+  USCORP: { truck: ['自主運輸車', 'Anduril 自律無人運輸車'], thelico: ['V-280勇氣', 'V-280 傾斜旋翼機'], airlift: ['C-17', 'C-17 環球霸王III'], lst: ['遠征支援艦', '自律遠征支援艦'] },
   CN: { truck: ['解放卡車', '解放牌軍用卡車'], thelico: ['直-8', '直-8 運輸直升機'], airlift: ['運-8', '運-8 運輸機'], lst: ['玉康級', '072型玉康級登陸艦'] },
   US: { truck: ['M939卡車', 'M939 5 噸卡車'], thelico: ['UH-60A', 'UH-60A 黑鷹'], airlift: ['C-130H', 'C-130H 力士型運輸機'], lst: ['新港級', '新港級戰車登陸艦'] },
   JP: { truck: ['73式卡車', '73式大型卡車'], thelico: ['CH-47J', 'CH-47J 契努克'], airlift: ['C-1', 'C-1 運輸機'], lst: ['三浦級', '三浦級運輸艦'] },
@@ -91,7 +102,15 @@ const BASE_DESC = {
   truck: '運輸卡車，可搭載 2 隊步兵', thelico: '運輸直升機，可搭載 2 隊步兵，任何地點卸載',
   airlift: '運輸機，可搭載 2 隊步兵或輕型車輛，須停在據點上卸載', lst: '登陸艦，可搭載 3 隊地面部隊並搶灘卸載',
   train: '軍用列車，只能在鐵路上行駛，可搭載 4 隊地面部隊',
-  carrier: '航空母艦：可搭載 4 架飛機，艦上飛機每回合補給燃料並修復',
+  carrier: '航空母艦：HP 18 超重裝甲防護，可搭載 4 架艦載機，自帶密集陣近防與防空飛彈；艦載戰機提供空中巡邏防空攔截（CAP），艦上飛機每回合補給燃料並修復',
+  euv_fortress: '台積電極紫外光防護堡壘：HP 20 超重型護盾，承受傷害降為 75%，配備近遠程雙重攻擊',
+  wafer_inf: '晶圓外骨骼衛隊：HP 14 先進奈米動力外骨骼裝甲，具備快速攻佔據點能力',
+  laser_aa: '矽光子雷射防空：HP 15 長程固態高能雷射防禦，極大克制空軍與蜂群',
+  nano_swarm: '奈米遊蕩蜂群：HP 6 匿蹤微型自殺蜂群，穿透力強大，對各類目標致命突擊',
+  anduril_tank: '安杜里爾狼群戰車：HP 8 高機動分散式自主裝甲，演算法協同獵殺',
+  palantir_arty: '帕蘭提爾軌道火控砲：HP 14 射程 3~7 超遠程 AI 精準衛星連線導引打擊',
+  wingman_carrier: '忠誠僚機母艦：HP 16 次世代空中旗艦母機，可搭載補給 3 架戰機/蜂群並具備防空反擊',
+  usv_wolfpack: '自主無人作戰艦：HP 8 匿蹤水面無人攔截艇，長程反艦與突防',
 };
 
 // 16 國（1990 年代初期裝備）。units: [顯示名稱, 型號說明]；null 表示該國沒有此兵種
@@ -311,13 +330,47 @@ const NATIONS = {
     mods: [['all', { cost: 1.05 }], ['tank', { armor: 0.85 }], ['fighter', { atk: 1 }], ['attacker', { atk: 1 }], ['destroyer', { atk: -2, cost: 0.6 }]],
     prefer: { tank: 1.4, fighter: 1.4, attacker: 1.3 }, adj: 1.003,
   },
+  TSMC: {
+    name: '台積電', full: '晶圓防衛科技部隊', army: '神山衛隊', code: 'TSMC', style: 'west', camo: '#008b8b',
+    doctrine: '矽盾防衛', desc: '半導體尖端奈米防禦科技與高精確度雷射，具備極高血量護盾與先進無人蜂群。專屬：EUV防護堡壘、晶圓外骨骼衛隊、矽光子雷射防空、奈米遊蕩蜂群。',
+    units: {
+      inf: ['晶圓衛隊', '奈米外骨骼動能步兵'], atinf: ['晶圓獵殺組', '先進奈米導引反裝甲組'], recon: ['次微米偵察', '次微米自主偵察車'],
+      tank: ['EUV堡壘', 'EUV 極紫外光防護堡壘'], arty: ['光子重砲', '精確奈米導引重砲'], rocket: ['奈米火箭', '多聯裝智慧奈米火箭'],
+      aa: ['雷射防空', '矽光子高能雷射防空車'], sam: ['矽盾天網', '矽光子相位陣列飛彈'], heli: ['遊蕩蜂群', '奈米滯空遊蕩無人蜂群'],
+      fighter: ['次世代戰機', '先進無人空優攔截機'], attacker: ['極紫外攻擊', '精準奈米對地打擊機'], destroyer: ['神盾驅逐艦', '智慧矽盾驅逐艦'],
+      marine: ['晶圓陸戰隊', '兩棲外骨骼突擊隊'],
+      euv_fortress: ['EUV防護堡壘', 'EUV 極紫外光防護堡壘'], wafer_inf: ['晶圓外骨骼', '奈米外骨骼動能步兵'],
+      laser_aa: ['矽光子防空', '矽光子高能雷射防空車'], nano_swarm: ['遊蕩蜂群', '奈米滯空遊蕩無人蜂群'],
+    },
+    mods: [['land', { armor: 0.85 }], ['sam', { atk: 2 }], ['all', { cost: 1.15 }]],
+    prefer: { euv_fortress: 1.8, laser_aa: 1.6, wafer_inf: 1.4, nano_swarm: 1.5 }, adj: 1.05,
+  },
+  USCORP: {
+    name: '美商國防', full: '美商尖端科技集團', army: '矽谷聯軍', code: 'USCORP', style: 'west', camo: '#1e3d59',
+    doctrine: '演算法主宰', desc: '整合 Anduril、Palantir、無人機母艦與自主狼群系統之次世代無人自動化作戰科技。專屬：安杜里爾狼群戰車、帕蘭提爾軌道火控砲、忠誠僚機母艦、USV無人作戰艦。',
+    units: {
+      inf: ['機器人步兵', '自主外骨骼機器人步兵'], atinf: ['標槍自主組', '自主AI標槍巡弋飛彈組'], recon: ['幽靈偵察車', 'Anduril 幽靈自律偵察車'],
+      tank: ['狼群戰車', 'Anduril 自主裝甲狼群'], arty: ['軌道火控砲', 'Palantir 軌道戰術打擊系統'], rocket: ['HIMARS-AI', '自律海馬斯遠程火箭'],
+      aa: ['復仇者-X', 'AI無人防空攔截載具'], sam: ['天穹防禦系統', '全域分散式防空網路'], heli: ['阿帕契守護者', 'AH-64E 無人協同型'],
+      fighter: ['F-35A閃電', 'F-35A 聯合打擊戰機'], attacker: ['僚機母艦', '次世代無人空戰母艦機'], destroyer: ['無人作戰艦', 'USV 無人水面攔截狼群'],
+      marine: ['自主陸戰隊', '自律無人兩棲突擊隊'],
+      anduril_tank: ['狼群戰車', 'Anduril 自主裝甲狼群'], palantir_arty: ['軌道火控砲', 'Palantir 軌道戰術打擊系統'],
+      wingman_carrier: ['僚機母艦', '次世代無人空戰母艦機'], usv_wolfpack: ['無人作戰艦', 'USV 無人水面攔截狼群'],
+    },
+    mods: [['air', { move: 1 }], ['rocket', { range: [3, 6] }], ['all', { cost: 1.2 }]],
+    prefer: { anduril_tank: 1.8, palantir_arty: 1.7, wingman_carrier: 1.6, usv_wolfpack: 1.5 }, adj: 1.08,
+  },
 };
 const CARRIERS = {
+  TW: ['玉山空母', '自衛防空輕航空母艦'], CN: ['山東艦', '002型山東艦航空母艦'],
+  JP: ['出雲級', '出雲級多功能護衛艦（輕空母）'], KR: ['獨島級', '獨島級兩棲攻擊艦'],
   US: ['小鷹級', '小鷹級航空母艦'], RU: ['庫茲涅佐夫', '庫茲涅佐夫海軍上將號航空母艦'], GB: ['無敵級', '無敵級航空母艦'],
   FR: ['克里蒙梭級', '克里蒙梭級航空母艦'], IN: ['維拉特號', '維拉特號航空母艦'],
+  TSMC: ['矽盾母艦', '神山自律防衛母艦'], USCORP: ['無人機母艦', '次世代自律空中/海上無人母艦'],
 };
 const LOCOMOTIVES = { TW: 'R100型機車', CN: '東風4型機車', US: 'GP40 機車', JP: 'DD51型機車', KR: '7000型機車', KP: '紅旗型機車', PH: '菲國鐵機車',
-  VN: 'D12E型機車', RU: '2TE116 機車', IN: 'WDM-2 機車', PK: 'GE U20C 機車', GB: '37型機車', FR: 'BB 67000 機車', DE: 'V160 機車', AU: 'GM 機車', IL: 'G12 機車' };
+  VN: 'D12E型機車', RU: '2TE116 機車', IN: 'WDM-2 機車', PK: 'GE U20C 機車', GB: '37型機車', FR: 'BB 67000 機車', DE: 'V160 機車', AU: 'GM 機車', IL: 'G12 機車',
+  TSMC: '磁浮超導列車', USCORP: 'Hyperloop 自律列車' };
 for (const [nid, tr] of Object.entries(TRANSPORTS)) {
   if (!tr) continue;
   for (const [b, v] of Object.entries(tr)) if (v) NATIONS[nid].units[b] = v;
@@ -350,7 +403,7 @@ const EVOLUTION = {
     aa: [['avenger', null, '復仇者', 'M1097 復仇者防空系統', {}]],
     rocket: [['m270a1', null, 'M270A1', 'M270A1 多管火箭', {}]],
     stealth: [['b2', null, 'B-2', 'B-2 幽靈轟炸機', { atk: 2, move: 1 }]],
-    carrier: [['nimitz', null, '尼米茲級', '尼米茲級核動力航空母艦', { armor: 0.85 }], ['ford', 'nimitz', '福特級', '福特級核動力航空母艦', { atk: 1, armor: 0.9 }]],
+    carrier: [['nimitz', null, '尼米茲級', '尼米茲級核動力航空母艦', { armor: 0.8, maxHp: 22 }], ['ford', 'nimitz', '福特級', '福特級核動力航空母艦', { atk: 1, armor: 0.75, maxHp: 24 }]],
   },
   JP: {
     tank: [['type10', null, '10式戰車', '10式戰車', { atk: 1, move: 1 }]],
@@ -405,14 +458,14 @@ const EVOLUTION = {
     fighter: [['typhoon', null, '颱風', '颱風 FGR4 戰鬥機', { atk: 2 }]],
     destroyer: [['type45', null, '45型', '45型勇敢級驅逐艦', { atk: 2 }]],
     heli: [['wah64', null, '阿帕契AH1', '阿帕契 AH1（長弓）', { atk: 2 }]],
-    carrier: [['qe', null, '伊莉莎白女王級', '伊莉莎白女王級航空母艦', { armor: 0.85 }]],
+    carrier: [['qe', null, '伊莉莎白女王級', '伊莉莎白女王級航空母艦', { armor: 0.8, maxHp: 20 }]],
   },
   FR: {
     tank: [['leclerc', null, '勒克萊爾', '勒克萊爾主力戰車', { atk: 2, move: 1 }]],
     fighter: [['rafale', null, '飆風', '飆風戰鬥機', { atk: 2 }]],
     destroyer: [['horizon', null, '地平線級', '地平線級驅逐艦', { atk: 2 }]],
     heli: [['tigre', null, '虎式', '虎式攻擊直升機', { atk: 2 }]],
-    carrier: [['cdg', null, '戴高樂號', '戴高樂號核動力航空母艦', { armor: 0.85 }]],
+    carrier: [['cdg', null, '戴高樂號', '戴高樂號核動力航空母艦', { armor: 0.8, maxHp: 20 }]],
   },
   DE: {
     tank: [['leo2a5', null, '豹2A5', '豹 2A5 主力戰車', {}], ['leo2a6', 'leo2a5', '豹2A6', '豹 2A6 主力戰車', {}]],
@@ -432,18 +485,60 @@ const EVOLUTION = {
     heli: [['ah64d', null, 'AH-64D', 'AH-64D 長弓阿帕契', { atk: 2 }]],
   },
 };
-// 經驗階級：新兵、老兵、精銳、王牌。攻擊力 +10%/階、迴避率 6%/12%/20%
+// 經驗階級：新兵、老兵、精銳、王牌。門檻調升，攻擊力 +6%/階、迴避率 4%/8%/12%
 // 進化到第 n 階需要第 n 階級（一階＝老兵、二階＝精銳、三階＝王牌）
+// 達到王牌（3星）時可解鎖澤火革雙向「革變」進化科技分支（台積電晶圓防衛 / 美商尖端科技集團）
 // 國家設定 noRank（解放軍）：沒有經驗、王牌與進化，改以數量與價格平衡
 const RANKS = [
-  { name: '新兵', xp: 0, atk: 1, evade: 0 },
-  { name: '老兵', xp: 70, atk: 1.1, evade: 0.06 },
-  { name: '精銳', xp: 180, atk: 1.2, evade: 0.12 },
-  { name: '王牌', xp: 340, atk: 1.3, evade: 0.2 },
+  { name: '新兵', xp: 0,   atk: 1.0,  evade: 0 },
+  { name: '老兵', xp: 120, atk: 1.06, evade: 0.04 },
+  { name: '精銳', xp: 280, atk: 1.12, evade: 0.08 },
+  { name: '王牌', xp: 500, atk: 1.18, evade: 0.12 },
 ];
 // 此部隊所屬國家沒有經驗系統
 const noRank = u => { const d = UNITS[u.type]; return !!(d && NATIONS[d.nation] && NATIONS[d.nation].noRank); };
 const rankOf = u => { if (noRank(u)) return 0; let r = 0; for (let k = 1; k < RANKS.length; k++) if ((u.xp || 0) >= RANKS[k].xp) r = k; return r; };
+
+// 國家簡碼標準化對照表（支援 ROC, PLA, USA, JPN, KOR, PRK, PHL, VNM, RUS, TSMC, USCORP）
+const NATION_MAP = {
+  ROC: 'TW', TW: 'TW',
+  PLA: 'CN', CN: 'CN',
+  USA: 'US', US: 'US',
+  JPN: 'JP', JP: 'JP',
+  KOR: 'KR', KR: 'KR',
+  PRK: 'KP', KP: 'KP',
+  PHL: 'PH', PH: 'PH',
+  VNM: 'VN', VN: 'VN',
+  RUS: 'RU', RU: 'RU',
+  TSMC: 'TSMC',
+  USCORP: 'USCORP',
+};
+function normNat(nid) {
+  if (!nid) return 'TW';
+  return NATION_MAP[nid] || (NATIONS[nid] ? nid : 'TW');
+}
+
+// 澤火革：三星王牌部隊在友軍基地可革變之科技分支
+function getGeEvoTargets(u) {
+  const d = UNITS[u.type];
+  if (!d) return [];
+  const b = d.base || u.type.split('_')[0];
+  const s = u.side;
+  const list = [];
+  // 台積電神山晶圓防禦科技分支
+  if (['tank', 'recon'].includes(b)) list.push(`euv_fortress_${s}@TSMC`);
+  if (['inf', 'atinf', 'marine'].includes(b)) list.push(`wafer_inf_${s}@TSMC`);
+  if (['aa', 'sam'].includes(b)) list.push(`laser_aa_${s}@TSMC`);
+  if (['heli', 'fighter'].includes(b)) list.push(`nano_swarm_${s}@TSMC`);
+
+  // 美商尖端科技集團革變分支
+  if (['tank', 'recon'].includes(b)) list.push(`anduril_tank_${s}@USCORP`);
+  if (['arty', 'rocket'].includes(b)) list.push(`palantir_arty_${s}@USCORP`);
+  if (['fighter', 'attacker', 'bomber', 'carrier'].includes(b)) list.push(`wingman_carrier_${s}@USCORP`);
+  if (['destroyer', 'lst'].includes(b)) list.push(`usv_wolfpack_${s}@USCORP`);
+
+  return list.filter(k => !!UNITS[k]);
+}
 
 function modMatches(sel, base, def) {
   return sel === 'all' || sel === base || sel === def.cat || sel === def.cls;
@@ -494,6 +589,7 @@ function buildNationUnits(nid, side, suffix = '') {
       if (mm.armor) d.armor = (parent.armor || 1) * mm.armor;
       if (mm.range) d.range = [...mm.range];
       if (mm.stealth) d.stealth = true;
+      if (mm.maxHp) d.maxHp = mm.maxHp;
       Object.assign(d, { name, model, tier, from: parentKey, node: id, next: [], cost: Math.round(root.cost * (1 + 0.15 * tier) / 10) * 10 });
       const key = K(base, id);
       UNITS[key] = d;
@@ -504,12 +600,19 @@ function buildNationUnits(nid, side, suffix = '') {
 // allies：[{ side, nid }] 同陣營的其他國家（援軍）
 function applyNations(ids, allies = []) {
   for (const k of Object.keys(UNITS)) delete UNITS[k];
-  ids.forEach((nid, side) => {
+  ids.forEach((rawNid, side) => {
+    const nid = normNat(rawNid);
     buildNationUnits(nid, side);
     SIDES[side].name = NATIONS[nid].army;
     SIDES[side].nation = nid;
   });
-  for (const a of allies) buildNationUnits(a.nid, a.side, '@' + a.nid);
+  for (const a of allies) {
+    const nid = normNat(a.nid);
+    buildNationUnits(nid, a.side, '@' + nid);
+  }
+  // 澤火革：為藍軍（盟軍側）構建台積電與美商國防科技單元，供革變及特種生產使用
+  buildNationUnits('TSMC', 0, '@TSMC');
+  buildNationUnits('USCORP', 0, '@USCORP');
 }
 // 基礎名稱 + 陣營 → 實際兵種鍵（若該國沒有此兵種，退回步兵）
 const ftype = (type, side) => UNITS[type] ? type : UNITS[`${type}_${side}`] ? `${type}_${side}` : `inf_${side}`;

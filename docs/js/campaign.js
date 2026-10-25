@@ -37,11 +37,20 @@ const alliesOf = M => (M.allies || []).map(nid => ({ side: CAMPAIGNS[campOf(M)].
 function parseMission(M, flags, player = 0) {
   applyNations(M.nations || CAMPAIGNS[campOf(M)].nations, alliesOf(M));
   const rows = M.map, h = rows.length, w = rows[0].length, N = w * h;
-  const terrain = new Array(N), owner = new Array(N).fill(-1);
+  const terrain = new Array(N), owner = new Array(N).fill(-1), bNation = new Array(N).fill(null);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const [t, o] = LEGEND[rows[y][x]];
     terrain[y * w + x] = t;
-    if (o !== undefined) owner[y * w + x] = o;
+    if (o !== undefined) {
+      owner[y * w + x] = o;
+      bNation[y * w + x] = o === 0 ? 'TW' : 'CN';
+    }
+  }
+  if (M.bNation) {
+    for (const [pos, nat] of Object.entries(M.bNation)) {
+      const [bx, by] = pos.split(',').map(Number);
+      if (bx >= 0 && bx < w && by >= 0 && by < h) bNation[by * w + bx] = normNat(nat);
+    }
   }
   // 道路：相鄰的道路/橋/據點自動相連（據點之間不連）
   const roads = [], isRoad = t => t === 'road' || t === 'bridge';

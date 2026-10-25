@@ -329,29 +329,135 @@ function atkTable(type) {
   const a = UNITS[type].atk;
   return `<div class="atk">${a.map((v, k) => `<span class="${v ? '' : 'zero'}"><b>${CLASS_SHORT[k]}</b>${v}</span>`).join('')}</div>`;
 }
+window.triggerEvo = function (uid, key) {
+  const u = unitById(uid);
+  if (!u || !UNITS[key]) return;
+  evolve(u, key);
+  if (typeof sfx === 'function') sfx('build');
+  const [cx, cy] = tileCenter(u.x, u.y);
+  if (typeof fxText === 'function') fxText(cx, cy, '革變進化！', '#38bdf8');
+  refreshPanel();
+  drawUnits();
+};
+
+function renderEvolutionTree(u) {
+  if (noRank(u)) return '';
+  const d = UNITS[u.type];
+  const nat = u.nation || d.nation;
+  const isApex = ['TSMC', 'USCORP'].includes(nat) || (d.maxHp && d.maxHp > 10 && (u.type.includes('TSMC') || u.type.includes('USCORP')));
+  if (isApex) {
+    return `<div class="evo-tree-card apex">
+      <div class="evo-tree-title">👑 頂尖科技旗艦已革變</div>
+      <div class="desc">${nat === 'TSMC' ? '🔬 搭載台積電極紫外光與矽光子尖端防護體系' : '🦅 搭載美商演算法自律協同與軌道火控戰術系統'}</div>
+    </div>`;
+  }
+  const targets = typeof getGeEvoTargets === 'function' ? getGeEvoTargets(u) : [];
+  if (!targets.length && (!d.next || !d.next.length)) return '';
+  const r = rankOf(u);
+  const i = idxOf(u.x, u.y), t = TERRAIN[G.terrain[i]];
+  const onBase = G.owner[i] === u.side && t.heal && t.heal.includes(d.cat);
+  const funds = G.funds[u.side] || 0;
+
+  let html = `<div class="evo-tree-card">
+    <div class="evo-tree-title">🧬 科技樹與革變方向</div>
+    <div class="evo-branch-grid">`;
+
+  // 制式國軍/各國後續型號
+  if (d.next && d.next.length) {
+    for (const k of d.next) {
+      const ed = UNITS[k];
+      const cost = evoCost(u, k);
+      const unlocked = r >= ed.tier && onBase && funds >= cost && !u.done;
+      let lockReason = '';
+      if (r < ed.tier) lockReason = `需達 ${'★'.repeat(ed.tier)} ${RANKS[ed.tier].name}`;
+      else if (!onBase) lockReason = '需在己方補給據點';
+      else if (funds < cost) lockReason = `資金不足 ($${cost})`;
+      else if (u.done) lockReason = '本回合已行動';
+      html += `<div class="evo-node standard ${unlocked ? 'unlocked' : ''}">
+        <div class="evo-node-header"><span class="evo-badge standard">制式晉級</span><b>${ed.name}</b></div>
+        <div class="evo-specs">HP ${ed.maxHp || 10} · 💰${cost}</div>
+        <div class="evo-desc">${ed.model}</div>
+        ${unlocked ? `<button class="btn-evo-tree" onclick="triggerEvo(${u.id},'${k}')">⚡ 晉級升級</button>` : `<span class="evo-lock">🔒 ${lockReason}</span>`}
+      </div>`;
+    }
+  }
+
+  // 雙向革變分支（台積電神山 / 美商尖端）
+  for (const k of targets) {
+    const ed = UNITS[k];
+    const isTsmc = k.includes('TSMC') || ed.nation === 'TSMC';
+    const cost = evoCost(u, k);
+    const unlocked = r >= 3 && onBase && funds >= cost && !u.done;
+    let lockReason = '';
+    if (r < 3) lockReason = `需達 ★★★ 王牌 (${u.xp || 0}/500 XP)`;
+    else if (!onBase) lockReason = '需停駐己方可補給據點';
+    else if (funds < cost) lockReason = `資金不足 ($${cost})`;
+    else if (u.done) lockReason = '本回合已行動';
+
+    html += `<div class="evo-node ${isTsmc ? 'tsmc' : 'uscorp'} ${unlocked ? 'unlocked' : ''}">
+      <div class="evo-node-header"><span class="evo-badge ${isTsmc ? 'tsmc' : 'uscorp'}">${isTsmc ? '🔬 台積電神山' : '🦅 美商尖端'}</span><b>${ed.name}</b></div>
+      <div class="evo-specs">HP ${ed.maxHp || 10} · 💰${cost} · ${CLASS_NAME[ed.cls]}</div>
+      <div class="evo-desc">${ed.desc || ed.model}</div>
+      ${unlocked ? `<button class="btn-evo-tree" onclick="triggerEvo(${u.id},'${k}')">⚡ 立即革變 (💰${cost})</button>` : `<span class="evo-lock">🔒 ${lockReason}</span>`}
+    </div>`;
+  }
+
+  html += `</div></div>`;
+  return html;
+}
+
 function xpHTML(u) {
   if (noRank(u)) return `<div class="desc">${NATIONS[UNITS[u.type].nation].army}無升級與進化（以量取勝）</div>`;
   const r = rankOf(u), R = RANKS[r], nx = RANKS[r + 1], xp = u.xp || 0;
   const pct = nx ? Math.round((xp - R.xp) / (nx.xp - R.xp) * 100) : 100;
-  const d = UNITS[u.type];
-  const evo = (d.next || []).map(k => `<b>${UNITS[k].name}</b><small>（${RANKS[UNITS[k].tier].name}）</small>`).join('、');
   return `<div class="xprow"><span class="rankbadge r${r}">${r ? '★'.repeat(r) + ' ' : ''}${R.name}</span>
       <div class="xpbar r${r}"><i style="width:${pct}%"></i></div>
       <span class="xpnum">${nx ? `${xp}/${nx.xp}` : `${xp}・滿階`}</span></div>
-    <div class="stats"><span>攻擊 +${Math.round((R.atk - 1) * 100)}%</span><span>迴避 ${Math.round(R.evade * 100)}%</span></div>
-    ${evo ? `<div class="evo-row">⬆ 進化 ${evo}</div>` : ''}`;
+    <div class="stats"><span>攻擊 +${Math.round((R.atk - 1) * 100)}%</span><span>迴避 ${Math.round(R.evade * 100)}%</span></div>`;
 }
+
 function unitHTML(u) {
-  const d = UNITS[u.type], S = SIDES[u.side], ncol = typeof nationColor === 'function' ? nationColor(d.nation, u.side) : S.color;
+  const d = UNITS[u.type], S = SIDES[u.side];
+  const nat = u.nation || d.nation || S.nation;
+  const ncol = typeof nationColor === 'function' ? nationColor(nat, u.side) : S.color;
+  const flag = (typeof NATION_FLAGS !== 'undefined' && NATION_FLAGS[nat]) || '🌐';
+  const natName = (NATIONS[nat] && NATIONS[nat].name) || nat;
+  const maxHp = u.maxHp || d.maxHp || 10;
+  const hpPct = Math.max(0, Math.min(100, Math.round((u.hp / maxHp) * 100)));
   const fuelPct = d.fuel ? Math.max(0, Math.min(100, Math.round(u.fuel / d.fuel * 100))) : 0;
   const fuelLow = d.fuel !== undefined && u.fuel <= d.upkeep * 3;
-  return `<div class="uhead"><span class="dot" style="background:${ncol}"></span><b>${d.name}</b><span class="fac">${NATIONS[d.nation].name}</span>
-    <span class="tag">${CLASS_NAME[d.cls]}</span></div>
-    <div class="hpbar"><i style="width:${u.hp * 10}%;background:${u.hp <= 3 ? '#e2574c' : u.hp <= 6 ? '#e0b54a' : '#5cc26b'}"></i><span>HP ${u.hp}/10</span></div>
+  const aura = typeof unitAura === 'function' ? unitAura(u) : { hasAura: false };
+  const hasEscort = (d.base === 'carrier' || d.base === 'wingman_carrier') && typeof carrierEscort === 'function' && !!carrierEscort(u);
+  const rng = d.range[0] === d.range[1] ? d.range[0] : `${d.range[0]}-${d.range[1]}`;
+
+  return `<div class="uhead">
+      <span class="dot" style="background:${ncol}"></span>
+      <b class="uname">${d.name}</b>
+      <span class="fac-pill" style="border-color:${ncol};color:${ncol}">${flag} ${natName}</span>
+      <span class="tag">${CLASS_NAME[d.cls]}</span>
+    </div>
+    <div class="u-badges">
+      ${hasEscort ? '<span class="badge-status escort">🛡️ CAP空優護衛中</span>' : ''}
+      ${aura.hasAura ? '<span class="badge-status aura">✨ 戰術光環加成</span>' : ''}
+      ${u.shipped ? '<span class="badge-status shipped">⚓ 兩棲載運搶灘</span>' : ''}
+    </div>
+    <div class="hpbar-wrap">
+      <div class="hpbar"><i style="width:${hpPct}%;background:${u.hp <= maxHp * 0.3 ? '#e2574c' : u.hp <= maxHp * 0.6 ? '#e0b54a' : '#5cc26b'}"></i>
+        <span>HP <b>${u.hp}</b> / ${maxHp}</span>
+      </div>
+    </div>
+    <div class="unit-telemetry-grid">
+      <div class="tele-item"><small>移動</small><b>${d.move}</b></div>
+      <div class="tele-item"><small>射程</small><b>${rng}</b></div>
+      <div class="tele-item"><small>兵種</small><b>${{ land: '陸軍', air: '空軍', sea: '海軍' }[d.cat] || d.cat}</b></div>
+      <div class="tele-item"><small>承傷</small><b>${d.armor ? `×${d.armor.toFixed(2)}` : '1.00'}</b></div>
+    </div>
     ${d.fuel !== undefined ? `<div class="fuel-row ${fuelLow ? 'low' : ''}"><span class="fuel-lbl">⛽ 燃料</span><div class="fuel-bar"><i style="width:${fuelPct}%"></i></div><span class="fuel-num">${u.fuel}/${d.fuel}</span></div>` : ''}
     ${xpHTML(u)}
-    ${d.carry ? `<div class="desc">🚚 搭載 ${(u.cargo || []).length}/${d.carry.cap}：${(u.cargo || []).map(c => UNITS[c.type].name).join('、') || '空'}</div>` : ''}
-    ${atkTable(u.type)}<div class="desc">${d.model}${d.armor ? `・承傷 ×${d.armor.toFixed(2)}` : ''}${d.jungle ? `・叢林 +${d.jungle}%` : ''}${d.stealth ? '・攻擊不受反擊' : ''}${u.order != null ? '<br>🚩 已設定移動命令' : ''}</div>`;
+    ${d.carry ? `<div class="desc cargo-desc">🚚 搭載 ${(u.cargo || []).length}/${d.carry.cap}：${(u.cargo || []).map(c => UNITS[c.type].name).join('、') || '空'}</div>` : ''}
+    ${atkTable(u.type)}
+    <div class="desc model-desc">${d.model}${d.jungle ? `・叢林 +${d.jungle}%` : ''}${d.stealth ? '・攻擊不受反擊' : ''}${u.order != null ? '<br>🚩 已設定移動命令' : ''}</div>
+    ${renderEvolutionTree(u)}`;
 }
 function updateNextUnitButton() {
   const btn = $('#btnNext');
@@ -389,6 +495,13 @@ function refreshPanel() {
   $('#funds').innerHTML = SIDES.map((s, k) =>
     `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${s.name} 💰${G.funds[k]} <small>+${incomeOf(k)}</small> · ${G.units.filter(u => u.side === k).length}隊</span>`).join('');
   $('#btnEnd').disabled = !isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy';
+  const btnAlly = $('#btnAllyCtrl');
+  if (btnAlly) {
+    const hasAllies = G.allies && G.allies.length > 0;
+    btnAlly.classList.toggle('hidden', !hasAllies);
+    btnAlly.textContent = G.allyAI ? '友軍: AI協同' : '友軍: 手動';
+    btnAlly.classList.toggle('active', !!G.allyAI);
+  }
   // 作戰結束後關閉結算畫面時，保留回到結算的入口
   const over = G.winner != null && $('#modal').classList.contains('hidden');
   $('#resultBar').classList.toggle('hidden', !over);
@@ -664,7 +777,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v53</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v61</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -676,16 +789,19 @@ function openHelp() {
       <li>每回合依據點獲得收入：首都 300、工廠 150、其他 100。</li>
       <li>點擊己方空的<b>首都/工廠</b>生產地面部隊、<b>首都/機場</b>生產航空部隊、<b>港口</b>生產艦艇。</li>
       <li>部隊停在己方據點上，回合開始時恢復 2 HP（花費部隊價格的 10%/HP），飛機需回首都或機場補充燃料，燃料耗盡會墜毀。</li></ul>
-    <h4>戰鬥</h4><ul>
+    <h4>戰鬥與航母護衛</h4><ul>
       <li>傷害 = 攻擊力 × (HP/10) × (1 − 地形防禦)，±10% 浮動。受損部隊攻擊力下降。</li>
+      <li><b>航母打擊群與 CAP 護衛攔截</b>：航母具備 20~24 點超高耐久與防空近防；若航母搭載空優戰機或 2 格內有友軍戰機，遭受敵方空襲時會觸發 CAP 防空攔截，大幅減免空襲傷害並實施反擊！位於航母上或相鄰 1 格內的友軍飛機每回合自動補給燃料與維修 +2 HP。</li>
+      <li><b>戰術光環與澤火革雙向革變</b>：TSMC EUV要塞（2格內友軍承傷×0.9）與美商火控艦機（2格內友軍攻擊×1.1）；三星王牌部隊在友軍基地可直接於部隊卡片觸發台積電與美商科技雙向「革變」！</li>
       <li>相鄰的直接攻擊會遭到反擊；<b>自走砲、火箭、防空飛彈</b>為間接攻擊，不會被反擊，但移動後不能射擊。</li>
       <li><b>陸戰隊</b>可以渡海（海上移動消耗 2）並登陸佔領，但在海上沒有地形掩護。</li>
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
       <li>佔領：步兵類部隊每回合扣除等同 HP 的佔領點（總共 20），離開或陣亡則重置。</li></ul>
-    <h4>國家</h4><p>16 個國家各有 1990 年代的真實裝備與作戰偏好，詳見國家圖鑑。</p>
+    <h4>國家與 AI 教條</h4><p>11 個陣營各有專屬 AI 作戰教條、專屬色系與作戰偏好（詳見國家圖鑑）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v61</span><span class="cl-date">2026.10.25</span><p>【澤火革・第一島鏈變易大改版】重磅推出 64x64 易經 49 卦戰役全 6 章；開放動態 maxHp（旗艦 14~24、蜂群 6~8）；新增 11 國戰略教條 AI；航母打擊群防空護航（CAP 空中巡邏攔截減免空襲傷害並反擊）、航母相鄰戰機自動補給油修；新增台積電矽盾光環與美商演算法火控；右側欄全面優化部隊資訊卡、嵌入雙向革變科技樹；支援頂部「友軍操控模式」即時切換。</p></div>
         <div class="cl-item"><span class="cl-ver">v60</span><span class="cl-date">2026.10.25</span><p>iPad 主畫面網頁 App 異音已確認排除（成因為 iOS 系統音訊程序卡住循環播放）；移除測試用「音訊模式」選單與 HTML 相容音樂引擎，保留主畫面 App 的 ambient 音訊工作階段與取樣率修正。</p></div>
         <div class="cl-item"><span class="cl-ver">v59</span><span class="cl-date">2026.10.25</span><p>iPad 主畫面網頁 App 音訊工作階段改為 ambient（原為 playback）：鎖定螢幕與休眠時由系統自動靜音、不再於背景持續播放；系統凍結頁面前亦先行靜音。</p></div>
         <div class="cl-item"><span class="cl-ver">v58</span><span class="cl-date">2026.10.25</span><p>新增「音訊模式」選單（自動／原始／固定 48kHz／固定 44.1kHz／相容模式），供 iPad 主畫面網頁 App 實機逐一測試；相容模式將背景音樂轉為 WAV 交由 HTML 媒體播放器播放，完全繞過 Web Audio 輸出。</p></div>
@@ -997,6 +1113,18 @@ function setupInput() {
   });
   $('#btnEnd').onclick = endTurnClicked;
   $('#btnNext').onclick = nextUnit;
+  const btnAlly = $('#btnAllyCtrl');
+  if (btnAlly) {
+    btnAlly.onclick = () => {
+      if (!G) return;
+      G.allyAI = !G.allyAI;
+      btnAlly.textContent = G.allyAI ? '友軍: AI協同' : '友軍: 手動';
+      btnAlly.classList.toggle('active', !!G.allyAI);
+      showToast(G.allyAI ? '友軍操控已切換為：友軍AI協同' : '友軍操控已切換為：手動指揮友軍');
+      refreshPanel();
+      drawUnits();
+    };
+  }
   $('#btnSave').onclick = saveGame;
   $('#btnLoad').onclick = loadGame;
   $('#btnHelp').onclick = openHelp;

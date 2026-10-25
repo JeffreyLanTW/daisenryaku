@@ -60,15 +60,65 @@ function threatAt(u, x, y, enemies) {
   return Math.min(t, 10);
 }
 
+// 各國專屬 AI 作戰教條（Country-Specific Doctrines）
+const AI_DOCTRINES = {
+  CN: { // PLA: 登陸矛頭與斬首打擊（優先奪取首都/TSMC晶圓廠、兩棲搶灘護航、海空飽和打擊）
+    decapitation: 3.2, amphibious: 2.4, retreatHp: 0.15, coverBonus: 1.0, indirectPref: 1.5,
+  },
+  KP: { // PRK: 狂熱人海衝鋒與火砲飽和（零後撤門檻、決不後撤、火箭火砲壓制）
+    decapitation: 1.2, amphibious: 1.0, retreatHp: 0.0, coverBonus: 0.8, indirectPref: 2.2,
+  },
+  RU: { // RUS: 重裝堡壘突進與遠程打擊（殘血 <45% 主動後撤後方城市修整、重轟炸機與巡洋艦縱深攻擊）
+    decapitation: 1.5, amphibious: 1.2, retreatHp: 0.45, coverBonus: 1.3, indirectPref: 2.0,
+  },
+  VN: { // VNM: 叢林島礁游擊與伏擊（高度依賴森林/山岳掩護、避開平原正交裝甲、伏擊補給線）
+    decapitation: 1.0, amphibious: 1.8, retreatHp: 0.25, coverBonus: 3.5, indirectPref: 1.0,
+  },
+  JP: { // JPN: 海空防空之盾（優先攔截空襲與反艦、護衛島礁與港口外圍）
+    decapitation: 1.0, amphibious: 1.0, retreatHp: 0.3, coverBonus: 1.0, antiAirShip: 2.5,
+  },
+  KR: { // KOR: 重裝甲砲兵反擊（K2與K9集火反擊敵方人海與砲兵陣地）
+    decapitation: 1.3, amphibious: 1.0, retreatHp: 0.25, coverBonus: 1.2, armorCounter: 2.5,
+  },
+  US: { // USA: 高精確長程打擊與航母空優（長程防區外打擊、嚴格返航油量控管、艦隊護衛）
+    decapitation: 2.2, amphibious: 1.8, retreatHp: 0.35, strictRtb: true, carrierStand: 2.5,
+  },
+  USCORP: { // 美商國防: 演算法主宰與自主狼群（AI自律無人協同、軌道衛星導引精準獵殺）
+    decapitation: 2.5, amphibious: 1.8, retreatHp: 0.25, strictRtb: true, carrierStand: 2.5,
+  },
+  TSMC: { // 台積電: 矽盾神山防禦與雷射防空（守護核心晶圓廠、雷射防空截擊、EUV堡壘定點防禦）
+    decapitation: 1.0, amphibious: 1.0, retreatHp: 0.3, coverBonus: 1.5,
+  },
+  TW: { // 國軍: 固守台澎島嶼防空網（防空飛彈與岸防阻截、灘頭防衛）
+    decapitation: 1.0, amphibious: 1.0, retreatHp: 0.3, coverBonus: 1.5,
+  },
+};
+function unitNation(u) {
+  if (!u) return 'TW';
+  if (u.nation) return normNat(u.nation);
+  const d = UNITS[u.type];
+  if (d && d.ally) return normNat(d.ally);
+  if (d && d.nation) return normNat(d.nation);
+  return SIDES[u.side] && SIDES[u.side].nation ? normNat(SIDES[u.side].nation) : 'TW';
+}
+function getDoctrine(nat) {
+  const nid = normNat(nat);
+  return AI_DOCTRINES[nid] || AI_DOCTRINES.TW;
+}
+
 function aiGoals(u, baseField) {
   const d = UNITS[u.type], s = u.side, goals = new Map();
   const add = (i, off) => { if (!goals.has(i) || goals.get(i) > off) goals.set(i, off); };
   const here = idxOf(u.x, u.y);
   const mg = missionAIGoals(u);
   if (u.vip && mg.length) return { goals: new Map(mg), mode: 'vip' };
+  const nat = unitNation(u);
+  const doc = getDoctrine(nat);
+  const uMax = u.maxHp || d.maxHp || 10;
+  const hurt = doc.retreatHp > 0 && u.hp <= uMax * doc.retreatHp;
   const rTurns = baseField ? Math.ceil(Math.max(1, baseField[here]) / d.move) : 1;
-  const lowFuel = baseField && u.fuel <= baseField[here] + d.upkeep * (rTurns + 2) + 4;
-  const hurt = u.hp <= (d.capture && aiAggression(s) > 1.3 ? 1 : 3);
+  const fuelMargin = doc.strictRtb ? 6 : 4;
+  const lowFuel = baseField && u.fuel <= baseField[here] + d.upkeep * (rTurns + 2) + fuelMargin;
   if (hurt || lowFuel) {
     const bases = ownBases(s, d.cat, u);
     if (bases.size && !(d.capture && canCapture(u))) return { goals: bases, mode: 'retreat' };
@@ -128,7 +178,10 @@ function aiGoals(u, baseField) {
   if (d.capture) {
     for (let i = 0; i < G.owner.length; i++) {
       if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
-      add(i, G.terrain[i] === 'capital' ? -5 : G.owner[i] >= 0 ? -1 : 0);
+      const isCap = G.terrain[i] === 'capital';
+      const isFab = G.bNation && (G.bNation[i] === 'TSMC' || G.bNation[i] === 'USCORP');
+      let pri = isCap ? -5 * doc.decapitation : (isFab ? -4 * doc.decapitation : (G.owner[i] >= 0 ? -1 : 0));
+      add(i, pri);
     }
   }
   for (const e of G.units) if (e.side !== s && canHit(u.type, e)) add(idxOf(e.x, e.y), e.vip ? -4 : d.capture ? 4 : 0);
@@ -207,8 +260,9 @@ async function aiAct(u, token) {
     }
     const [x, y] = ixy(i), t = TERRAIN[G.terrain[i]];
     const consider = (sc, act) => { if (sc > best.score) best = { score: sc, dest: i, act }; };
+    const doc = getDoctrine(unitNation(u));
     let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : mode === 'vip' || mode === 'deliver' || mode === 'pickup' ? 14 : 9 * ag);
-    if (d.cat === 'land') base += t.def * 0.4;
+    if (d.cat === 'land') base += t.def * 0.4 * (doc.coverBonus || 1.0);
     base += missionHoldBonus(u, i);
     const thrW = mode === 'retreat' || mode === 'vip' || d.carry ? 2.6 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
     base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW / (mode === 'attack' || mode === 'deliver' ? ag : 1);
@@ -331,13 +385,23 @@ function aiProduce(s) {
       thelico: !airFull && cnt('thelico') < 2 && (needSea || needFar) && capturers >= 1 ? 1.6 : 0,
       truck: cnt('truck') < 2 && !needSea && needFar && capturers >= 2 ? 1.2 : 0,
       airlift: !airFull && cnt('airlift') < 1 && (needSea || needFar) && openProps >= 3 ? 0.8 : 0,
+      // 澤火革 次世代自主裝甲/晶圓防禦兵種權重
+      euv_fortress: 2.2,
+      wafer_inf: capturers < Math.min(7, 2 + openProps / 2) ? 4.0 : 1.5,
+      laser_aa: enemyAir * 1.6 + 0.8,
+      nano_swarm: airFull ? 0 : 2.0,
+      anduril_tank: 2.2,
+      palantir_arty: 2.0,
+      wingman_carrier: airFull ? 0 : (cnt('wingman_carrier') >= 2 ? 0.4 : 1.8),
+      usv_wolfpack: 1.5 + enemyShip * 0.8,
     };
     const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     if (!opts.length) continue;
     let total = 0;
+    const siteNat = G.bNation && G.bNation[i] ? normNat(G.bNation[i]) : G.nations[s];
     const ws = opts.map(k => {
-      const pref = NATIONS[G.nations[s]].prefer[UNITS[k].base] || 1;
-      let v = w[UNITS[k].base] * pref * (1 + UNITS[k].cost / 1000 * Math.min(2, f / 2500));
+      const natPref = (NATIONS[siteNat] && NATIONS[siteNat].prefer && NATIONS[siteNat].prefer[UNITS[k].base]) || (NATIONS[G.nations[s]] && NATIONS[G.nations[s]].prefer && NATIONS[G.nations[s]].prefer[UNITS[k].base]) || 1;
+      let v = w[UNITS[k].base] * natPref * (1 + UNITS[k].cost / 1000 * Math.min(2, f / 2500));
       if (isIndirect(k) && cnt(UNITS[k].base) >= 4) v *= 0.3;
       total += v;
       return v;
