@@ -18,7 +18,7 @@ const SIDES = [
 // def: 地面部隊防禦加成 %
 // heal: 可在此補給/修復的部隊類別；build: 可生產的部隊類別
 const TERRAIN = {
-  plain:    { name: '平原', def: 0,  cost: { foot: 1, tread: 1, amph: 1, air: 1 } },
+  plain:    { name: '平原', def: 0,  cost: { foot: 1.1, tread: 1.1, amph: 1.1, air: 1 } },
   road:     { name: '道路', def: 0,  cost: { foot: 1, tread: 1, amph: 1, air: 1 } },
   rail:     { name: '鐵路', def: 0,  cost: { foot: 1, tread: 1, amph: 1, air: 1, rail: 1 } },
   bridge:   { name: '橋樑', def: 0,  cost: { foot: 1, tread: 1, amph: 1, air: 1, sea: 1 } },
@@ -55,7 +55,7 @@ Object.assign(BASE_UNITS, {
   bomber:  { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 7, range: [1, 1], atk: [9, 9, 0, 9], fuel: 75, upkeep: 4 },
   stealth: { cls: 'air', cat: 'air', mt: 'air', cost: 1500, move: 8, range: [1, 1], atk: [8, 9, 0, 8], fuel: 60, upkeep: 4, stealth: true },
   // 搭載兵種：carry.cap 容量、allow 可搭載的移動類型、light 只能載輕型（價格 ≤ 500）、runway 須停在據點上才能卸載
-  truck:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 200, move: 6, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 2, allow: ['foot'] } },
+  truck:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 200, move: 7, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 2, allow: ['foot'] } },
   thelico: { cls: 'air', cat: 'air', mt: 'air', cost: 500, move: 6, range: [1, 1], atk: [0, 0, 0, 0], fuel: 48, upkeep: 2, carry: { cap: 2, allow: ['foot'] } },
   airlift: { cls: 'air', cat: 'air', mt: 'air', cost: 800, move: 9, range: [1, 1], atk: [0, 0, 0, 0], fuel: 75, upkeep: 3, carry: { cap: 2, allow: ['foot', 'tread', 'amph'], light: true, runway: true } },
   lst:     { cls: 'ship', cat: 'sea', mt: 'sea', cost: 600, move: 3, range: [1, 1], atk: [0, 0, 0, 0], carry: { cap: 3, allow: ['foot', 'tread', 'amph'] } },

@@ -122,10 +122,21 @@ async function moveSelectedTo(i, keepOrder = false) {
   }
   if (lv && lv.merge) {
     const u = UIS.sel, t = unitById(lv.merge), reach = UIS.reach;
+    const path = reachPath(reach, i);
+    const total = u.hp + t.hp;
     UIS.mode = 'busy'; UIS.path = null;
-    await doMove(u, reachPath(reach, i), reach.get(i).cost, 85);
-    mergeInto(u, t);
-    sfx('build'); showToast(`合流完成：${UNITS[t.type].name} 兵力 ${t.hp}`);
+    if (total <= 10) {
+      await doMove(u, path, reach.get(i).cost, 85);
+      mergeInto(u, t);
+      sfx('build'); showToast(`合流完成：${UNITS[t.type].name} 兵力 ${t.hp}`);
+    } else {
+      const stopIdx = path.length >= 2 ? path[path.length - 2] : idxOf(u.x, u.y);
+      const stopPath = path.length >= 2 ? path.slice(0, -1) : [stopIdx];
+      const stopCost = reach.get(stopIdx) ? reach.get(stopIdx).cost : Math.max(0, reach.get(i).cost - 1);
+      if (stopPath.length >= 2) await doMove(u, stopPath, stopCost, 85);
+      mergeInto(u, t);
+      sfx('build'); showToast(`合流溢出補滿：${UNITS[t.type].name} 兵力 10，剩餘兵力 ${u.hp}`);
+    }
     clearSel(); refreshPanel();
     return;
   }
@@ -206,6 +217,14 @@ function doCaptureAction(u) {
   const took = doCapture(u);
   sfx(took ? 'capture' : 'foot');
   fxText(cx, cy, took ? '佔領！' : `佔領中 ${G.capture[idxOf(u.x, u.y)].pts}`, SIDES[u.side].light);
+  finishUnit(u);
+}
+function doRepairAction(u) {
+  const [cx, cy] = tileCenter(u.x, u.y);
+  const full = doRepair(u);
+  sfx('capture');
+  const pts = G.capture[idxOf(u.x, u.y)] ? G.capture[idxOf(u.x, u.y)].pts : CAPTURE_POINTS;
+  fxText(cx, cy, full ? '修復完畢！' : `修復中 ${pts}/${CAPTURE_POINTS}`, SIDES[u.side].light);
   finishUnit(u);
 }
 
@@ -314,6 +333,10 @@ function showMenu(u) {
   if (canCapture(u)) {
     const p = capturePointsLeft(u);
     add(`🚩 佔領 <small>${p}→${Math.max(0, p - u.hp)}</small>`, () => doCaptureAction(u), 'cap');
+  }
+  if (typeof canRepair === 'function' && canRepair(u)) {
+    const p = G.capture[idxOf(u.x, u.y)].pts;
+    add(`🛠️ 修復據點 <small>${p}→${Math.min(CAPTURE_POINTS, p + u.hp)}</small>`, () => doRepairAction(u), 'cap');
   }
   if (u.order != null) add('🚩 取消移動命令', () => { u.order = null; UIS.newOrder = false; showToast('已取消移動命令'); showMenu(u); refreshPanel(); }, 'muted');
   add('⏸ 待機', () => finishUnit(u));
@@ -786,20 +809,20 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v66</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v67</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
-      <li>點擊目的地後選擇行動：攻擊、佔領、待機或取消。直接點擊紅色敵軍可自動移動並攻擊。</li>
+      <li>點擊目的地後選擇行動：攻擊、佔領、修復、待機或取消。直接點擊紅色敵軍可自動移動並攻擊。</li>
       <li><b>移動命令</b>：點擊範圍外的地點，部隊會設定該處為最終目的地，之後每回合開始自動前進（右下角黃旗）。選取部隊後可取消命令。</li>
       <li>拖曳平移地圖、滾輪/雙指縮放；取消選取可按地圖下方的「✕ 取消」、右鍵或 Esc；Tab 切換下一個未行動部隊。</li>
       <li>點擊敵軍可查看其威脅範圍（橘色）。</li>
-      <li><b>合流</b>：同型、同陣營且至少一方受損的部隊，移動到另一支身上（<span style="color:#5ad87a">綠色格</span>）即可合併兵力；經驗值依兵力加權平均，合流後本回合不能再行動。</li>
+      <li><b>非破壞性合流</b>：同型、同陣營且目標受損的部隊可執行合流；兵力總和 $\le 10$ 時主動部隊併入，超過 10 時目標補滿至 10 HP，主動部隊<b>保留溢出兵力存活</b>。</li>
       <li><b>夜間</b>：部分劇情任務有夜間回合（畫面變暗、上方顯示 🌙）；夜間直接攻擊 −20%、間接火力缺乏觀測 −40%。</li>
       <li><b>要員（★）</b>：劇情中標示 ★ 的指揮組等要員陣亡即作戰失敗，要讓它遠離敵軍火力。</li></ul>
     <h4>經濟與生產</h4><ul>
-      <li>每回合依據點獲得收入：首都 300、工廠 150、其他 100。</li>
-      <li>點擊己方空的<b>首都/工廠</b>生產地面部隊、<b>首都/機場</b>生產航空部隊、<b>港口</b>生產艦艇。</li>
+      <li>每回合依據點獲得收入：首都 300、工廠 150、其他 100。平原地形移動消耗為 1.1，沿鋪設公路前進機動性更高。</li>
+      <li>點擊己方空的<b>首都/工廠</b>生產地面部隊、<b>首都/機場</b>生產航空部隊、<b>港口</b>生產艦艇（地面運輸卡車機動力提升至 7 格）。新造航母預設為空甲板機庫。</li>
       <li>部隊停在己方據點上，回合開始時恢復 2 HP（花費部隊價格的 10%/HP），飛機需回首都或機場補充燃料，燃料耗盡會墜毀。</li></ul>
     <h4>戰鬥與航母護衛</h4><ul>
       <li>傷害 = 攻擊力 × (HP/10) × (1 − 地形防禦)，±10% 浮動。受損部隊攻擊力下降。</li>
@@ -808,11 +831,12 @@ function openHelp() {
       <li>相鄰的直接攻擊會遭到反擊；<b>自走砲、火箭、防空飛彈</b>為間接攻擊，不會被反擊，但移動後不能射擊。</li>
       <li><b>陸戰隊</b>可以渡海（海上移動消耗 2）並登陸佔領，但在海上沒有地形掩護。</li>
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
-      <li>佔領：步兵類部隊每回合扣除等同 HP 的佔領點（總共 20），離開或陣亡則重置。</li></ul>
+      <li><b>佔領與持久防禦</b>：步兵類部隊每回合扣除等同 HP 的佔領耐久（總計 20），受損時防禦減免亦隨之降低；部隊離開或陣亡後耐久<b>持續保留</b>，原陣營可派步兵執行「🛠️ 修復據點」恢復。</li></ul>
     <h4>國家與 AI 教條</h4><p>11 個陣營各有專屬 AI 作戰教條、專屬色系與作戰偏好（詳見國家圖鑑）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v67</span><span class="cl-date">2026.10.26</span><p>【東亞地理戰區與核心規則修正】導入 100% 本地東亞地理投影生成管線（tools/geogen.js），全面重製 20×20 初階（台灣海峽・澎湖水道）、30×30 中階（琉球群島・沖繩海槽）與 40×40 高階（對馬海峽・朝鮮海峽）三戰區；測試卡片升級高對比 iPad/老花友善排版，標註真實經緯度與據點歸屬比 [我:中:敵]；實裝 5 大核心規則：據點佔領耐久與防禦持久化（支援步兵修復）、部隊合流溢出保留存活（非破壞性合流）、新造航母預設全空甲板、平原移動力消耗調為 1.1（浮點安全尋路）及地面運輸卡車機動力 +1（移動力 7）。</p></div>
         <div class="cl-item"><span class="cl-ver">v66</span><span class="cl-date">2026.10.26</span><p>首頁新增「測試地圖」試驗場入口，推出 20×20 初階（輕裝演習）、30×30 中階（中原爭鋒）與 40×40 高階（鐵血縱深）三梯次戰區；預覽卡片即時依拓撲遙測公式呈現難度標籤（EASY/MEDIUM/HARD）、據點歸屬比（城市/工廠/機場 [我:中:敵]）與兵力/資產不對稱比；支援視角自動縮放至 40×40 大圖。</p></div>
         <div class="cl-item"><span class="cl-ver">v65</span><span class="cl-date">2026.10.26</span><p>擴充無頭模擬器 CLI 地圖拓撲與平衡基準分析工具（--analyze）：量化據點陣營比例、指揮部奪點步數、初始兵力與資產/首回收入不對稱度，並確立四階地圖生成與難度分級規範（Tier S–C）。</p></div>
         <div class="cl-item"><span class="cl-ver">v64</span><span class="cl-date">2026.10.25</span><p>參考世嘉／FC 大戰略資料強化遊戲：新增「合流」（MD スーパー大戰略式，同型受損部隊合併兵力）、劇情「夜間」回合（ADVANCED WORLD WAR 晝夜制，夜間攻擊力下降、畫面變暗）、要員（★）護衛（鋼鉄の戦風司令部式）。乾卦篇強化：初九加入潛龍指揮組、九三夜戰、九四作戰代號「島嶼戰役」、各章額外目標影響後續戰局（少一波登陸、增派艦艇與戰機、菲律賓援軍）、新增真結局「乾元：元亨利貞」，並重新平衡。</p></div>
@@ -934,7 +958,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v66</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v67</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -954,25 +978,30 @@ function openTestMapsMenu() {
     const t = typeof evalMapTelemetry === 'function' ? evalMapTelemetry(id) : null;
     if (!t) return '';
     const M = MISSIONS[id];
+    const geoRegion = M.geoRegion || t.place || '';
+    const geoCoords = M.geoCoords ? `[${M.geoCoords}]` : '';
     return `<div class="testmap-card" style="--tier-c:${t.badgeColor}">
       <div class="tm-head">
-        <div class="tm-title">${M.chapter}・${t.title}<small>${t.place}</small></div>
+        <div class="tm-title-box">
+          <div class="tm-title">${M.chapter}・${t.title} <span class="tm-dim">(${t.w}×${t.h})</span></div>
+          <div class="tm-geo-badge">🌏 <b>${geoRegion}</b> <span class="tm-coords">${geoCoords}</span></div>
+        </div>
         <span class="tm-badge">${t.badge}</span>
       </div>
       <div class="tm-body">
         <div class="tm-col">
-          <h4>據點歸屬 [我方 : 中立 : 敵軍]</h4>
-          <div class="tm-row"><span>🏢 城市</span><span>${t.fac.city.join(' : ')}</span></div>
-          <div class="tm-row"><span>🏭 工廠</span><span>${t.fac.factory.join(' : ')}</span></div>
-          <div class="tm-row"><span>✈️ 機場</span><span>${t.fac.airport.join(' : ')}</span></div>
-          <div class="tm-row"><span>⚓ 首都+港</span><span>${t.fac.hqPort.join(' : ')}</span></div>
+          <h4>據點歸屬比例 [我方 : 中立 : 敵軍]</h4>
+          <div class="tm-row"><span>🏢 城市</span><span class="tm-ratio-val">${t.fac.city.join(' : ')}</span></div>
+          <div class="tm-row"><span>🏭 工廠</span><span class="tm-ratio-val">${t.fac.factory.join(' : ')}</span></div>
+          <div class="tm-row"><span>✈️ 機場</span><span class="tm-ratio-val">${t.fac.airport.join(' : ')}</span></div>
+          <div class="tm-row"><span>⚓ 首都+港</span><span class="tm-ratio-val">${t.fac.hqPort.join(' : ')}</span></div>
         </div>
         <div class="tm-col">
           <h4>初始戰力與經濟遙測</h4>
           <div class="tm-row"><span>⚔️ 兵力數</span><span>${t.uCount[0]} : ${t.uCount[1]} (${t.unitRatio}x)</span></div>
           <div class="tm-row"><span>🛡️ 總資產</span><span>${t.assets[0]} : ${t.assets[1]} (${t.assetRatio}x)</span></div>
           <div class="tm-row"><span>💰 首回收入</span><span>+${t.inc[0]} : +${t.inc[1]} (${t.incRatio}x)</span></div>
-          <div class="tm-row"><span>🗺️ 據點密度</span><span>陸地 ${t.propLandDensity || t.propDensity}%</span></div>
+          <div class="tm-row"><span>🗺️ 陸地佔比</span><span>${t.landPct}% (據點密度 ${t.propLandDensity || t.propDensity}%)</span></div>
         </div>
       </div>
       <button class="primary tm-launch" data-id="${id}">⚔️ 發動演練</button>
@@ -980,7 +1009,7 @@ function openTestMapsMenu() {
   }).join('');
 
   openModal(`<h2>🧪 測試地圖・戰術平衡試驗場</h2>
-    <div class="sub">依據統一地圖拓撲遙測公式即時計算據點比例、初始戰力與資產比，驗證 20×20 / 30×30 / 40×40 梯次平衡。</div>
+    <div class="sub">100% 本地東亞真實地理戰區投影 (20×20 初階 / 30×30 中階 / 40×40 高階)，即時計算據點歸屬比例、戰力與資產比。</div>
     <div class="testmap-grid">${cardsHtml}</div>
     <div class="row"><button class="close">返回</button></div>`, box => {
     box.querySelector('.close').onclick = openMainMenu;

@@ -11,7 +11,7 @@ const RUNS = +(opt('--runs') || 16);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
 const ANALYZE = args.includes('--analyze');
-const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only'].includes(args[k - 1]));
+const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only'].includes(args[k - 1])).flatMap(a => a.split(',')).filter(Boolean);
 
 // 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫（靜默 console 以節省輸出 token）
 const noop = () => {};

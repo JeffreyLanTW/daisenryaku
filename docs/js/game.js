@@ -112,10 +112,10 @@ function computeReach(u) {
       if (c === Infinity) continue;
       const o = occ[ni];
       if (o && o.side !== u.side) continue;
-      const nc = cc + c;
-      if (nc > maxMove) continue;
+      const nc = Math.round((cc + c) * 100) / 100;
+      if (nc > maxMove + 1e-6) continue;
       const ex = dist.get(ni);
-      if (ex && ex.cost <= nc) continue;
+      if (ex && ex.cost <= nc + 1e-6) continue;
       dist.set(ni, { cost: nc, prev: cur });
       open.push(nc, ni);
     }
@@ -147,8 +147,8 @@ function orderPath(u, target) {
       if (c === Infinity) continue;
       const o = occ[ni];
       if (o && o.side !== u.side) continue;
-      const nd = dist[cur] + c;
-      if (nd < dist[ni]) { dist[ni] = nd; prev[ni] = cur; open.push(nd, ni); }
+      const nd = Math.round((dist[cur] + c) * 100) / 100;
+      if (nd < dist[ni] - 1e-6) { dist[ni] = nd; prev[ni] = cur; open.push(nd, ni); }
     }
   }
   if (dist[target] === Infinity) return null;
@@ -184,22 +184,34 @@ function loadInto(u, t) {
   t.cargo.push(u);
   addLog(`${armyName(u)}${UNITS[u.type].name} 搭上 ${UNITS[t.type].name}`, u.side);
 }
-// 合流（スーパー大戦略式）：同型、同陣營且至少一方受損的部隊可合併兵力；經驗值依兵力加權平均
+// 合流（非破壞性溢出補滿）：同型、同陣營且目標受損時可合流；溢出時目標補滿至 10，主動部隊保留溢出兵力存活
 function canMerge(t, u) {
   if (!t || !u || t === u || t.side !== u.side || t.type !== u.type || t.vip || u.vip) return false;
   if ((t.cargo && t.cargo.length) || (u.cargo && u.cargo.length)) return false;
-  const tm = t.maxHp || UNITS[t.type].maxHp || 10, um = u.maxHp || UNITS[u.type].maxHp || 10;
-  return t.hp < tm || u.hp < um;
+  const tm = t.maxHp || UNITS[t.type].maxHp || 10;
+  return t.hp < Math.min(10, tm);
 }
 function mergeInto(u, t) {
-  const max = t.maxHp || UNITS[t.type].maxHp || 10, total = t.hp + u.hp;
-  t.xp = Math.round(((t.xp || 0) * t.hp + (u.xp || 0) * u.hp) / total);
-  t.hp = Math.min(max, total);
-  if (UNITS[t.type].fuel !== undefined) t.fuel = Math.max(t.fuel, u.fuel);
-  t.done = t.moved = true;
-  G.units = G.units.filter(e => e !== u);
-  if (G.stats) G.stats.merges = (G.stats.merges || 0) + 1;
-  addLog(`${armyName(t)}${UNITS[t.type].name} 完成合流，兵力回復至 ${t.hp}`, t.side);
+  const max = 10, total = t.hp + u.hp;
+  if (total <= max) {
+    t.xp = Math.round(((t.xp || 0) * t.hp + (u.xp || 0) * u.hp) / total);
+    t.hp = total;
+    if (UNITS[t.type].fuel !== undefined) t.fuel = Math.max(t.fuel, u.fuel);
+    t.done = t.moved = true;
+    G.units = G.units.filter(e => e !== u);
+    if (G.stats) G.stats.merges = (G.stats.merges || 0) + 1;
+    addLog(`${armyName(t)}${UNITS[t.type].name} 完成合流，兵力回復至 ${t.hp}`, t.side);
+  } else {
+    const needed = max - t.hp;
+    t.xp = Math.round(((t.xp || 0) * t.hp + (u.xp || 0) * needed) / max);
+    t.hp = max;
+    u.hp = total - max;
+    if (UNITS[t.type].fuel !== undefined) t.fuel = Math.max(t.fuel, u.fuel);
+    t.done = t.moved = true;
+    u.done = u.moved = true;
+    if (G.stats) G.stats.merges = (G.stats.merges || 0) + 1;
+    addLog(`${armyName(t)}${UNITS[t.type].name} 合流補滿至 10，剩餘部隊保留兵力 ${u.hp}`, t.side);
+  }
 }
 // 夜間（夕惕若厲）：任務以 night(turn) 指定夜間回合；夜間直接攻擊 ×0.8、間接火力缺乏觀測 ×0.6
 function isNight() {
@@ -294,6 +306,9 @@ function baseDamage(attType, attHp, def, dx, dy, attRank = 0) {
   if (!a) return 0;
   const dd = UNITS[def.type], tk = G.terrain[dy * G.w + dx];
   let td = dd.cat === 'land' ? TERRAIN[tk].def : 0;
+  if (td > 0 && G.capture && G.capture[dy * G.w + dx]) {
+    td = Math.round(td * (G.capture[dy * G.w + dx].pts / CAPTURE_POINTS));
+  }
   if (dd.jungle && (tk === 'forest' || tk === 'hills' || tk === 'mountain')) td += dd.jungle;
   const defAura = unitAura(def);
   const night = isNight() ? (isIndirect(attType) ? 0.6 : 0.8) : 1;
@@ -410,7 +425,7 @@ function removeDead() {
   G.units = G.units.filter(u => u.hp > 0);
 }
 
-// ----- 佔領 -----
+// ----- 佔領與維修 -----
 function canCapture(u) {
   if (!UNITS[u.type].capture) return false;
   const i = idxOf(u.x, u.y);
@@ -418,13 +433,14 @@ function canCapture(u) {
 }
 function capturePointsLeft(u) {
   const c = G.capture[idxOf(u.x, u.y)];
-  return c && c.uid === u.id ? c.pts : CAPTURE_POINTS;
+  return c ? c.pts : CAPTURE_POINTS;
 }
 // 回傳 true = 佔領完成
 function doCapture(u) {
   const i = idxOf(u.x, u.y);
   let c = G.capture[i];
-  if (!c || c.uid !== u.id) c = G.capture[i] = { uid: u.id, side: u.side, pts: CAPTURE_POINTS };
+  if (!c) c = G.capture[i] = { uid: u.id, side: u.side, pts: CAPTURE_POINTS };
+  else { c.uid = u.id; c.side = u.side; }
   c.pts -= u.hp;
   const tname = TERRAIN[G.terrain[i]].name;
   if (c.pts > 0) {
@@ -444,12 +460,32 @@ function doCapture(u) {
   checkVictory();
   return true;
 }
-// 移除不再有效的佔領進度（部隊已離開或陣亡）
+// 佔領耐久持久化：部隊離開或陣亡不重置據點已損耐久/防禦度，僅解除綁定單位
 function clearCapture(u) {
   for (const k in G.capture) {
     const c = G.capture[k];
-    if (c.uid === u.id && (u.hp <= 0 || +k !== idxOf(u.x, u.y))) delete G.capture[k];
+    if (c && c.uid === u.id) c.uid = null;
   }
+}
+// 修復據點（Explicit Repair）：已損耐久之己方據點可由步兵/具佔領能力部隊修復
+function canRepair(u) {
+  if (!UNITS[u.type].capture) return false;
+  const i = idxOf(u.x, u.y);
+  return !!TERRAIN[G.terrain[i]].prop && G.owner[i] === u.side && !!G.capture[i];
+}
+function doRepair(u) {
+  const i = idxOf(u.x, u.y);
+  const c = G.capture[i];
+  if (!c) return false;
+  c.pts = Math.min(CAPTURE_POINTS, c.pts + u.hp);
+  const tname = TERRAIN[G.terrain[i]].name;
+  if (c.pts >= CAPTURE_POINTS) {
+    delete G.capture[i];
+    addLog(`${SIDES[u.side].name}完全修復了${tname}！`, u.side);
+    return true;
+  }
+  addLog(`${SIDES[u.side].name}修復${tname}（耐久回升至 ${c.pts}/${CAPTURE_POINTS}）`, u.side);
+  return false;
 }
 // 可進化的型號：需達到階級，且停在己方可補給的據點上
 function evoOptions(u) {
@@ -505,14 +541,9 @@ function makeUnit(type, side, x, y, extra) {
   const nation = normNat((extra && extra.nation) || (extra && extra.ally) || def.nation || (SIDES[side] ? SIDES[side].nation : 'TW'));
   return Object.assign({ id: G.nextId++, type, side, x, y, hp, maxHp, nation, fuel: def.fuel, moved: false, done: false, xp: 0 }, extra || {});
 }
-// 建立部隊：支援友軍（extra.ally）與預先搭載（extra.load）
+// 建立部隊：支援友軍（extra.ally）與情境預載（extra.load；航母等新產/非劇本部隊預設全空甲板）
 function spawnUnit(type, side, x, y, extra) {
   let { load, ...rest } = extra || {};
-  const def = UNITS[type] || {};
-  // 航母預設配置護衛空優機與攻擊機，大幅提高生存率與戰術防空能力
-  if (load === undefined && (def.base === 'carrier' || type.startsWith('carrier') || def.base === 'wingman_carrier' || type.startsWith('wingman_carrier'))) {
-    load = ['fighter', 'attacker'];
-  }
   const u = makeUnit(type, side, x, y, rest);
   if (load) u.cargo = load.map(t => {
     const cu = makeUnit(t, side, x, y, rest.ally ? { ally: rest.ally } : null);

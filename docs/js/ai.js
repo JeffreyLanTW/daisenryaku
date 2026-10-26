@@ -19,7 +19,7 @@ function distField(goals, mt) {
       const ni = ny * G.w + nx;
       if (done[ni] || moveCost(G.terrain[ni], mt) === Infinity) continue;
       const nd = d[cur] + c;
-      if (nd < d[ni]) { d[ni] = nd; open.push(nd, ni); }
+      if (nd < d[ni] - 1e-6) { d[ni] = nd; open.push(nd, ni); }
     }
   }
   return d;
@@ -296,9 +296,12 @@ async function aiAct(u, token) {
     if (d.capture && t.prop && G.owner[i] !== s) {
       let cs = 350 + (G.owner[i] >= 0 ? 120 : 0) + (G.terrain[i] === 'capital' ? 3000 : 0);
       const c = G.capture[i];
-      if (c && c.uid === u.id) cs += 400;
+      if (c && c.pts < CAPTURE_POINTS) cs += 400 + (CAPTURE_POINTS - c.pts) * 20;
       cs += missionCaptureBonus(u, i);
       consider(base + cs, { kind: 'capture' });
+    } else if (d.capture && t.prop && G.owner[i] === s && G.capture[i]) {
+      let rs = 300 + (G.terrain[i] === 'capital' ? 2000 : 0) + (CAPTURE_POINTS - G.capture[i].pts) * 25;
+      consider(base + rs, { kind: 'repair' });
     }
     if (mode !== 'vip' && (!isIndirect(u.type) || i === start)) {
       for (const e of targetsFrom(u, x, y)) {
@@ -330,6 +333,13 @@ async function aiAct(u, token) {
     const took = doCapture(u);
     if (took && typeof sfx === 'function') sfx('capture');
     fxText(cx, cy, took ? '佔領！' : `佔領中 ${G.capture[idxOf(u.x, u.y)].pts}`, SIDES[s].light);
+    await sleep(SETTINGS.aiStep * 2);
+  } else if (act && act.kind === 'repair') {
+    const [cx, cy] = tileCenter(u.x, u.y);
+    const full = doRepair(u);
+    if (full && typeof sfx === 'function') sfx('capture');
+    const pts = G.capture[idxOf(u.x, u.y)] ? G.capture[idxOf(u.x, u.y)].pts : CAPTURE_POINTS;
+    fxText(cx, cy, full ? '修復完畢！' : `修復中 ${pts}/${CAPTURE_POINTS}`, SIDES[s].light);
     await sleep(SETTINGS.aiStep * 2);
   }
   if (u.hp > 0) markDone(u);
