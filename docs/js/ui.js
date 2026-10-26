@@ -786,7 +786,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v65</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v66</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -813,6 +813,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v66</span><span class="cl-date">2026.10.26</span><p>首頁新增「測試地圖」試驗場入口，推出 20×20 初階（輕裝演習）、30×30 中階（中原爭鋒）與 40×40 高階（鐵血縱深）三梯次戰區；預覽卡片即時依拓撲遙測公式呈現難度標籤（EASY/MEDIUM/HARD）、據點歸屬比（城市/工廠/機場 [我:中:敵]）與兵力/資產不對稱比；支援視角自動縮放至 40×40 大圖。</p></div>
         <div class="cl-item"><span class="cl-ver">v65</span><span class="cl-date">2026.10.26</span><p>擴充無頭模擬器 CLI 地圖拓撲與平衡基準分析工具（--analyze）：量化據點陣營比例、指揮部奪點步數、初始兵力與資產/首回收入不對稱度，並確立四階地圖生成與難度分級規範（Tier S–C）。</p></div>
         <div class="cl-item"><span class="cl-ver">v64</span><span class="cl-date">2026.10.25</span><p>參考世嘉／FC 大戰略資料強化遊戲：新增「合流」（MD スーパー大戰略式，同型受損部隊合併兵力）、劇情「夜間」回合（ADVANCED WORLD WAR 晝夜制，夜間攻擊力下降、畫面變暗）、要員（★）護衛（鋼鉄の戦風司令部式）。乾卦篇強化：初九加入潛龍指揮組、九三夜戰、九四作戰代號「島嶼戰役」、各章額外目標影響後續戰局（少一波登陸、增派艦艇與戰機、菲律賓援軍）、新增真結局「乾元：元亨利貞」，並重新平衡。</p></div>
         <div class="cl-item"><span class="cl-ver">v63</span><span class="cl-date">2026.10.25</span><p>新劇情「2031 乾為天・六龍御天」：依《易經》乾卦六爻，初九潛龍勿用（花東縱谷）、九二見龍在田（嘉南平原，美軍會師）、九三終日乾乾（中部海岸晝夜波狀登陸）、九四或躍在淵（可選渡海奪港或固守，影響下一章兵力）、九五飛龍在天（美日聯合擊沉敵航艦戰鬥群）、上九亢龍有悔（攻陷敵都得「亢龍有悔」，持盈守成得「用九・群龍无首，吉」）；共 6 章 3 結局，經 AI 對戰平衡。</p></div>
@@ -903,7 +904,8 @@ function openTrackMenu() {
 }
 function openMoreMenu() {
   openModal(`<h2>選單</h2><div class="moregrid">
-    <button id="moCamp">📖 劇情・對戰</button><button id="moNations">📚 國家圖鑑</button>
+    <button id="moCamp">📖 劇情・對戰</button><button id="moTest">🧪 測試地圖</button>
+    <button id="moNations">📚 國家圖鑑</button>
     <button id="moSave">💾 存檔</button><button id="moLoad">📂 讀檔</button>
     <button id="moFull">⛶ 全螢幕</button><button id="moHelp">❓ 說明</button>
     <button id="moMusic">🎵 音樂：${AUDIO.on.music ? '開' : '關'}</button><button id="moSfx">🔊 音效：${AUDIO.on.sfx ? '開' : '關'}</button>
@@ -911,6 +913,7 @@ function openMoreMenu() {
     <button class="close" style="grid-column:1/-1">✕ 關閉</button></div>
     <div class="sub" style="text-align:center;margin-top:6px">${audioDiag()}</div>`, box => {
     box.querySelector('#moCamp').onclick = () => openCampaignMenu();
+    box.querySelector('#moTest').onclick = openTestMapsMenu;
     box.querySelector('#moSave').onclick = openSaveDialog;
     box.querySelector('#moLoad').onclick = openLoadDialog;
     box.querySelector('#moFull').onclick = () => { closeModal(); toggleFullscreen(); };
@@ -931,16 +934,65 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v65</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v66</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
+    <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
     <button class="big" id="mmHelp">❓ 作戰說明</button></div>`, box => {
     box.querySelector('#mmCamp').onclick = () => openCampaignMenu();
     box.querySelector('#mmFree').onclick = openNewGame;
+    box.querySelector('#mmTest').onclick = openTestMapsMenu;
     box.querySelector('#mmLoad').onclick = openLoadDialog;
     box.querySelector('#mmHelp').onclick = openHelp;
   });
+}
+
+function openTestMapsMenu() {
+  const ids = ['tm1', 'tm2', 'tm3'];
+  const cardsHtml = ids.map(id => {
+    const t = typeof evalMapTelemetry === 'function' ? evalMapTelemetry(id) : null;
+    if (!t) return '';
+    const M = MISSIONS[id];
+    return `<div class="testmap-card" style="--tier-c:${t.badgeColor}">
+      <div class="tm-head">
+        <div class="tm-title">${M.chapter}・${t.title}<small>${t.place}</small></div>
+        <span class="tm-badge">${t.badge}</span>
+      </div>
+      <div class="tm-body">
+        <div class="tm-col">
+          <h4>據點歸屬 [我方 : 中立 : 敵軍]</h4>
+          <div class="tm-row"><span>🏢 城市</span><span>${t.fac.city.join(' : ')}</span></div>
+          <div class="tm-row"><span>🏭 工廠</span><span>${t.fac.factory.join(' : ')}</span></div>
+          <div class="tm-row"><span>✈️ 機場</span><span>${t.fac.airport.join(' : ')}</span></div>
+          <div class="tm-row"><span>⚓ 首都+港</span><span>${t.fac.hqPort.join(' : ')}</span></div>
+        </div>
+        <div class="tm-col">
+          <h4>初始戰力與經濟遙測</h4>
+          <div class="tm-row"><span>⚔️ 兵力數</span><span>${t.uCount[0]} : ${t.uCount[1]} (${t.unitRatio}x)</span></div>
+          <div class="tm-row"><span>🛡️ 總資產</span><span>${t.assets[0]} : ${t.assets[1]} (${t.assetRatio}x)</span></div>
+          <div class="tm-row"><span>💰 首回收入</span><span>+${t.inc[0]} : +${t.inc[1]} (${t.incRatio}x)</span></div>
+          <div class="tm-row"><span>🗺️ 據點密度</span><span>陸地 ${t.propLandDensity || t.propDensity}%</span></div>
+        </div>
+      </div>
+      <button class="primary tm-launch" data-id="${id}">⚔️ 發動演練</button>
+    </div>`;
+  }).join('');
+
+  openModal(`<h2>🧪 測試地圖・戰術平衡試驗場</h2>
+    <div class="sub">依據統一地圖拓撲遙測公式即時計算據點比例、初始戰力與資產比，驗證 20×20 / 30×30 / 40×40 梯次平衡。</div>
+    <div class="testmap-grid">${cardsHtml}</div>
+    <div class="row"><button class="close">返回</button></div>`, box => {
+    box.querySelector('.close').onclick = openMainMenu;
+    box.querySelectorAll('.tm-launch').forEach(btn => {
+      btn.onclick = () => {
+        const mid = btn.dataset.id;
+        closeModal();
+        if (typeof loadCamp === 'function' && (CAMP_ID !== 'tm' || !CAMP)) loadCamp('tm');
+        if (typeof launchMission === 'function') launchMission(mid);
+      };
+    });
+  }, true);
 }
 
 function showBanner(text, color) {

@@ -574,13 +574,13 @@ function ensureVisible(x, y) {
 }
 function zoomAt(sx, sy, factor) {
   const wx = cam.x + sx / cam.z, wy = cam.y + sy / cam.z;
-  cam.z = Math.max(0.45, Math.min(2.2, cam.z * factor));
+  cam.z = Math.max(0.25, Math.min(2.5, cam.z * factor));
   cam.x = wx - sx / cam.z; cam.y = wy - sy / cam.z;
   clampCam();
 }
 function fitView() {
   const [ww, wh] = worldSize(), [vw, vh] = viewSize();
-  cam.z = Math.max(0.55, Math.min(1.15, Math.min(vw / ww, vh / wh) * 1.05));
+  cam.z = Math.max(0.25, Math.min(1.2, Math.min(vw / ww, vh / wh) * 1.05));
 }
 
 // ----- 小地圖 -----

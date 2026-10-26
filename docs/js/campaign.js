@@ -536,7 +536,7 @@ function allyPref() { try { return localStorage.getItem('daisenryaku_allyai') ==
 // 劇情選擇
 function openCampaignMenu(cid) {
   if (!cid) {
-    const ids = Object.keys(CAMPAIGNS);
+    const ids = Object.keys(CAMPAIGNS).filter(id => id !== 'tm');
     openModal(`<h2>劇情・對戰</h2><div class="sub">選擇劇情戰役，或開一局自由對戰。劇情的戰果會影響後續章節與結局，部隊可以繼承到下一場。</div>
       <div class="campcards">${ids.map(id => {
         const C = CAMPAIGNS[id], st = (loadCamp(id), CAMP), total = C.tree.at(-1)[1].length;
@@ -546,10 +546,15 @@ function openCampaignMenu(cid) {
       }).join('')}
       <button class="campcard free" id="freeCard" style="--c:#8a9aab">
         <div class="ctitle">自由對戰<small>16 國・隨機地圖</small></div><p>選擇雙方國家、地圖大小（小到終極大），對電腦或雙人輪流對戰。</p>
-        <div class="cprog">⚔️ 開新局</div></button></div>
+        <div class="cprog">⚔️ 開新局</div></button>
+      <button class="campcard free" id="testCard" style="--c:#38bdf8">
+        <div class="ctitle">測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></div><p>戰術平衡試驗場，即時地圖拓撲分析與戰力遙測數據。</p>
+        <div class="cprog">🧪 進入試驗場</div></button></div>
       <div class="row"><button class="close">關閉</button></div>`, box => {
       box.querySelector('.close').onclick = closeModal;
       box.querySelector('#freeCard').onclick = openNewGame;
+      const tc = box.querySelector('#testCard');
+      if (tc && typeof openTestMapsMenu === 'function') tc.onclick = openTestMapsMenu;
       box.querySelectorAll('.campcard[data-id]').forEach(b => b.onclick = () => openCampaignMenu(b.dataset.id));
     }, true);
     return;
@@ -599,4 +604,119 @@ function playDialog(lines, heading) {
     };
     render();
   });
+}
+
+
+// ===== 戰術試驗場 / 測試地圖 (Test Maps) =====
+CAMPAIGNS.tm = {
+  title: '測試地圖', sub: '戰術平衡試驗場', player: 0, nations: ['TW', 'CN'], start: 'tm1', key: 'daisenryaku_campaign_tm',
+  desc: '提供 20×20 初階、30×30 中階與 40×40 高階三種標準規模與不對稱梯度的戰術平衡測試戰區。',
+  tree: [['初階 20×20', ['tm1']], ['中階 30×30', ['tm2']], ['高階 40×40', ['tm3']]],
+};
+
+ENDINGS.tm_end = {
+  title: '戰術演練結訓',
+  text: '恭喜指揮官！已順利通過 20×20 初階、30×30 中階與 40×40 高階三種梯次戰區的極限平衡考驗。'
+};
+
+MISSIONS.tm1 = {
+  camp: 'tm', chapter: '測試・初階', title: '輕裝演習', place: '群島要衝 (20×20)', tierBadge: 'EASY / B', tierColor: '#10b981',
+  map: ["MM^^..=..Z..r.X...~~","M^...==...=..G...~~~","^..==.r...=..r..~~~~","..=...=...==...~~~~~","..=....=....=.~~~~~~",".=..ff..=....#~~~~~~",".=..f^...=...=.~~~~~","=...^^....=..=..~~~~","==..o..a...==...~~~~",".==...o.....==.~~~~~","..==...o.....=.~~~~~","...=....g....=.b~~~~","...=..ff.....=..~~~~","..=...b..=...=...~~~","..=..F...=...=.P~~~~",".b=..=...=..b=..~~~~",".bH==...==..=...~~~~","..=..A..=...=...~~~~","..=.....=..b...~~~~~","..==...==.....~~~~~~"],
+  funds: [2000, 800],
+  units: [
+    [0, 'inf', 2, 16], [0, 'inf', 4, 16], [0, 'inf', 3, 15], [0, 'inf', 5, 15],
+    [0, 'tank', 3, 17], [0, 'tank', 4, 14], [0, 'tank', 2, 14],
+    [0, 'arty', 2, 15], [0, 'aa', 5, 17], [0, 'fighter', 5, 18],
+    [1, 'inf', 14, 2], [1, 'inf', 13, 3], [1, 'inf', 11, 2],
+    [1, 'tank', 13, 1], [1, 'tank', 13, 2], [1, 'recon', 12, 4]
+  ],
+  win: [{ id: 'hq', type: 'capture', at: [14, 0], text: '佔領敵方首都' }, { id: 'all', type: 'destroyAll', text: '或殲滅全數敵軍' }],
+  lose: [{ type: 'hq', text: '我方首都失守' }],
+  next: r => ({ to: 'tm2', flags: {}, note: '初階演練告捷，前往中階走廊會戰！' }),
+  briefing: () => [['旁白', '20×20 初階測試戰區：我方具備工廠與資金優勢，適合戰術推進與佔領演練。']],
+};
+
+MISSIONS.tm2 = {
+  camp: 'tm', chapter: '測試・中階', title: '中原爭鋒', place: '走廊會戰 (30×30)', tierBadge: 'MEDIUM / A', tierColor: '#f59e0b',
+  map: ["MMM^^^...ff...===.Z.r.X..Q~~~~","MM^^....ff..==..=...G....~~~~~","M^^...r.==.==...=..r.....~~~~~","^^...==..=..=...=....r...~~~~~","^...=....=...=..==...=...~~~~~","...=...f.=....=...==.==..~~~~~","..=...ff..=....=....=..=.~~~~~","..=...f^...=....=....=..#~~~~~",".=....^^....=....=...=..=.~~~~",".=...^^......=....=..=..=.~~~~","=...f^...o...=....=..=..=.~~~~","=..ff....==...=...=..=..=.~~~~","=..f..a...==..=...=..=..=.~~~~","==.o..==...=..=..==.o=..=.~~~~",".==....=g..====..=g..=..=.~~~~","..==...=g..====..=g..=..=.~~~~","...=..o=..==..=..=...==.o=~~~~","...=..=...=...=..==...a..=~~~~","...=..=...=...=...==....ff~~~~","...=..=...=....=...o...^f~~~~~","...=..=...=....=......^^.~~~~~","...=..=...=....=....^^...~~~~~","...#..=....=....=...^f...~~~~~","...=..==...=....=..ff...~~~~~~","...=...==...=....=.f...~~~~~~~","...=...==..=...=....=..~~~~~~~","...=....=..=..==.b...=.~~~~~~~","...=..b..=.==..b=....=.~~~~~~~","~~~P..=..F=..A..=...^^.~~~~~~~","~~~~..H===......b..^^^.~~~~~~~"],
+  funds: [2500, 2500],
+  units: [
+    [0, 'inf', 6, 28], [0, 'inf', 8, 28], [0, 'inf', 5, 27], [0, 'inf', 7, 27], [0, 'marine', 4, 27],
+    [0, 'tank', 5, 29], [0, 'tank', 7, 29], [0, 'tank', 6, 26], [0, 'tank', 8, 26],
+    [0, 'arty', 4, 28], [0, 'arty', 9, 27], [0, 'aa', 5, 26], [0, 'sam', 8, 27], [0, 'fighter', 13, 28],
+    [1, 'inf', 22, 1], [1, 'inf', 20, 1], [1, 'inf', 23, 2], [1, 'inf', 21, 2], [1, 'marine', 24, 2],
+    [1, 'tank', 23, 0], [1, 'tank', 21, 0], [1, 'tank', 22, 3], [1, 'tank', 20, 3],
+    [1, 'arty', 24, 1], [1, 'arty', 19, 2], [1, 'aa', 23, 3], [1, 'sam', 20, 2], [1, 'fighter', 15, 1]
+  ],
+  win: [{ id: 'hq', type: 'capture', at: [22, 0], text: '佔領敵方首都' }, { id: 'all', type: 'destroyAll', text: '或殲滅全數敵軍' }],
+  lose: [{ type: 'hq', text: '我方首都失守' }],
+  next: r => ({ to: 'tm3', flags: {}, note: '中階演練告捷，前往高階鐵血縱深！' }),
+  briefing: () => [['旁白', '30×30 中階測試戰區：中央走廊與中立資源點對稱分佈，考驗制空權與前進據點爭奪。']],
+};
+
+MISSIONS.tm3 = {
+  camp: 'tm', chapter: '測試・高階', title: '鐵血縱深', place: '縱深戰區 (40×40)', tierBadge: 'HARD / S', tierColor: '#ef4444',
+  map: ["MMMM^^^^....ffff...====...Z..r..X...Q~~~","MMM^^^^....ff.==..==...=....G...=...~~~~","MM^^^.....r..==..==....=..Z.r..G=..~~~~~","M^^^...r..==..=..=.....=....r...=.~~~~~~","^^^...==..=...=..=.....==...=...=.~~~~~~","^^...==...=...=..=......==..==..=.~~~~~~","^...==....=...=...=......==..=..=.~~~~~~","...==.....=...=....=......=..=..#~~~~~~~","..==..ff..=....=....=.....=..=..=.~~~~~~",".==..fff..=....=.....=....=..=..=..~~~~~",".=...ff^..=....==....=....=..=..=..~~~~~","=....f^^..=.....==....=...=..=..=...~~~~","=....^^^..=..Z...==...=...=..=..=...~~~~","=...f^^^..=..=....==..=...=..=..=...~~~~","=..ff^^^..=..=..r..=..=...=..=..=...~~~~","=..f.^^...=..=..=..=..=...=..=..=...~~~~","=..f.^....=..=..=..=..=..==..=..=...~~~~","=..f......=..=..=..=..=..=G..=..=...~~~~","==.o......=..=..=..=..=..==..=..=...~~~~",".==..o....=..=..=..=..=...=..=..=...~~~~","..==..a...====..=..=..=...=..=..=...~~~~","...==..o...==...=..=..=...=..=..=...~~~~","....==..o...=...=..=..=...=..=..=...~~~~",".....==..o..=...=..=..=...=..=..=...~~~~","......==....=...=..=..=..==..=..=...~~~~",".......==...=...=..=..=..=a..=..=...~~~~","........=...=...=..=..=..==..=..=...~~~~","........=...=..==..=..=...=..=..=...~~~~","........=...=..=...=..=...=..=..=...~~~~",".......==..==..=..==..=...=..=..=...~~~~","......==...=...=..=b..=...=..=..=...~~~~",".....==....=...=..=...=...=..=..=...~~~~","....==.....=...=..=...=...=..=..=...~~~~","...==..b...=...=..=...=...=..=..#...~~~~","..==...=...=...=..=...=..==..=..=...~~~~",".==....=...=...=..=..==..=F..=..=...~~~~",".=..b..=...=...=..=..=b..=...=..=...~~~~","=...=..=...=...=..=..=...=...=.....P~~~~","=...=..=..F=...A..=..=...=...=......~~~~","====...H===.......=..=...=...b.....~~~~~"],
+  funds: [3000, 4500],
+  units: [
+    [0, 'inf', 7, 38], [0, 'inf', 9, 38], [0, 'inf', 6, 37], [0, 'inf', 8, 37], [0, 'atinf', 6, 36], [0, 'inf', 10, 37],
+    [0, 'tank', 7, 39], [0, 'tank', 9, 39], [0, 'tank', 6, 35], [0, 'tank', 8, 35], [0, 'tank', 5, 36],
+    [0, 'arty', 5, 38], [0, 'arty', 8, 38], [0, 'rocket', 10, 38], [0, 'aa', 7, 36], [0, 'sam', 9, 36], [0, 'fighter', 11, 38], [0, 'heli', 6, 38],
+    [1, 'inf', 32, 1], [1, 'inf', 30, 1], [1, 'inf', 33, 2], [1, 'inf', 31, 2], [1, 'marine', 34, 2], [1, 'marine', 29, 2],
+    [1, 'tank', 33, 0], [1, 'tank', 31, 0], [1, 'tank', 32, 3], [1, 'tank', 30, 3], [1, 'tank', 33, 4], [1, 'tank', 29, 4],
+    [1, 'tank', 31, 5], [1, 'tank', 28, 5],
+    [1, 'arty', 34, 1], [1, 'arty', 28, 2], [1, 'rocket', 33, 3], [1, 'rocket', 29, 3],
+    [1, 'aa', 32, 4], [1, 'aa', 29, 5], [1, 'heli', 30, 4], [1, 'heli', 28, 4], [1, 'fighter', 25, 1], [1, 'fighter', 27, 2]
+  ],
+  win: [{ id: 'hq', type: 'capture', at: [32, 0], text: '佔領敵方首都' }, { id: 'all', type: 'destroyAll', text: '或殲滅全數敵軍' }],
+  lose: [{ type: 'hq', text: '我方首都失守' }],
+  next: r => ({ to: 'tm_end', flags: {}, note: '高階縱深演練告捷，完成全梯次演習！' }),
+  briefing: () => [['旁白', '40×40 高階測試戰區：敵軍具備壓倒性裝甲縱深與高額軍費，考驗遠程火力延滯與補給線運作。']],
+};
+
+function evalMapTelemetry(id) {
+  const M = MISSIONS[id];
+  if (!M) return null;
+  const P = CAMPAIGNS[campOf(M)] ? CAMPAIGNS[campOf(M)].player : 0;
+  const m = parseMission(M, {}, P);
+  const N = m.w * m.h;
+  let land = 0;
+  const fac = { city: [0, 0, 0], factory: [0, 0, 0], airport: [0, 0, 0], hqPort: [0, 0, 0] };
+  for (let i = 0; i < N; i++) {
+    const t = m.terrain[i], o = m.owner[i];
+    if (t !== 'sea') land++;
+    const b = o === P ? 0 : o === -1 ? 1 : 2;
+    if (t === 'city') fac.city[b]++;
+    else if (t === 'factory') fac.factory[b]++;
+    else if (t === 'airport') fac.airport[b]++;
+    else if (t === 'capital' || t === 'port') fac.hqPort[b]++;
+  }
+  const sum = a => a[0] + a[1] + a[2];
+  const totalProps = sum(fac.city) + sum(fac.factory) + sum(fac.airport) + sum(fac.hqPort);
+  const uCount = [0, 0], uVal = [0, 0];
+  for (const [s, type] of M.units) {
+    const side = s === P ? 0 : 1;
+    const ut = ftype(type, s);
+    const cost = (UNITS[ut] || BASE_UNITS[type] || { cost: 500 }).cost;
+    uCount[side]++;
+    uVal[side] += cost;
+  }
+  const inc = [0, 0];
+  for (let i = 0; i < N; i++) {
+    const o = m.owner[i];
+    if (o === P) inc[0] += (TERRAIN[m.terrain[i]] && TERRAIN[m.terrain[i]].income) || 0;
+    else if (o !== -1) inc[1] += (TERRAIN[m.terrain[i]] && TERRAIN[m.terrain[i]].income) || 0;
+  }
+  const funds = typeof M.funds === 'function' ? M.funds({}) : [...M.funds];
+  const assets = [uVal[0] + funds[0], uVal[1] + funds[1]];
+  const unitRatio = +(uCount[0] / Math.max(1, uCount[1])).toFixed(2);
+  const assetRatio = +(assets[0] / Math.max(1, assets[1])).toFixed(2);
+  const incRatio = +(inc[0] / Math.max(1, inc[1])).toFixed(2);
+  return {
+    id, title: M.title, place: M.place, w: m.w, h: m.h, land, landPct: Math.round(land / N * 100),
+    fac, totalProps, propDensity: +(totalProps / N * 100).toFixed(1),
+    propLandDensity: +(totalProps / Math.max(1, land) * 100).toFixed(1),
+    uCount, uVal, funds, assets, inc, unitRatio, assetRatio, incRatio,
+    badge: M.tierBadge, badgeColor: M.tierColor
+  };
 }
