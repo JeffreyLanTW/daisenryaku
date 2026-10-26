@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 劇情平衡測試：驗證任務地圖，並讓 AI 同時扮演雙方反覆對戰，統計勝率與回合數。
-// 用法：node tools/balance.js [任務id,...] [--runs N] [--flags '{"truth":true}'] [--check]
+// 用法：node tools/balance.js [任務id,...] [--runs N] [--flags '{"truth":true}'] [--check] [--analyze]
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
@@ -10,6 +10,7 @@ const opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null
 const RUNS = +(opt('--runs') || 16);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
+const ANALYZE = args.includes('--analyze');
 const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only'].includes(args[k - 1]));
 
 // 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫（靜默 console 以節省輸出 token）
@@ -105,6 +106,199 @@ const problems = vm.runInContext(`(() => {
 })()`, ctx);
 console.log(problems.length ? '地圖問題：\n  ' + problems.join('\n  ') : '地圖檢查：全部通過');
 if (CHECK_ONLY) process.exit(problems.length ? 1 : 0);
+
+// ----- 地圖拓撲遙測與平衡基準分析 (--analyze) -----
+if (ANALYZE) {
+  vm.runInContext(`
+    function initMapForAnalyze(spec, flags, carryN, carryXp, runIdx = 0) {
+      if (spec.startsWith('free')) {
+        const [, dim = '24x15', sd = '42'] = spec.split(':');
+        const [w, h] = dim.split('x').map(Number);
+        const baseSeed = +sd || 42;
+        const nats = (runIdx & 1) ? ['CN', 'TW'] : ['TW', 'CN'];
+        newGame({ w: w || 24, h: h || 15, seed: baseSeed + (runIdx >> 1), players: [{ ai: true }, { ai: true }], nations: nats });
+        G.pside = (runIdx & 1) ? 1 : 0;
+        return { id: spec, title: '自由對戰點對稱基準', place: G.w + '×' + G.h + ' 隨機圖', type: 'free', slots: 0, xp: 0 };
+      }
+      const M = MISSIONS[spec];
+      const cid = campOf(M), C = CAMPAIGNS[cid];
+      const allIds = C.tree.flatMap(t => t[1]).filter(x => !!MISSIONS[x]);
+      const k = Math.max(0, allIds.indexOf(spec));
+      const defaultXp = [0, 40, 90, 140, 190, 240][Math.min(k, 5)];
+      setupMission(spec, flags || {}, true, carryN > 0 ? synthCarry(carryN, carryXp || defaultXp) : null, true);
+      return { id: spec, title: M.title, place: M.place, type: 'mission', slots: M.slots || 0, xp: defaultXp, horde: M.horde || 0 };
+    }
+    function bfsSteps(startIdx, targetSet, mt) {
+      if (startIdx < 0 || !targetSet.size) return { hex: null, step: null };
+      let bestHex = Infinity;
+      const [sx, sy] = ixy(startIdx);
+      for (const ti of targetSet) {
+        const [tx, ty] = ixy(ti);
+        bestHex = Math.min(bestHex, hexDist(sx, sy, tx, ty));
+      }
+      const N = G.w * G.h, dist = new Float64Array(N).fill(Infinity);
+      const open = new MinHeap();
+      dist[startIdx] = 0; open.push(0, startIdx);
+      let bestStep = Infinity;
+      while (open.size) {
+        const cur = open.pop();
+        if (targetSet.has(cur)) { bestStep = dist[cur]; break; }
+        const [cx, cy] = ixy(cur);
+        for (const [nx, ny] of neighbors(cx, cy)) {
+          const ni = ny * G.w + nx, c = moveCost(G.terrain[ni], mt);
+          if (c === Infinity) continue;
+          const nd = dist[cur] + c;
+          if (nd < dist[ni]) { dist[ni] = nd; open.push(nd, ni); }
+        }
+      }
+      return { hex: bestHex === Infinity ? null : bestHex, step: bestStep === Infinity ? null : bestStep };
+    }
+    function analyzeStatic(spec, flags) {
+      const meta = initMapForAnalyze(spec, flags, 0, 0, 0);
+      const P = G.pside || 0, E = 1 - P, N = G.w * G.h;
+      let land = 0;
+      const fac = {
+        city: [0, 0, 0],     // [P, Neutral, E]
+        factory: [0, 0, 0],
+        airport: [0, 0, 0],
+        hqPort: [0, 0, 0],
+        capital: [0, 0, 0],
+        port: [0, 0, 0],
+      };
+      const neuAll = new Set(), contestProdAir = [new Set(), new Set()], ownProdAir = [new Set(), new Set()];
+      const hqP = G.caps[P], hqE = G.caps[E];
+      for (let i = 0; i < N; i++) {
+        const t = G.terrain[i], o = G.owner[i];
+        if (t !== 'sea') land++;
+        const bucket = o === P ? 0 : o === -1 ? 1 : 2;
+        if (t === 'city') fac.city[bucket]++;
+        else if (t === 'factory') fac.factory[bucket]++;
+        else if (t === 'airport') fac.airport[bucket]++;
+        else if (t === 'capital') { fac.capital[bucket]++; fac.hqPort[bucket]++; }
+        else if (t === 'port') { fac.port[bucket]++; fac.hqPort[bucket]++; }
+        if (TERRAIN[t].prop) {
+          if (o === -1) neuAll.add(i);
+          if (t === 'factory' || t === 'airport' || t === 'port') {
+            if (o !== P) contestProdAir[0].add(i);
+            else if (i !== hqP) ownProdAir[0].add(i);
+            if (o !== E) contestProdAir[1].add(i);
+            else if (i !== hqE) ownProdAir[1].add(i);
+          }
+        }
+      }
+      const sum = a => a[0] + a[1] + a[2];
+      const totalProps = sum(fac.city) + sum(fac.factory) + sum(fac.airport) + sum(fac.hqPort);
+      const totalAir = sum(fac.airport);
+      const totalFac = sum(fac.factory);
+      const [px, py] = ixy(hqP), [ex, ey] = ixy(hqE);
+      const hqDist = hexDist(px, py, ex, ey);
+      const reachNeuP = bfsSteps(hqP, neuAll, 'amph'), reachNeuE = bfsSteps(hqE, neuAll, 'amph');
+      const reachProdP = bfsSteps(hqP, contestProdAir[0], 'amph'), reachProdE = bfsSteps(hqE, contestProdAir[1], 'amph');
+      const reachOwnP = bfsSteps(hqP, ownProdAir[0], 'foot'), reachOwnE = bfsSteps(hqE, ownProdAir[1], 'foot');
+
+      // 兵力與資產（支援標準基準造價與國家實際造價）
+      const allUnits = [];
+      for (const u of G.units) {
+        allUnits.push(u);
+        for (const c of u.cargo || []) allUnits.push(c);
+      }
+      const uCount = [0, 0], uVal = [0, 0], baseVal = [0, 0];
+      const clsCount = [{ soft: 0, hard: 0, air: 0, ship: 0 }, { soft: 0, hard: 0, air: 0, ship: 0 }];
+      for (const u of allUnits) {
+        const s = u.side === P ? 0 : 1, d = UNITS[u.type];
+        uCount[s]++;
+        uVal[s] += d.cost;
+        baseVal[s] += (BASE_UNITS[d.base] || d).cost;
+        clsCount[s][d.cls] = (clsCount[s][d.cls] || 0) + 1;
+      }
+      const inc = [incomeOf(P), incomeOf(E)];
+      const initFunds = [G.funds[P] - (G.cur === P ? inc[0] : 0), G.funds[E] - (G.cur === E ? inc[1] : 0)];
+      const assets = [uVal[0] + initFunds[0], uVal[1] + initFunds[1]];
+      const unitValRatio = uVal[0] / Math.max(1, uVal[1]);
+      const assetRatio = assets[0] / Math.max(1, assets[1]);
+      const unitRatio = uCount[0] / Math.max(1, uCount[1]);
+      const incRatio = inc[0] / Math.max(1, inc[1]);
+
+      // 難度與生成規範分級 (Deterministic Difficulty Heuristic)
+      let tier = 'Tier A (海島要衝/標準戰術)';
+      if (meta.type === 'free') {
+        tier = 'Tier S (點對稱競技基準)';
+      } else if (N >= 1000 || meta.slots >= 5) {
+        tier = 'Tier C (極限非對稱戰區)';
+      } else if (land === N || incRatio >= 0.95) {
+        tier = 'Tier B (陸空高壓走廊)';
+      }
+
+      return {
+        meta, w: G.w, h: G.h, N, land, landPct: Math.round(land / N * 100),
+        fac, totalProps, propDensity: +(totalProps / N * 100).toFixed(1), propLandDensity: +(totalProps / Math.max(1, land) * 100).toFixed(1),
+        airFacRatio: +(totalAir / Math.max(1, totalFac)).toFixed(2),
+        hqDist, reachNeuP, reachNeuE, reachProdP, reachProdE, reachOwnP, reachOwnE,
+        uCount, clsCount, uVal, baseVal, initFunds, assets, inc,
+        unitRatio: +unitRatio.toFixed(2), unitValRatio: +unitValRatio.toFixed(2), assetRatio: +assetRatio.toFixed(2), incRatio: +incRatio.toFixed(2),
+        tier,
+      };
+    }
+    async function simAnalyzeOne(spec, flags, carryN, carryXp, runIdx) {
+      const meta = initMapForAnalyze(spec, flags, carryN, carryXp, runIdx);
+      const maxT = meta.type === 'free' ? 60 : 160;
+      let guard = 0;
+      while (G.winner == null && guard++ < maxT) {
+        await aiTurn();
+        if (G.winner != null) break;
+        endTurn();
+      }
+      const P = G.pside || 0, st = G.stats || {};
+      let win = false;
+      if (meta.type === 'free') {
+        if (G.winner != null) win = G.winner === P;
+        else {
+          const score = s => G.owner.filter(o => o === s).length * 300 + G.units.filter(u => u.side === s).reduce((t, u) => t + UNITS[u.type].cost * u.hp / 10, 0) + G.funds[s] * 0.5;
+          win = score(P) >= score(1 - P);
+        }
+      } else {
+        win = !!(G.result && G.result.win);
+      }
+      return { win, turn: G.turn, loads: st.loads || 0, unloads: st.unloads || 0, amph: st.amphibious_captures || 0, crashes: st.crashes || 0 };
+    }
+  `, ctx);
+
+  (async () => {
+    const targets = ids.length ? ids : ['t1', 'c4', 'f6', 'free:24x15:42'];
+    const fmtPNE = a => `${a[0]}:${a[1]}:${a[2]}(${a[0] + a[1] + a[2]})`;
+    const fmtReach = r => r.hex == null ? '—' : `${r.hex}格/${r.step ?? '∞'}步`;
+    console.log(`\n=== 地圖拓撲遙測與動態平衡基準分析 (每張地圖模擬 ${RUNS} 場) ===`);
+    console.log('| 地圖 (尺寸/陸地%) | 城市 [P:N:E] | 工廠 [P:N:E] | 機場 [P:N:E] | 首都+港 [P:N:E] | 據點密度(空/廠比) | HQ奪點距離 P｜E (中立點 / 敵方廠場) | 初始兵力 P:E [步/甲/空/艦] | 兵力價值比 / 總資產比 | 首回收入比 P:E | AI勝率 (均回合/墜機) | 難度分級 |');
+    console.log('| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |');
+    for (const spec of targets) {
+      const st = vm.runInContext(`analyzeStatic(${JSON.stringify(spec)}, ${JSON.stringify(FLAGS || {})})`, ctx);
+      const runBatch = async (cN, cXp) => {
+        const res = [];
+        for (let k = 0; k < RUNS; k++) res.push(await ctx.simAnalyzeOne(spec, FLAGS || {}, cN, cXp, k));
+        const w = res.filter(r => r.win).length;
+        const avgT = (res.reduce((s, r) => s + r.turn, 0) / RUNS).toFixed(1);
+        const avgC = (res.reduce((s, r) => s + r.crashes, 0) / RUNS).toFixed(1);
+        return { pct: Math.round(w / RUNS * 100), avgT, avgC };
+      };
+      const baseSim = await runBatch(0, 0);
+      let winStr = `${baseSim.pct}% (${baseSim.avgT}T / 墜${baseSim.avgC})`;
+      if (st.meta.slots > 0) {
+        const carrySim = await runBatch(8, st.meta.xp);
+        winStr = `裸${baseSim.pct}% / 帶兵${carrySim.pct}% (${carrySim.avgT}T/墜${carrySim.avgC})`;
+      }
+      const clsP = `${st.clsCount[0].soft}/${st.clsCount[0].hard}/${st.clsCount[0].air}/${st.clsCount[0].ship}`;
+      const clsE = `${st.clsCount[1].soft}/${st.clsCount[1].hard}/${st.clsCount[1].air}/${st.clsCount[1].ship}`;
+      const reachStr = `中:${fmtReach(st.reachNeuP)}｜${fmtReach(st.reachNeuE)} / 廠:${fmtReach(st.reachProdP)}｜${fmtReach(st.reachProdE)}`;
+      console.log(`| **${st.meta.id} ${st.meta.title}** (${st.w}×${st.h}, 陸${st.landPct}%) | ${fmtPNE(st.fac.city)} | ${fmtPNE(st.fac.factory)} | ${fmtPNE(st.fac.airport)} | ${fmtPNE(st.fac.hqPort)} | 全圖${st.propDensity}%/陸${st.propLandDensity}% (${st.airFacRatio}) | ${reachStr} | ${st.uCount[0]}:${st.uCount[1]} (${st.unitRatio}x) [${clsP} vs ${clsE}] | 兵${st.uVal[0]}:${st.uVal[1]}(${st.unitValRatio}x) / 資${st.assets[0]}:${st.assets[1]}(${st.assetRatio}x) | ${st.inc[0]}:${st.inc[1]} (${st.incRatio}x) | ${winStr} | ${st.tier} |`);
+    }
+    console.log('\n[地圖生成與難度分級規範 (Deterministic Map Generation & Difficulty Standard)]');
+    console.log('  - Tier S (點對稱競技基準 / Skirmish): 陸地據點密度 8–14% | 空/廠比 1.0–2.0 | 據點比 [P:N:E] 完全點對稱 (1:K:1) | 兵力與收入比 1.00x | 目標AI勝率 45–55%');
+    console.log('  - Tier A (海島要衝守備 / Island Choke): 陸地據點密度 8–15% | 空/廠比 1.5–2.5 | 海峽天險遲滯敵軍兩棲渡海 | 兵力價值比 0.45–0.65x / 總資產比 0.35–0.60x | 目標AI勝率 55–75%');
+    console.log('  - Tier B (陸空高壓走廊 / Land Corridor): 陸地據點密度 4–8%  | 空/廠比 2.0–3.0 | 中央中立機場爭奪+敵裝甲海 | 兵力價值比 0.50–0.70x / 首回收入比 0.85–1.05x | 目標AI勝率 50–75%');
+    console.log('  - Tier C (極限非對稱戰區 / Theater):    陸地據點密度 6–12% | 空/廠比 3.5–4.5 | 多點搶灘+人海倍率+老兵繼承 | 裸裝資產比 0.35–0.45x (需繼承6–8支老兵抗衡) | 目標AI勝率(帶兵) 45–75%');
+  })();
+  return;
+}
 
 // ----- 帶入兵力掃描：每關用不同繼承兵力測試，確認難度不會因帶入多寡而失衡 -----
 if (args.includes('--sweep')) {

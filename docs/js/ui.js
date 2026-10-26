@@ -786,7 +786,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v64</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v65</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -813,6 +813,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v65</span><span class="cl-date">2026.10.26</span><p>擴充無頭模擬器 CLI 地圖拓撲與平衡基準分析工具（--analyze）：量化據點陣營比例、指揮部奪點步數、初始兵力與資產/首回收入不對稱度，並確立四階地圖生成與難度分級規範（Tier S–C）。</p></div>
         <div class="cl-item"><span class="cl-ver">v64</span><span class="cl-date">2026.10.25</span><p>參考世嘉／FC 大戰略資料強化遊戲：新增「合流」（MD スーパー大戰略式，同型受損部隊合併兵力）、劇情「夜間」回合（ADVANCED WORLD WAR 晝夜制，夜間攻擊力下降、畫面變暗）、要員（★）護衛（鋼鉄の戦風司令部式）。乾卦篇強化：初九加入潛龍指揮組、九三夜戰、九四作戰代號「島嶼戰役」、各章額外目標影響後續戰局（少一波登陸、增派艦艇與戰機、菲律賓援軍）、新增真結局「乾元：元亨利貞」，並重新平衡。</p></div>
         <div class="cl-item"><span class="cl-ver">v63</span><span class="cl-date">2026.10.25</span><p>新劇情「2031 乾為天・六龍御天」：依《易經》乾卦六爻，初九潛龍勿用（花東縱谷）、九二見龍在田（嘉南平原，美軍會師）、九三終日乾乾（中部海岸晝夜波狀登陸）、九四或躍在淵（可選渡海奪港或固守，影響下一章兵力）、九五飛龍在天（美日聯合擊沉敵航艦戰鬥群）、上九亢龍有悔（攻陷敵都得「亢龍有悔」，持盈守成得「用九・群龍无首，吉」）；共 6 章 3 結局，經 AI 對戰平衡。</p></div>
         <div class="cl-item"><span class="cl-ver">v62</span><span class="cl-date">2026.10.25</span><p>【熱修復】主選單版號標章同步校準；嚴格鎖定右側欄層級順序（部隊資訊卡置頂於小地圖正下方，優先於章節任務、地形與戰報），全裝置與不同解析度下無需滾動即可即時掌握部隊狀態。</p></div>
@@ -930,7 +931,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v64</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v65</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
