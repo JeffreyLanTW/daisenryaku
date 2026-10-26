@@ -106,6 +106,37 @@ function getDoctrine(nat) {
   return AI_DOCTRINES[nid] || AI_DOCTRINES.TW;
 }
 
+// 三大 AI 戰術風格（A 冒險型 / B 綜合型 / C 保守型）
+const AI_PERSONAS = {
+  A: {
+    id: 'A', name: '冒險型', en: 'Aggressive', badge: 'A 冒險型',
+    desc: '極限進攻・斬首直取：高攻擊與突擊首都權重，低後撤門檻，優先建造主力裝甲與突擊航空兵力',
+    attackWeight: 1.4, threatWeight: 0.65, decapitation: 2.2, captureWeight: 0.9, coverBonus: 0.7,
+    retreatHp: 0.15, repairWeight: 0.6, mergeThreshold: 0.25,
+    prodWeights: { tank: 1.4, fighter: 1.3, attacker: 1.5, bomber: 1.5, anduril_tank: 1.4, nano_swarm: 1.4, arty: 0.8, aa: 0.7, sam: 0.7, inf: 0.85 }
+  },
+  B: {
+    id: 'B', name: '綜合型', en: 'Balanced', badge: 'B 綜合型',
+    desc: '步步為營・多兵種協同：平衡佔領中立據點、前線消耗交換、諸兵種合成作戰與後勤補給',
+    attackWeight: 1.0, threatWeight: 1.0, decapitation: 1.0, captureWeight: 1.0, coverBonus: 1.0,
+    retreatHp: 0.30, repairWeight: 1.0, mergeThreshold: 0.50,
+    prodWeights: {}
+  },
+  C: {
+    id: 'C', name: '保守型', en: 'Conservative', badge: 'C 保守型',
+    desc: '固若金湯・要塞防禦：高度重視地形防禦與咽喉扼守，殘血主動後撤/合流/修復，優先配置防空與砲兵',
+    attackWeight: 0.8, threatWeight: 1.45, decapitation: 0.7, captureWeight: 1.3, coverBonus: 1.8,
+    retreatHp: 0.45, repairWeight: 1.8, mergeThreshold: 0.75,
+    prodWeights: { aa: 1.5, sam: 1.5, arty: 1.4, rocket: 1.3, laser_aa: 1.6, euv_fortress: 1.5, inf: 1.25, atinf: 1.25, tank: 0.85, attacker: 0.7, bomber: 0.6 }
+  }
+};
+
+function getPersona(side) {
+  if (!G || !G.players || !G.players[side]) return AI_PERSONAS.B;
+  const p = G.players[side].persona;
+  return AI_PERSONAS[p] || AI_PERSONAS.B;
+}
+
 function aiGoals(u, baseField) {
   const d = UNITS[u.type], s = u.side, goals = new Map();
   const add = (i, off) => { if (!goals.has(i) || goals.get(i) > off) goals.set(i, off); };
@@ -120,8 +151,10 @@ function aiGoals(u, baseField) {
   }
   const nat = unitNation(u);
   const doc = getDoctrine(nat);
+  const persona = getPersona(s);
   const uMax = u.maxHp || d.maxHp || 10;
-  const hurt = doc.retreatHp > 0 && u.hp <= uMax * doc.retreatHp;
+  const effRetreatHp = Math.min(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp);
+  const hurt = effRetreatHp > 0 && u.hp <= uMax * effRetreatHp;
   const rTurns = baseField ? Math.ceil(Math.max(1, baseField[here]) / d.move) : 1;
   const fuelMargin = doc.strictRtb ? 6 : 4;
   const lowFuel = baseField && u.fuel <= baseField[here] + d.upkeep * (rTurns + 2) + fuelMargin;
@@ -186,11 +219,13 @@ function aiGoals(u, baseField) {
       if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
       const isCap = G.terrain[i] === 'capital';
       const isFab = G.bNation && (G.bNation[i] === 'TSMC' || G.bNation[i] === 'USCORP');
-      let pri = isCap ? -5 * doc.decapitation : (isFab ? -4 * doc.decapitation : (G.owner[i] >= 0 ? -1 : 0));
+      let pri = isCap ? -5 * doc.decapitation * persona.decapitation : (isFab ? -4 * doc.decapitation : (G.owner[i] >= 0 ? -1 : Math.round(0 - (persona.captureWeight - 1) * 3)));
       add(i, pri);
     }
   }
-  for (const e of G.units) if (e.side !== s && canHit(u.type, e)) add(idxOf(e.x, e.y), e.vip ? -4 : d.capture ? 4 : 0);
+  for (const e of G.units) if (e.side !== s && canHit(u.type, e)) {
+    add(idxOf(e.x, e.y), e.vip ? -4 : d.capture ? 4 : (persona.id === 'A' ? -2 : 0));
+  }
   if (!d.capture && d.cat !== 'air') {
     for (let i = 0; i < G.owner.length; i++) {
       if (G.owner[i] === 1 - s) add(i, G.terrain[i] === 'capital' ? 2 : 5);
@@ -267,11 +302,12 @@ async function aiAct(u, token) {
     const [x, y] = ixy(i), t = TERRAIN[G.terrain[i]];
     const consider = (sc, act) => { if (sc > best.score) best = { score: sc, dest: i, act }; };
     const doc = getDoctrine(unitNation(u));
+    const persona = getPersona(s);
     let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : mode === 'vip' || mode === 'deliver' || mode === 'pickup' ? 14 : 9 * ag);
-    if (d.cat === 'land') base += t.def * 0.4 * (doc.coverBonus || 1.0);
+    if (d.cat === 'land') base += t.def * 0.4 * (doc.coverBonus || 1.0) * persona.coverBonus;
     base += missionHoldBonus(u, i);
     const thrW = mode === 'retreat' || mode === 'vip' || d.carry ? 2.6 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
-    base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW / (mode === 'attack' || mode === 'deliver' ? ag : 1);
+    base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW * persona.threatWeight / (mode === 'attack' || mode === 'deliver' ? ag : 1);
     if (t.build && G.owner[i] === s && d.cat !== 'air') base -= 45;
     if (t.prop && G.owner[i] !== s && !d.capture && !(d.carry && d.carry.runway && (u.cargo || []).length)) base -= 30;
     if (mode === 'deliver' && (u.cargo || []).length) {
@@ -294,21 +330,21 @@ async function aiAct(u, token) {
 
     consider(base, null);
     if (d.capture && t.prop && G.owner[i] !== s) {
-      let cs = 350 + (G.owner[i] >= 0 ? 120 : 0) + (G.terrain[i] === 'capital' ? 3000 : 0);
+      let cs = 350 + (G.owner[i] >= 0 ? 120 : 0) + (G.terrain[i] === 'capital' ? (3000 * persona.decapitation) : 0);
       const c = G.capture[i];
       if (c && c.pts < CAPTURE_POINTS) cs += 400 + (CAPTURE_POINTS - c.pts) * 20;
       cs += missionCaptureBonus(u, i);
-      consider(base + cs, { kind: 'capture' });
+      consider(base + cs * persona.captureWeight, { kind: 'capture' });
     } else if (d.capture && t.prop && G.owner[i] === s && G.capture[i]) {
       let rs = 300 + (G.terrain[i] === 'capital' ? 2000 : 0) + (CAPTURE_POINTS - G.capture[i].pts) * 25;
-      consider(base + rs, { kind: 'repair' });
+      consider(base + rs * persona.repairWeight, { kind: 'repair' });
     }
     if (mode !== 'vip' && (!isIndirect(u.type) || i === start)) {
       for (const e of targetsFrom(u, x, y)) {
         const f = forecast(u, e, x, y);
         if (f.dmg === 0) continue;
         const ec = UNITS[e.type].cost;
-        let val = f.dmg * ec / 10 * ag + (f.dmg >= e.hp ? ec * 0.4 : 0) - f.counter * d.cost / 10 * 0.9 / ag;
+        let val = (f.dmg * ec / 10 * ag + (f.dmg >= e.hp ? ec * 0.4 : 0) - f.counter * d.cost / 10 * 0.9 / ag) * persona.attackWeight;
         if (G.capture[idxOf(e.x, e.y)]) val += 250;
         if (e.vip) val += 500;
         consider(base + val + 30 * ag, { kind: 'attack', target: e });
@@ -316,12 +352,12 @@ async function aiAct(u, token) {
     }
   }
 
-  if (token !== gameToken) return;
+  if (token !== gameToken || (G && G.autoPilotCancel)) return;
   if (best.dest !== start) {
     ensureVisible(u.x, u.y);
     await doMove(u, reachPath(reach, best.dest), reach.get(best.dest).cost, SETTINGS.aiStep);
   }
-  if (token !== gameToken) return;
+  if (token !== gameToken || (G && G.autoPilotCancel)) return;
   const act = best.act;
   if (act && act.kind === 'land') { loadInto(u, act.t); refreshPanel(); return; }
   if (d.carry && !d.carry.deck) aiUnload(u);
@@ -415,9 +451,11 @@ function aiProduce(s) {
     if (!opts.length) continue;
     let total = 0;
     const siteNat = G.bNation && G.bNation[i] ? normNat(G.bNation[i]) : G.nations[s];
+    const persona = getPersona(s);
     const ws = opts.map(k => {
       const natPref = (NATIONS[siteNat] && NATIONS[siteNat].prefer && NATIONS[siteNat].prefer[UNITS[k].base]) || (NATIONS[G.nations[s]] && NATIONS[G.nations[s]].prefer && NATIONS[G.nations[s]].prefer[UNITS[k].base]) || 1;
-      let v = w[UNITS[k].base] * natPref * (1 + UNITS[k].cost / 1000 * Math.min(2, f / 2500));
+      const personaPref = (persona.prodWeights && persona.prodWeights[UNITS[k].base]) || 1.0;
+      let v = w[UNITS[k].base] * natPref * personaPref * (1 + UNITS[k].cost / 1000 * Math.min(2, f / 2500));
       if (isIndirect(k) && cnt(UNITS[k].base) >= 4) v *= 0.3;
       total += v;
       return v;
@@ -481,12 +519,13 @@ async function aiTurn() {
   };
   const units = G.units.filter(u => u.side === s && !u.done).sort((a, b) => prio(a) - prio(b));
   for (const u of units) {
-    if (token !== gameToken || G.winner != null) return;
+    if (token !== gameToken || G.winner != null || (G && G.autoPilotCancel)) return;
     if (u.hp <= 0) continue;
     await aiAct(u, token);
     checkVictory();
+    if (G && G.autoPilotCancel) return;
   }
-  if (token !== gameToken || G.winner != null) return;
+  if (token !== gameToken || G.winner != null || (G && G.autoPilotCancel)) return;
   aiProduce(s);
   refreshPanel();
   await sleep(SETTINGS.aiStep * 3);

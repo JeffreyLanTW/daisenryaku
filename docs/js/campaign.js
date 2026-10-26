@@ -249,24 +249,36 @@ function startMission(id) {
       ${M.allies && M.allies.length ? `<div class="allychoice"><b>🤝 援軍：${M.allies.map(n => NATIONS[n].army).join('、')}</b>
         <label><input type="radio" name="allyc" value="me" ${allyPref() ? '' : 'checked'}> 由我指揮</label>
         <label><input type="radio" name="allyc" value="ai" ${allyPref() ? 'checked' : ''}> 交給電腦指揮</label></div>` : ''}
+      <div class="allychoice persona-choice"><b>🧠 敵軍 AI 風格：</b>
+        <label><input type="radio" name="enemyp" value="B" checked> <b>B 綜合型</b> (平衡)</label>
+        <label><input type="radio" name="enemyp" value="A"> <b>A 冒險型</b> (激進)</label>
+        <label><input type="radio" name="enemyp" value="C"> <b>C 保守型</b> (要塞)</label>
+      </div>
       <div class="row"><button class="close">返回</button><button class="primary" id="goMission">開始作戰</button></div>`, box => {
       box.querySelector('.close').onclick = () => openCampaignMenu(CAMP_ID);
       box.querySelector('#goMission').onclick = () => {
         const r = box.querySelector('input[name=allyc]:checked'), ai = r ? r.value === 'ai' : false;
+        const ep = (box.querySelector('input[name=enemyp]:checked') || {}).value || 'B';
         try { localStorage.setItem('daisenryaku_allyai', ai ? '1' : '0'); } catch (e) { /* 忽略 */ }
-        closeModal(); launchMission(id, ai);
+        closeModal(); launchMission(id, ai, ep);
       };
     });
   });
 }
 // 建立任務遊戲狀態（不含畫面）；aiBoth 用於自動平衡測試
 // inherit：{ units: [{base, node, xp}], funds } 由上一場繼承（只在同國家時部署）
-function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = false) {
+function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = false, enemyPersona = 'B', playerPersona = 'B') {
   const M = MISSIONS[id], P = CAMPAIGNS[campOf(M)].player;
   const m = parseMission(M, flags, P);
   const funds = typeof M.funds === 'function' ? M.funds(flags) : [...M.funds];
-  initState(m, { players: [0, 1].map(s => ({ ai: aiBoth || s !== P })), funds, missionId: id, seed: 0,
-    nations: M.nations || CAMPAIGNS[campOf(M)].nations, allies: alliesOf(M), allyAI });
+  initState(m, {
+    players: [0, 1].map(s => ({
+      ai: aiBoth || s !== P,
+      persona: s === P ? playerPersona : enemyPersona
+    })),
+    funds, missionId: id, seed: 0,
+    nations: M.nations || CAMPAIGNS[campOf(M)].nations, allies: alliesOf(M), allyAI
+  });
   G.hq = m.hq;
   G.pside = P;
   G.campFlags = Object.assign({}, flags);
@@ -433,11 +445,11 @@ function carryCandidates(P) {
   for (const u of G.reserve || []) out.push(u);
   return out.filter(u => u.hp > 0);
 }
-function launchMission(id, allyAI = false) {
+function launchMission(id, allyAI = false, enemyPersona = 'B') {
   clearSel(); setInspect(null); FX.length = 0;
   const nid = (MISSIONS[id].nations || CAMPAIGNS[campOf(MISSIONS[id])].nations)[CAMPAIGNS[campOf(MISSIONS[id])].player];
   const roster = (CAMP.roster || {})[nid];
-  setupMission(id, CAMP.flags, false, roster ? { units: roster, funds: CAMP.carryFunds || 0 } : null, allyAI);
+  setupMission(id, CAMP.flags, false, roster ? { units: roster, funds: CAMP.carryFunds || 0 } : null, allyAI, enemyPersona);
   CAMP.carryFunds = 0;
   saveCamp();
   buildTerrain(); resize(); fitView();

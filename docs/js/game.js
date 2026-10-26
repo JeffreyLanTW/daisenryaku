@@ -673,11 +673,17 @@ function checkVictory() {
 // m: {w, h, terrain, owner, caps, roads, start: [[type, idx, side, extra]]}
 function initState(m, opts) {
   gameToken++;
+  const rawPlayers = opts.players || [{ ai: false }, { ai: true }];
+  const players = rawPlayers.map(p => ({
+    ai: !!p.ai,
+    persona: p.persona || 'B'
+  }));
   G = {
     w: m.w, h: m.h, seed: opts.seed,
     terrain: m.terrain, owner: m.owner, caps: m.caps, roads: m.roads, rails: m.rails || [],
     units: [], turn: 1, cur: 0, funds: opts.funds || [START_FUNDS, START_FUNDS],
-    players: opts.players, capture: {}, winner: null, winReason: '',
+    players, autoPilot: false, autoPilotCancel: false,
+    capture: {}, winner: null, winReason: '',
     nextId: 1, log: [], missionId: opts.missionId || null, result: null, nations: opts.nations || ['TW', 'CN'],
     allies: opts.allies || [], allyAI: !!opts.allyAI,
     bNation: m.bNation ? [...m.bNation] : new Array(m.w * m.h).fill(null),

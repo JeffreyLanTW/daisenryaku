@@ -165,6 +165,7 @@ function cancelMove() {
   selectUnit(u);
 }
 function cancelAction() {
+  if (G && G.autoPilot) { stopAutoPilot(true); return; }
   if (UIS.mode === 'busy') return;
   if (UIS.mode === 'unload') { const t = UIS.unload.t; UIS.unload = null; UIS.mode = 'menu'; showMenu(t); return refreshPanel(); }
   if (UIS.mode === 'target') { UIS.mode = 'menu'; UIS.targets = null; showMenu(UIS.sel); }
@@ -520,6 +521,125 @@ function updateNextUnitButton() {
     }
   }
 }
+
+// ----- 電腦代理指揮 (Auto-Pilot) 狀態管理與執行佇列 -----
+function updateAutoPilotUI() {
+  const btn = $('#btnAutoPilot');
+  const bar = $('#autoPilotBar');
+  if (!G) {
+    if (btn) btn.classList.add('hidden');
+    if (bar) bar.classList.add('hidden');
+    return;
+  }
+  const isHuman = G.players[G.cur] && !G.players[G.cur].ai;
+  const isDeploy = UIS.mode === 'deploy';
+  const over = G.winner != null;
+  if (btn) {
+    btn.classList.toggle('hidden', !isHuman || isDeploy || over);
+    if (G.autoPilot) {
+      btn.classList.add('active');
+      btn.innerHTML = '⏹️ 中斷代理';
+      btn.title = '立即中止電腦代理，取回手動指揮權 (Esc)';
+    } else {
+      btn.classList.remove('active');
+      btn.innerHTML = '🤖 電腦代理';
+      btn.title = '由電腦 AI 代理指揮本回合（可隨時中斷）';
+    }
+  }
+  if (bar) {
+    bar.classList.toggle('hidden', !G.autoPilot || over);
+    if (G.autoPilot) {
+      const p = (G.players[G.cur] && G.players[G.cur].persona) || 'B';
+      const pInfo = (typeof AI_PERSONAS !== 'undefined' && AI_PERSONAS[p]) ? AI_PERSONAS[p] : { name: '綜合型', badge: 'B 綜合型', desc: '' };
+      const badge = $('#apPersonaBadge');
+      if (badge) {
+        badge.textContent = pInfo.badge;
+        badge.className = `ap-badge p-${p}`;
+        badge.title = pInfo.desc;
+      }
+      const cycleBtn = $('#apPersonaCycle');
+      if (cycleBtn) {
+        cycleBtn.innerHTML = `風格: <b>${p}</b> ▾`;
+        cycleBtn.title = `目前戰術風格：${pInfo.name}（點擊切換風格）`;
+      }
+    }
+  }
+}
+
+async function toggleAutoPilot() {
+  if (!G || G.winner != null || UIS.mode === 'deploy') return;
+  if (G.autoPilot) {
+    stopAutoPilot(true);
+  } else {
+    await startAutoPilot();
+  }
+}
+
+async function startAutoPilot() {
+  if (!G || G.winner != null || UIS.mode === 'deploy') return;
+  if (G.players[G.cur] && G.players[G.cur].ai) return;
+  G.autoPilot = true;
+  G.autoPilotCancel = false;
+  clearSel();
+  setInspect(null);
+  updateAutoPilotUI();
+  showToast('🤖 已啟動電腦代理指揮（可隨時按中斷或 Esc 取回指揮權）');
+  if (UIS.mode === 'busy') return;
+  await runAutoPilotTurn(G.cur);
+}
+
+function stopAutoPilot(manual = false) {
+  if (!G) return;
+  G.autoPilotCancel = true;
+  G.autoPilot = false;
+  updateAutoPilotUI();
+  if (manual) showToast('⏹️ 正在中斷電腦代理，完成當前動作後取回控制…');
+}
+
+function cycleAutoPilotPersona() {
+  if (!G || !G.players[G.cur]) return;
+  const curP = G.players[G.cur].persona || 'B';
+  const order = ['B', 'A', 'C'];
+  const nextP = order[(order.indexOf(curP) + 1) % order.length];
+  G.players[G.cur].persona = nextP;
+  updateAutoPilotUI();
+  const info = (typeof AI_PERSONAS !== 'undefined' && AI_PERSONAS[nextP]) ? AI_PERSONAS[nextP] : { name: nextP, badge: `${nextP} 型` };
+  showToast(`已切換代理風格：${info.badge} - ${info.name}`);
+}
+
+async function runAutoPilotTurn(side) {
+  const token = gameToken;
+  UIS.mode = 'busy';
+  refreshPanel();
+  try {
+    await aiTurn();
+  } catch (err) {
+    console.error('Auto-pilot execution error:', err);
+  }
+  if (token !== gameToken) return;
+  if (G && G.autoPilotCancel) {
+    G.autoPilot = false;
+    G.autoPilotCancel = false;
+    UIS.mode = 'idle';
+    updateAutoPilotUI();
+    refreshPanel();
+    showToast('已安全取回手動指揮權');
+    return;
+  }
+  if (G && G.winner != null) {
+    UIS.mode = 'idle';
+    updateAutoPilotUI();
+    return showVictory();
+  }
+  if (G && G.autoPilot) {
+    endTurn();
+    return turnIntro();
+  } else {
+    UIS.mode = 'idle';
+    updateAutoPilotUI();
+    refreshPanel();
+  }
+}
 function refreshPanel() {
   if (!G) return;
   const S = SIDES[G.cur];
@@ -539,6 +659,7 @@ function refreshPanel() {
   $('#resultBar').classList.toggle('hidden', !over);
   if (over) $('#resultText').textContent = G.missionId ? (G.result && G.result.win ? '作戰成功' : '作戰失敗') : `${SIDES[G.winner].name} 勝利`;
   updateNextUnitButton();
+  updateAutoPilotUI();
 
   // 任務目標
   const oc = $('#objCard');
@@ -687,8 +808,18 @@ function openNewGame() {
       <label>地圖種子<span class="inline"><input id="ngSeed" type="number" value="${Math.floor(Math.random() * 99999)}"><button id="ngRand" type="button">🎲</button></span></label>
       <label><span><span class="dot" style="background:${SIDES[0].color}"></span>藍方（先攻）</span><select id="ngN0">${nationOptions(nat[0])}</select></label>
       <label>操作<select id="ngP0"><option value="h">玩家</option><option value="ai" ${p[0].ai ? 'selected' : ''}>電腦</option></select></label>
+      <label>AI 風格<select id="ngPersona0">
+        <option value="B" ${(p[0].persona || 'B') === 'B' ? 'selected' : ''}>B 綜合型 (平衡協同)</option>
+        <option value="A" ${p[0].persona === 'A' ? 'selected' : ''}>A 冒險型 (極限斬首)</option>
+        <option value="C" ${p[0].persona === 'C' ? 'selected' : ''}>C 保守型 (要塞扼守)</option>
+      </select></label>
       <label><span><span class="dot" style="background:${SIDES[1].color}"></span>紅方</span><select id="ngN1">${nationOptions(nat[1])}</select></label>
       <label>操作<select id="ngP1"><option value="h">玩家</option><option value="ai" ${p[1].ai ? 'selected' : ''}>電腦</option></select></label>
+      <label>AI 風格<select id="ngPersona1">
+        <option value="B" ${(p[1].persona || 'B') === 'B' ? 'selected' : ''}>B 綜合型 (平衡協同)</option>
+        <option value="A" ${p[1].persona === 'A' ? 'selected' : ''}>A 冒險型 (極限斬首)</option>
+        <option value="C" ${p[1].persona === 'C' ? 'selected' : ''}>C 保守型 (要塞扼守)</option>
+      </select></label>
       <label>電腦速度<select id="ngSpeed"><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option></select></label>
     </div>
     <div class="facs" id="ngCards"></div>
@@ -706,7 +837,10 @@ function openNewGame() {
       startGame({
         w, h, seed: +box.querySelector('#ngSeed').value || 1,
         nations: [box.querySelector('#ngN0').value, box.querySelector('#ngN1').value],
-        players: [{ ai: box.querySelector('#ngP0').value === 'ai' }, { ai: box.querySelector('#ngP1').value === 'ai' }],
+        players: [
+          { ai: box.querySelector('#ngP0').value === 'ai', persona: box.querySelector('#ngPersona0').value },
+          { ai: box.querySelector('#ngP1').value === 'ai', persona: box.querySelector('#ngPersona1').value },
+        ],
       });
     };
   });
@@ -809,13 +943,14 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v67</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v68</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
       <li>點擊目的地後選擇行動：攻擊、佔領、修復、待機或取消。直接點擊紅色敵軍可自動移動並攻擊。</li>
       <li><b>移動命令</b>：點擊範圍外的地點，部隊會設定該處為最終目的地，之後每回合開始自動前進（右下角黃旗）。選取部隊後可取消命令。</li>
       <li>拖曳平移地圖、滾輪/雙指縮放；取消選取可按地圖下方的「✕ 取消」、右鍵或 Esc；Tab 切換下一個未行動部隊。</li>
+      <li><b>🤖 電腦代理與即時中斷</b>：點擊頂部列「🤖 電腦代理」或浮動指揮條，電腦 AI 將即刻代為執行本回合全部行動與生產；執行過程中可隨時點擊高對比「⏹️ 中斷代理 (STOP)」或按 Esc，於當前原子動作完成後乾淨釋放指揮權。</li>
       <li>點擊敵軍可查看其威脅範圍（橘色）。</li>
       <li><b>非破壞性合流</b>：同型、同陣營且目標受損的部隊可執行合流；兵力總和 $\le 10$ 時主動部隊併入，超過 10 時目標補滿至 10 HP，主動部隊<b>保留溢出兵力存活</b>。</li>
       <li><b>夜間</b>：部分劇情任務有夜間回合（畫面變暗、上方顯示 🌙）；夜間直接攻擊 −20%、間接火力缺乏觀測 −40%。</li>
@@ -832,10 +967,11 @@ function openHelp() {
       <li><b>陸戰隊</b>可以渡海（海上移動消耗 2）並登陸佔領，但在海上沒有地形掩護。</li>
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
       <li><b>佔領與持久防禦</b>：步兵類部隊每回合扣除等同 HP 的佔領耐久（總計 20），受損時防禦減免亦隨之降低；部隊離開或陣亡後耐久<b>持續保留</b>，原陣營可派步兵執行「🛠️ 修復據點」恢復。</li></ul>
-    <h4>國家與 AI 教條</h4><p>11 個陣營各有專屬 AI 作戰教條、專屬色系與作戰偏好（詳見國家圖鑑）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
+    <h4>國家與三大 AI 戰術風格</h4><p>16 個陣營各有專屬 AI 作戰教條、專屬色系與偏好。新遊戲與戰役可自選三大 AI 戰術風格：<b>A 冒險型</b>（極限斬首突擊）、<b>B 綜合型</b>（多兵種協同平衡）與 <b>C 保守型</b>（要塞扼守殘血後撤合流）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v68</span><span class="cl-date">2026.10.26</span><p>【電腦代理與三大 AI 戰術風格】新增高對比 iPad/老花友善「🤖 電腦代理」模式，支援全自動指揮玩家回合（移動、接戰、佔領與生產）；配備浮動指揮橫條與即時「⏹️ 中斷代理（STOP / Take Control）」機制，原子部隊動作結束後立即安全釋放控制權；實裝三大可選 AI 戰術風格（A 冒險型：極限進攻與斬首直取、B 綜合型：步步為營與多兵種協同、C 保守型：要塞扼守與殘血後撤合流），於新遊戲與戰役簡報中均可自選，無頭模擬器支援風格勝率對抗掃描。</p></div>
         <div class="cl-item"><span class="cl-ver">v67</span><span class="cl-date">2026.10.26</span><p>【東亞地理戰區與核心規則修正】導入 100% 本地東亞地理投影生成管線（tools/geogen.js），全面重製 20×20 初階（台灣海峽・澎湖水道）、30×30 中階（琉球群島・沖繩海槽）與 40×40 高階（對馬海峽・朝鮮海峽）三戰區；測試卡片升級高對比 iPad/老花友善排版，標註真實經緯度與據點歸屬比 [我:中:敵]；實裝 5 大核心規則：據點佔領耐久與防禦持久化（支援步兵修復）、部隊合流溢出保留存活（非破壞性合流）、新造航母預設全空甲板、平原移動力消耗調為 1.1（浮點安全尋路）及地面運輸卡車機動力 +1（移動力 7）。</p></div>
         <div class="cl-item"><span class="cl-ver">v66</span><span class="cl-date">2026.10.26</span><p>首頁新增「測試地圖」試驗場入口，推出 20×20 初階（輕裝演習）、30×30 中階（中原爭鋒）與 40×40 高階（鐵血縱深）三梯次戰區；預覽卡片即時依拓撲遙測公式呈現難度標籤（EASY/MEDIUM/HARD）、據點歸屬比（城市/工廠/機場 [我:中:敵]）與兵力/資產不對稱比；支援視角自動縮放至 40×40 大圖。</p></div>
         <div class="cl-item"><span class="cl-ver">v65</span><span class="cl-date">2026.10.26</span><p>擴充無頭模擬器 CLI 地圖拓撲與平衡基準分析工具（--analyze）：量化據點陣營比例、指揮部奪點步數、初始兵力與資產/首回收入不對稱度，並確立四階地圖生成與難度分級規範（Tier S–C）。</p></div>
@@ -958,7 +1094,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v67</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v68</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1062,6 +1198,13 @@ async function turnIntro() {
     await sleep(500);
     await runMoveOrders();
     if (token !== gameToken) return;
+  }
+  if (G.autoPilot && !G.players[G.cur].ai) {
+    UIS.mode = 'busy';
+    refreshPanel();
+    await sleep(400);
+    await runAutoPilotTurn(G.cur);
+    return;
   }
   UIS.mode = 'idle';
   autoSave();
@@ -1210,6 +1353,12 @@ function setupInput() {
   });
   $('#btnEnd').onclick = endTurnClicked;
   $('#btnNext').onclick = nextUnit;
+  const btnAP = $('#btnAutoPilot');
+  if (btnAP) btnAP.onclick = toggleAutoPilot;
+  const btnStopAP = $('#btnStopAutoPilot');
+  if (btnStopAP) btnStopAP.onclick = () => stopAutoPilot(true);
+  const btnCycleAP = $('#apPersonaCycle');
+  if (btnCycleAP) btnCycleAP.onclick = cycleAutoPilotPersona;
   const btnAlly = $('#btnAllyCtrl');
   if (btnAlly) {
     btnAlly.onclick = () => {

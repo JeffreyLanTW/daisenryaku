@@ -11,7 +11,8 @@ const RUNS = +(opt('--runs') || 16);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
 const ANALYZE = args.includes('--analyze');
-const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only'].includes(args[k - 1])).flatMap(a => a.split(',')).filter(Boolean);
+const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only', '--persona', '--personas'].includes(args[k - 1])).flatMap(a => a.split(',')).filter(Boolean);
+const PERSONAS_ARG = opt('--personas') || opt('--persona') || null;
 
 // 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫（靜默 console 以節省輸出 token）
 const noop = () => {};
@@ -438,8 +439,8 @@ const DEFAULT_FLAGS = {
   c5: [{ us: true, kr: true, de: true, taichung: 'held' }, { us: false, kr: false, de: false, taichung: 'held' }, { us: true, kr: true, de: false, taichung: 'lost' }],
 };
 vm.runInContext(`
-  async function simulate(id, flags) {
-    setupMission(id, flags, true, synthCarry(CARRY_N, CARRY_XP), true);
+  async function simulate(id, flags, ep = 'B', pp = 'B') {
+    setupMission(id, flags, true, synthCarry(CARRY_N, CARRY_XP), true, ep, pp);
     let guard = 0;
     while (G.winner == null && guard++ < 160) {
       await aiTurn();
@@ -457,6 +458,26 @@ vm.runInContext(`
 
 (async () => {
   const list = ids.length ? ids : vm.runInContext('Object.keys(MISSIONS)', ctx);
+  if (PERSONAS_ARG) {
+    const pList = PERSONAS_ARG.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    console.log(`\nAI 戰術風格對戰模擬（每種風格組合 ${RUNS} 場；極簡遙測）：`);
+    console.log('任務   P0風格 vs P1風格   勝率   平均回合   搭/卸/渡海/墜機   結果分布');
+    const pDesc = { A: '冒險型(極限斬首)', B: '綜合型(協同平衡)', C: '保守型(要塞防禦)' };
+    for (const id of list) {
+      for (const p of pList) {
+        const res = [];
+        for (let k = 0; k < RUNS; k++) res.push(await ctx.simulate(id, {}, 'B', p));
+        const wins = res.filter(r => r.win), dist = {};
+        for (const r of res) { const key = (r.win ? '勝:' : '敗:') + r.obj; dist[key] = (dist[key] || 0) + 1; }
+        const avg = a => a.length ? (a.reduce((s, r) => s + r.turn, 0) / a.length).toFixed(1) : '-';
+        const avgS = k => (res.reduce((s, r) => s + r[k], 0) / RUNS).toFixed(1);
+        const trStr = `${avgS('loads').padStart(4)}/${avgS('unloads').padStart(4)}/${avgS('amph').padStart(4)}/${avgS('crashes').padStart(4)}`;
+        const vsLabel = `${p}(${pDesc[p] || p}) vs B(綜合型)`.padEnd(20);
+        console.log(`${id.padEnd(6)} ${vsLabel} ${String(Math.round(wins.length / RUNS * 100)).padStart(3)}%    ${avg(wins).padStart(5)}      ${trStr.padEnd(18)} ${Object.entries(dist).map(([k, v]) => k + '×' + v).join(' ')}`);
+      }
+    }
+    return;
+  }
   console.log(`\n每種組合模擬 ${RUNS} 場（AI 扮演雙方 + 友軍；零干擾極簡遙測）`);
   console.log('任務   旗標                     勝率   平均回合   搭/卸/渡海/墜機   結果分布');
   for (const id of list) {
