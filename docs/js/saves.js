@@ -120,6 +120,7 @@ function applySave(obj) {
   gameToken++;
   clearSel(); setInspect(null); FX.length = 0;
   G = g;
+  if (!G.airFuelCrashCount) G.airFuelCrashCount = [0, 0];
   if (!G.nations) G.nations = ['TW', 'CN'];
   applyNations(G.nations, G.allies || []);
   const normUnit = u => {

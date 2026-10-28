@@ -251,7 +251,7 @@ function startMission(id) {
         <label><input type="radio" name="allyc" value="ai" ${allyPref() ? 'checked' : ''}> 交給電腦指揮</label></div>` : ''}
       <div class="allychoice persona-choice"><b>🧠 敵軍 AI 風格：</b>
         <label><input type="radio" name="enemyp" value="B" checked> <b>B 綜合型</b> (平衡)</label>
-        <label><input type="radio" name="enemyp" value="A"> <b>A 冒險型</b> (激進)</label>
+        <label><input type="radio" name="enemyp" value="A"> <b>A 攻擊型</b> (激進)</label>
         <label><input type="radio" name="enemyp" value="C"> <b>C 保守型</b> (要塞)</label>
       </div>
       <div class="row"><button class="close">返回</button><button class="primary" id="goMission">開始作戰</button></div>`, box => {

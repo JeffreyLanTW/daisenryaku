@@ -626,6 +626,7 @@ function startTurn() {
         if (u.fuel <= 0) {
           u.hp = 0;
           if (G.stats) G.stats.crashes = (G.stats.crashes || 0) + 1;
+          if (d.cat === 'air') G.airFuelCrashCount[s] = (G.airFuelCrashCount[s] || 0) + 1;
           addLog(`${SIDES[s].name}${d.name} 燃料耗盡墜毀`, s);
           continue;
         }
@@ -689,6 +690,7 @@ function initState(m, opts) {
     bNation: m.bNation ? [...m.bNation] : new Array(m.w * m.h).fill(null),
     firedEvents: [], pendingDialogs: [],
     stats: { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 },
+    airFuelCrashCount: [0, 0],
   };
   applyNations(G.nations, G.allies);
   for (let i = 0; i < G.owner.length; i++) {

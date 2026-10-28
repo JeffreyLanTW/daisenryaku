@@ -810,14 +810,14 @@ function openNewGame() {
       <label>操作<select id="ngP0"><option value="h">玩家</option><option value="ai" ${p[0].ai ? 'selected' : ''}>電腦</option></select></label>
       <label>AI 風格<select id="ngPersona0">
         <option value="B" ${(p[0].persona || 'B') === 'B' ? 'selected' : ''}>B 綜合型 (平衡協同)</option>
-        <option value="A" ${p[0].persona === 'A' ? 'selected' : ''}>A 冒險型 (極限斬首)</option>
+        <option value="A" ${p[0].persona === 'A' ? 'selected' : ''}>A 攻擊型 (極限殲敵)</option>
         <option value="C" ${p[0].persona === 'C' ? 'selected' : ''}>C 保守型 (要塞扼守)</option>
       </select></label>
       <label><span><span class="dot" style="background:${SIDES[1].color}"></span>紅方</span><select id="ngN1">${nationOptions(nat[1])}</select></label>
       <label>操作<select id="ngP1"><option value="h">玩家</option><option value="ai" ${p[1].ai ? 'selected' : ''}>電腦</option></select></label>
       <label>AI 風格<select id="ngPersona1">
         <option value="B" ${(p[1].persona || 'B') === 'B' ? 'selected' : ''}>B 綜合型 (平衡協同)</option>
-        <option value="A" ${p[1].persona === 'A' ? 'selected' : ''}>A 冒險型 (極限斬首)</option>
+        <option value="A" ${p[1].persona === 'A' ? 'selected' : ''}>A 攻擊型 (極限殲敵)</option>
         <option value="C" ${p[1].persona === 'C' ? 'selected' : ''}>C 保守型 (要塞扼守)</option>
       </select></label>
       <label>電腦速度<select id="ngSpeed"><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option></select></label>
@@ -943,7 +943,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v68</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v69</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -967,10 +967,11 @@ function openHelp() {
       <li><b>陸戰隊</b>可以渡海（海上移動消耗 2）並登陸佔領，但在海上沒有地形掩護。</li>
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
       <li><b>佔領與持久防禦</b>：步兵類部隊每回合扣除等同 HP 的佔領耐久（總計 20），受損時防禦減免亦隨之降低；部隊離開或陣亡後耐久<b>持續保留</b>，原陣營可派步兵執行「🛠️ 修復據點」恢復。</li></ul>
-    <h4>國家與三大 AI 戰術風格</h4><p>16 個陣營各有專屬 AI 作戰教條、專屬色系與偏好。新遊戲與戰役可自選三大 AI 戰術風格：<b>A 冒險型</b>（極限斬首突擊）、<b>B 綜合型</b>（多兵種協同平衡）與 <b>C 保守型</b>（要塞扼守殘血後撤合流）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
+    <h4>國家與三大 AI 戰術風格</h4><p>16 個陣營各有專屬 AI 作戰教條、專屬色系與偏好。新遊戲與戰役可自選三大 AI 戰術風格：<b>A 攻擊型</b>（極限殲敵直取斬首）、<b>B 綜合型</b>（步步為營首都推進）與 <b>C 保守型</b>（要塞扼守殘血後撤合流）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v69</span><span class="cl-date">2026.10.28</span><p>【三大 AI 風格硬約束重構】全面升級三大 AI 與電腦代理戰術風格硬性行為約束：<b>A 攻擊型</b>（更名高對比標籤，將全殲敵軍部隊置於最高效用優先級，實裝每場戰役戰機燃料墜毀上限額度 counter $\le 3$，額度內放寬返航檢查允許單向深遠突擊，達 3 次後嚴格執行燃料返航安全約束）；<b>B 綜合型</b>（聚焦步步為營穩步擴張領土，沿推進廊道持續向敵方首都推進，系統性佔領沿線城市、工廠與機場）；<b>C 保守型</b>（實裝首都 15 格硬約束半徑 Hard 15-Tile HQ Tether，生產強制陸空比 $\ge 10:1$，受損高門檻主動後撤據點或相鄰同型部隊非破壞性合流）。無頭模擬器 balance.js 同步支援風格硬約束自動遙測。</p></div>
         <div class="cl-item"><span class="cl-ver">v68</span><span class="cl-date">2026.10.26</span><p>【電腦代理與三大 AI 戰術風格】新增高對比 iPad/老花友善「🤖 電腦代理」模式，支援全自動指揮玩家回合（移動、接戰、佔領與生產）；配備浮動指揮橫條與即時「⏹️ 中斷代理（STOP / Take Control）」機制，原子部隊動作結束後立即安全釋放控制權；實裝三大可選 AI 戰術風格（A 冒險型：極限進攻與斬首直取、B 綜合型：步步為營與多兵種協同、C 保守型：要塞扼守與殘血後撤合流），於新遊戲與戰役簡報中均可自選，無頭模擬器支援風格勝率對抗掃描。</p></div>
         <div class="cl-item"><span class="cl-ver">v67</span><span class="cl-date">2026.10.26</span><p>【東亞地理戰區與核心規則修正】導入 100% 本地東亞地理投影生成管線（tools/geogen.js），全面重製 20×20 初階（台灣海峽・澎湖水道）、30×30 中階（琉球群島・沖繩海槽）與 40×40 高階（對馬海峽・朝鮮海峽）三戰區；測試卡片升級高對比 iPad/老花友善排版，標註真實經緯度與據點歸屬比 [我:中:敵]；實裝 5 大核心規則：據點佔領耐久與防禦持久化（支援步兵修復）、部隊合流溢出保留存活（非破壞性合流）、新造航母預設全空甲板、平原移動力消耗調為 1.1（浮點安全尋路）及地面運輸卡車機動力 +1（移動力 7）。</p></div>
         <div class="cl-item"><span class="cl-ver">v66</span><span class="cl-date">2026.10.26</span><p>首頁新增「測試地圖」試驗場入口，推出 20×20 初階（輕裝演習）、30×30 中階（中原爭鋒）與 40×40 高階（鐵血縱深）三梯次戰區；預覽卡片即時依拓撲遙測公式呈現難度標籤（EASY/MEDIUM/HARD）、據點歸屬比（城市/工廠/機場 [我:中:敵]）與兵力/資產不對稱比；支援視角自動縮放至 40×40 大圖。</p></div>
@@ -1094,7 +1095,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v68</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v69</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

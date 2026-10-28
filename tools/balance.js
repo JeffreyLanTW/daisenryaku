@@ -442,15 +442,33 @@ vm.runInContext(`
   async function simulate(id, flags, ep = 'B', pp = 'B') {
     setupMission(id, flags, true, synthCarry(CARRY_N, CARRY_XP), true, ep, pp);
     let guard = 0;
+    let maxDistFromHQ = 0;
+    let maxAirToLand = 0;
+    const pside = G.pside;
+    const pHq = G.caps ? G.caps[pside] : -1;
+    const [hqX, hqY] = pHq >= 0 ? ixy(pHq) : [-1, -1];
+
     while (G.winner == null && guard++ < 160) {
       await aiTurn();
+      if (pHq >= 0) {
+        for (const u of G.units.filter(e => e.side === pside)) {
+          const d = hexDist(u.x, u.y, hqX, hqY);
+          if (d > maxDistFromHQ) maxDistFromHQ = d;
+        }
+      }
+      const myAir = G.units.filter(e => e.side === pside && UNITS[e.type].cat === 'air').length;
+      const myLand = G.units.filter(e => e.side === pside && UNITS[e.type].cat === 'land').length;
+      const ratio = myAir > 0 ? (myAir / Math.max(1, myLand)) : 0;
+      if (ratio > maxAirToLand) maxAirToLand = ratio;
       if (G.winner != null) break;
       endTurn();
     }
     const P = G.pside, st = G.stats || { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 };
+    const pCrashes = (G.airFuelCrashCount && G.airFuelCrashCount[P]) || 0;
     return {
       win: G.result ? G.result.win : false, obj: G.result ? G.result.obj : 'stuck', turn: G.turn,
       loads: st.loads || 0, unloads: st.unloads || 0, amph: st.amphibious_captures || 0, crashes: st.crashes || 0,
+      pCrashes, maxDistFromHQ, maxAirToLand,
       left: [G.units.filter(u => u.side === P).length, G.units.filter(u => u.side !== P).length],
     };
   }
@@ -461,8 +479,8 @@ vm.runInContext(`
   if (PERSONAS_ARG) {
     const pList = PERSONAS_ARG.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
     console.log(`\nAI 戰術風格對戰模擬（每種風格組合 ${RUNS} 場；極簡遙測）：`);
-    console.log('任務   P0風格 vs P1風格   勝率   平均回合   搭/卸/渡海/墜機   結果分布');
-    const pDesc = { A: '冒險型(極限斬首)', B: '綜合型(協同平衡)', C: '保守型(要塞防禦)' };
+    console.log('任務   P0風格 vs P1風格   勝率   平均回合   搭/卸/渡海/墜機   約束檢驗(墜機<=3/半徑<=15/陸空比)   結果分布');
+    const pDesc = { A: '攻擊型(極限殲敵)', B: '綜合型(協同平衡)', C: '保守型(要塞防禦)' };
     for (const id of list) {
       for (const p of pList) {
         const res = [];
@@ -471,9 +489,13 @@ vm.runInContext(`
         for (const r of res) { const key = (r.win ? '勝:' : '敗:') + r.obj; dist[key] = (dist[key] || 0) + 1; }
         const avg = a => a.length ? (a.reduce((s, r) => s + r.turn, 0) / a.length).toFixed(1) : '-';
         const avgS = k => (res.reduce((s, r) => s + r[k], 0) / RUNS).toFixed(1);
+        const maxCrashes = Math.max(...res.map(r => r.pCrashes));
+        const maxRadius = Math.max(...res.map(r => r.maxDistFromHQ));
+        const maxAirRatio = Math.max(...res.map(r => r.maxAirToLand));
         const trStr = `${avgS('loads').padStart(4)}/${avgS('unloads').padStart(4)}/${avgS('amph').padStart(4)}/${avgS('crashes').padStart(4)}`;
+        const chkStr = `墜機Max:${maxCrashes} 半徑Max:${maxRadius} 空陸比Max:${maxAirRatio.toFixed(2)}`;
         const vsLabel = `${p}(${pDesc[p] || p}) vs B(綜合型)`.padEnd(20);
-        console.log(`${id.padEnd(6)} ${vsLabel} ${String(Math.round(wins.length / RUNS * 100)).padStart(3)}%    ${avg(wins).padStart(5)}      ${trStr.padEnd(18)} ${Object.entries(dist).map(([k, v]) => k + '×' + v).join(' ')}`);
+        console.log(`${id.padEnd(6)} ${vsLabel} ${String(Math.round(wins.length / RUNS * 100)).padStart(3)}%    ${avg(wins).padStart(5)}      ${trStr.padEnd(18)} ${chkStr.padEnd(34)} ${Object.entries(dist).map(([k, v]) => k + '×' + v).join(' ')}`);
       }
     }
     return;

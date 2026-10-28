@@ -106,28 +106,28 @@ function getDoctrine(nat) {
   return AI_DOCTRINES[nid] || AI_DOCTRINES.TW;
 }
 
-// 三大 AI 戰術風格（A 冒險型 / B 綜合型 / C 保守型）
+// 三大 AI 戰術風格（A 攻擊型 / B 綜合型 / C 保守型）
 const AI_PERSONAS = {
   A: {
-    id: 'A', name: '冒險型', en: 'Aggressive', badge: 'A 冒險型',
-    desc: '極限進攻・斬首直取：高攻擊與突擊首都權重，低後撤門檻，優先建造主力裝甲與突擊航空兵力',
-    attackWeight: 1.4, threatWeight: 0.65, decapitation: 2.2, captureWeight: 0.9, coverBonus: 0.7,
-    retreatHp: 0.15, repairWeight: 0.6, mergeThreshold: 0.25,
-    prodWeights: { tank: 1.4, fighter: 1.3, attacker: 1.5, bomber: 1.5, anduril_tank: 1.4, nano_swarm: 1.4, arty: 0.8, aa: 0.7, sam: 0.7, inf: 0.85 }
+    id: 'A', name: '攻擊型', en: 'Aggressive', badge: 'A 攻擊型',
+    desc: '極限殲敵・直取斬首：以全殲敵軍部隊為最高目標，低後撤門檻，容許限定深遠突擊，主力裝甲與突擊航空兵力',
+    attackWeight: 1.6, threatWeight: 0.55, decapitation: 2.2, captureWeight: 0.75, coverBonus: 0.6,
+    retreatHp: 0.15, repairWeight: 0.5, mergeThreshold: 0.25,
+    prodWeights: { tank: 1.5, fighter: 1.3, attacker: 1.5, bomber: 1.5, anduril_tank: 1.5, nano_swarm: 1.4, arty: 0.8, aa: 0.7, sam: 0.7, inf: 0.75 }
   },
   B: {
     id: 'B', name: '綜合型', en: 'Balanced', badge: 'B 綜合型',
-    desc: '步步為營・多兵種協同：平衡佔領中立據點、前線消耗交換、諸兵種合成作戰與後勤補給',
-    attackWeight: 1.0, threatWeight: 1.0, decapitation: 1.0, captureWeight: 1.0, coverBonus: 1.0,
+    desc: '步步為營・首都推進：平衡兼顧佔領中立據點、沿推進廊道穩步擴張、多兵種協同與向敵首都推進',
+    attackWeight: 1.0, threatWeight: 1.0, decapitation: 1.2, captureWeight: 1.15, coverBonus: 1.0,
     retreatHp: 0.30, repairWeight: 1.0, mergeThreshold: 0.50,
     prodWeights: {}
   },
   C: {
     id: 'C', name: '保守型', en: 'Conservative', badge: 'C 保守型',
-    desc: '固若金湯・要塞防禦：高度重視地形防禦與咽喉扼守，殘血主動後撤/合流/修復，優先配置防空與砲兵',
-    attackWeight: 0.8, threatWeight: 1.45, decapitation: 0.7, captureWeight: 1.3, coverBonus: 1.8,
-    retreatHp: 0.45, repairWeight: 1.8, mergeThreshold: 0.75,
-    prodWeights: { aa: 1.5, sam: 1.5, arty: 1.4, rocket: 1.3, laser_aa: 1.6, euv_fortress: 1.5, inf: 1.25, atinf: 1.25, tank: 0.85, attacker: 0.7, bomber: 0.6 }
+    desc: '固若金湯・要塞防禦：嚴格以首都半徑 15 格內為作戰範圍，陸空比保證 10:1 以上，高門檻殘血主動後撤合流修復',
+    attackWeight: 0.75, threatWeight: 1.5, decapitation: 0.6, captureWeight: 1.3, coverBonus: 1.8,
+    retreatHp: 0.50, repairWeight: 2.0, mergeThreshold: 0.80,
+    prodWeights: { aa: 1.6, sam: 1.6, arty: 1.5, rocket: 1.4, laser_aa: 1.6, euv_fortress: 1.6, inf: 1.3, atinf: 1.3, tank: 0.9, attacker: 0.3, bomber: 0.2, fighter: 0.4 }
   }
 };
 
@@ -153,11 +153,14 @@ function aiGoals(u, baseField) {
   const doc = getDoctrine(nat);
   const persona = getPersona(s);
   const uMax = u.maxHp || d.maxHp || 10;
-  const effRetreatHp = Math.min(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp);
+  const effRetreatHp = persona.id === 'C' ? Math.max(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp) : Math.min(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp);
   const hurt = effRetreatHp > 0 && u.hp <= uMax * effRetreatHp;
   const rTurns = baseField ? Math.ceil(Math.max(1, baseField[here]) / d.move) : 1;
   const fuelMargin = doc.strictRtb ? 6 : 4;
-  const lowFuel = baseField && u.fuel <= baseField[here] + d.upkeep * (rTurns + 2) + fuelMargin;
+  // A 攻擊型：容許在當前戰役累計燃料耗盡墜機 < 3 次前放寬返航撤退檢查；達 3 次後嚴格執行燃料安全
+  const curCrashes = (G.airFuelCrashCount && G.airFuelCrashCount[s]) || 0;
+  const allowAirStrike = persona.id === 'A' && d.cat === 'air' && curCrashes < 3;
+  const lowFuel = baseField && !allowAirStrike && u.fuel <= baseField[here] + d.upkeep * (rTurns + 2) + fuelMargin;
   if (hurt || lowFuel) {
     const bases = ownBases(s, d.cat, u);
     if (bases.size && !(d.capture && canCapture(u))) return { goals: bases, mode: 'retreat' };
@@ -220,15 +223,23 @@ function aiGoals(u, baseField) {
       const isCap = G.terrain[i] === 'capital';
       const isFab = G.bNation && (G.bNation[i] === 'TSMC' || G.bNation[i] === 'USCORP');
       let pri = isCap ? -5 * doc.decapitation * persona.decapitation : (isFab ? -4 * doc.decapitation : (G.owner[i] >= 0 ? -1 : Math.round(0 - (persona.captureWeight - 1) * 3)));
+      // B 綜合型：加重步步為營推進廊道據點（沿線城市、工廠、機場）佔領權重
+      if (persona.id === 'B') pri -= 3;
       add(i, pri);
     }
   }
   for (const e of G.units) if (e.side !== s && canHit(u.type, e)) {
-    add(idxOf(e.x, e.y), e.vip ? -4 : d.capture ? 4 : (persona.id === 'A' ? -2 : 0));
+    // A 攻擊型：以全殲敵軍部隊為最高目標 (殲滅優先)
+    const foePri = e.vip ? -6 : d.capture ? 4 : (persona.id === 'A' ? -6 : persona.id === 'B' ? -2 : 0);
+    add(idxOf(e.x, e.y), foePri);
   }
   if (!d.capture && d.cat !== 'air') {
     for (let i = 0; i < G.owner.length; i++) {
-      if (G.owner[i] === 1 - s) add(i, G.terrain[i] === 'capital' ? 2 : 5);
+      if (G.owner[i] === 1 - s) {
+        // B 綜合型：持續向敵方首都與前線據點推進
+        const bOff = persona.id === 'B' ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
+        add(i, bOff);
+      }
     }
   }
   for (const [i, off] of mg) add(i, off);
@@ -277,9 +288,17 @@ async function aiAct(u, token) {
   const thirstyOthers = d.cat === 'air' && G.units.some(o => o !== u && o.side === s && UNITS[o.type].fuel !== undefined && o.fuel <= UNITS[o.type].fuel * 0.55);
   const ag = aiAggression(s);
   let best = { score: -Infinity, dest: start, act: null };
+  const persona = getPersona(s);
+  const myHqIdx = G.caps ? G.caps[s] : -1;
+  const myHqXy = myHqIdx >= 0 ? ixy(myHqIdx) : null;
+  const curAirCrashes = (G.airFuelCrashCount && G.airFuelCrashCount[s]) || 0;
+  const allowAirStrike = persona.id === 'A' && d.cat === 'air' && curAirCrashes < 3;
 
   for (const [i, v] of reach) {
     if (!v.canStop) continue;
+    const [x, y] = ixy(i);
+    // C 保守型：硬性限制 15 格首都防禦半徑（Hard 15-Tile HQ Tether）
+    if (persona.id === 'C' && myHqXy && hexDist(x, y, myHqXy[0], myHqXy[1]) > 15) continue;
     if (v.load) {
       const tr = unitById(v.load);
       if (!tr) continue;
@@ -299,10 +318,9 @@ async function aiAct(u, token) {
       }
       continue;
     }
-    const [x, y] = ixy(i), t = TERRAIN[G.terrain[i]];
+    const t = TERRAIN[G.terrain[i]];
     const consider = (sc, act) => { if (sc > best.score) best = { score: sc, dest: i, act }; };
     const doc = getDoctrine(unitNation(u));
-    const persona = getPersona(s);
     let base = field[i] === Infinity ? -600 : -field[i] * (mode === 'retreat' ? 25 : mode === 'vip' || mode === 'deliver' || mode === 'pickup' ? 14 : 9 * ag);
     if (d.cat === 'land') base += t.def * 0.4 * (doc.coverBonus || 1.0) * persona.coverBonus;
     base += missionHoldBonus(u, i);
@@ -319,7 +337,14 @@ async function aiAct(u, token) {
     if (baseField) {
       const home = baseField[i];
       const need = home + d.upkeep * Math.ceil(Math.max(1, home) / d.move) + d.upkeep * 2 + 2;
-      if (u.fuel - v.cost < need) base -= 4000 + Math.min(3000, (need - (u.fuel - v.cost)) * 120);
+      // A 攻擊型：在當前戰役累計墜機 < 3 時，放寬返航油量扣分（allowAirStrike），可發動單向深遠突擊
+      if (u.fuel - v.cost < need) {
+        if (!allowAirStrike) {
+          base -= 4000 + Math.min(3000, (need - (u.fuel - v.cost)) * 120);
+        } else {
+          base -= 300 + (need - (u.fuel - v.cost)) * 15;
+        }
+      }
       if (t.heal && t.heal.includes('air') && G.owner[i] === s) {
         if (mode === 'retreat') base += 1200;
         else if (u.fuel < d.fuel * 0.7 || u.hp < 8) base += 220;
@@ -378,6 +403,21 @@ async function aiAct(u, token) {
     fxText(cx, cy, full ? '修復完畢！' : `修復中 ${pts}/${CAPTURE_POINTS}`, SIDES[s].light);
     await sleep(SETTINGS.aiStep * 2);
   }
+  // 殘血非破壞性合流（Non-destructive Merge）：若部隊受損且相鄰有同型受損友軍，主動觸發合流以最大化生存率
+  const uMax = u.maxHp || d.maxHp || 10;
+  const shouldTryMerge = (persona.id === 'C' && u.hp < uMax) || (u.hp <= uMax * (persona.mergeThreshold || 0.5));
+  if (shouldTryMerge && !d.vip && !u.vip) {
+    for (const [nx, ny] of neighbors(u.x, u.y)) {
+      const o = unitAt(nx, ny);
+      if (o && o !== u && canMerge(o, u)) {
+        mergeInto(u, o);
+        if (typeof sfx === 'function') sfx('build');
+        const [mx, my] = tileCenter(o.x, o.y);
+        fxText(mx, my, `合流！${o.hp}`, SIDES[s].light);
+        break;
+      }
+    }
+  }
   if (u.hp > 0) markDone(u);
   refreshPanel();
 }
@@ -413,7 +453,11 @@ function aiProduce(s) {
     })) continue;
     const airBases = G.owner.filter((o, idx) => o === s && TERRAIN[G.terrain[idx]].heal && TERRAIN[G.terrain[idx]].heal.includes('air')).length;
     const myAir = G.units.filter(u => u.side === s && UNITS[u.type].cat === 'air').length;
-    const airFull = myAir >= Math.max(2, Math.ceil(airBases * 1.4));
+    const myLand = G.units.filter(u => u.side === s && UNITS[u.type].cat === 'land').length;
+    const persona = getPersona(s);
+    // C 保守型：陸空比保證 10:1 (Land : Air >= 10 : 1)，當前空軍數量若超過或等於 Math.floor(myLand / 10)，禁止生產飛機
+    const conservativeAirBlocked = persona.id === 'C' && (myLand < 10 || myAir >= Math.floor(myLand / 10));
+    const airFull = conservativeAirBlocked || myAir >= Math.max(2, Math.ceil(airBases * 1.4));
     const siteDist = footField ? footField[i] : 6;
     const needSea = seaGap || siteDist === Infinity;
     const needFar = longMarch || (siteDist > 10 && siteDist < Infinity);
@@ -447,11 +491,19 @@ function aiProduce(s) {
       wingman_carrier: airFull ? 0 : (cnt('wingman_carrier') >= 2 ? 0.4 : 1.8),
       usv_wolfpack: 1.5 + enemyShip * 0.8,
     };
-    const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
+    let opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
+    // C 保守型：硬性保障陸空比 >= 10:1，若產出該空軍會導致 Land : Air < 10:1，嚴格剔除
+    if (persona.id === 'C') {
+      opts = opts.filter(k => {
+        if (UNITS[k].cat === 'air') {
+          return myLand >= (myAir + 1) * 10;
+        }
+        return true;
+      });
+    }
     if (!opts.length) continue;
     let total = 0;
     const siteNat = G.bNation && G.bNation[i] ? normNat(G.bNation[i]) : G.nations[s];
-    const persona = getPersona(s);
     const ws = opts.map(k => {
       const natPref = (NATIONS[siteNat] && NATIONS[siteNat].prefer && NATIONS[siteNat].prefer[UNITS[k].base]) || (NATIONS[G.nations[s]] && NATIONS[G.nations[s]].prefer && NATIONS[G.nations[s]].prefer[UNITS[k].base]) || 1;
       const personaPref = (persona.prodWeights && persona.prodWeights[UNITS[k].base]) || 1.0;

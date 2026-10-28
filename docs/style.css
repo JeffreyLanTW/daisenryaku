@@ -783,17 +783,18 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   letter-spacing: 0.5px;
 }
 .ap-badge {
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: 7px;
   background: #1e293b;
   color: #38bdf8;
-  border: 1px solid #0284c7;
+  border: 1.5px solid #0284c7;
+  letter-spacing: 0.5px;
 }
-.ap-badge.p-A { color: #f87171; border-color: #dc2626; background: #331515; }
-.ap-badge.p-B { color: #38bdf8; border-color: #0284c7; background: #0f2537; }
-.ap-badge.p-C { color: #4ade80; border-color: #16a34a; background: #132b1b; }
+.ap-badge.p-A { color: #fecaca; border-color: #ef4444; background: #450a0a; text-shadow: 0 0 4px rgba(239, 68, 68, 0.6); }
+.ap-badge.p-B { color: #bae6fd; border-color: #0284c7; background: #082f49; text-shadow: 0 0 4px rgba(56, 189, 248, 0.6); }
+.ap-badge.p-C { color: #bbf7d0; border-color: #22c55e; background: #052e16; text-shadow: 0 0 4px rgba(74, 222, 128, 0.6); }
 
 .ap-actions {
   display: flex;
