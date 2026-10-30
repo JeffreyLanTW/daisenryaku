@@ -106,7 +106,7 @@ function getDoctrine(nat) {
   return AI_DOCTRINES[nid] || AI_DOCTRINES.TW;
 }
 
-// 三大 AI 戰術風格（A 攻擊型 / B 綜合型 / C 保守型）
+// AI 戰術風格（A 攻擊型 / B 綜合型 / C 保守型 / L 藍發風格）
 const AI_PERSONAS = {
   A: {
     id: 'A', name: '攻擊型', en: 'Aggressive', badge: 'A 攻擊型',
@@ -128,13 +128,101 @@ const AI_PERSONAS = {
     attackWeight: 0.75, threatWeight: 1.5, decapitation: 0.6, captureWeight: 1.3, coverBonus: 1.8,
     retreatHp: 0.50, repairWeight: 2.0, mergeThreshold: 0.80,
     prodWeights: { aa: 1.6, sam: 1.6, arty: 1.5, rocket: 1.4, laser_aa: 1.6, euv_fortress: 1.6, inf: 1.3, atinf: 1.3, tank: 0.9, attacker: 0.3, bomber: 0.2, fighter: 0.4 }
+  },
+  L: {
+    id: 'L', name: '藍發', en: 'LanFa', badge: '藍發風格',
+    desc: '全能立體・極限產能投放：資金不得大於100全數換為前線部隊、全圖搶城擴張經濟、依戰場地貌自動選擇海陸空適配相剋、致死集火與殘血維修',
+    attackWeight: 1.5, threatWeight: 0.75, decapitation: 3.5, captureWeight: 4.5, coverBonus: 1.5,
+    retreatHp: 0.28, repairWeight: 1.8, mergeThreshold: 0.40,
+    prodWeights: {}
   }
 };
 
 function getPersona(side) {
   if (!G || !G.players || !G.players[side]) return AI_PERSONAS.B;
   const p = G.players[side].persona;
+  if (p === 'L' || p === 'LANFA' || p === 'lanfa' || p === '藍發') return AI_PERSONAS.L;
   return AI_PERSONAS[p] || AI_PERSONAS.B;
+}
+
+// 藍發規則 3：自動分析戰場環境與敵情相剋，動態評估海陸空適配度
+function evaluateBattlefieldSuitability(s) {
+  const foes = G.units.filter(u => u.side !== s);
+  const mine = G.units.filter(u => u.side === s);
+  const totalTiles = G.w * G.h;
+  let seaTiles = 0, roughTiles = 0, openTiles = 0;
+  for (let i = 0; i < totalTiles; i++) {
+    const t = G.terrain[i];
+    if (['sea', 'deep', 'reef', 'coast'].includes(t)) seaTiles++;
+    else if (['mountain', 'forest'].includes(t)) roughTiles++;
+    else if (['plain', 'road'].includes(t)) openTiles++;
+  }
+  const seaRatio = seaTiles / totalTiles;
+  const roughRatio = roughTiles / totalTiles;
+  const openRatio = openTiles / totalTiles;
+
+  // 檢查己方與目標據點是否隔海
+  let seaGap = false;
+  const propGoals = new Map();
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) propGoals.set(i, 0);
+  const footField = propGoals.size ? distField(propGoals, 'foot') : null;
+  if (footField && mine.some(u => UNITS[u.type].cat === 'land' && footField[idxOf(u.x, u.y)] === Infinity)) {
+    seaGap = true;
+  }
+
+  // 敵軍分類計數
+  const ecls = c => foes.filter(u => UNITS[u.type].cls === c).length;
+  const enemyAir = ecls('air');
+  const enemyHard = ecls('hard');
+  const enemySoft = ecls('soft');
+  const enemyShip = ecls('ship');
+  const enemyAA = foes.filter(u => ['aa', 'sam', 'laser_aa'].includes(UNITS[u.type].base)).length;
+
+  // 己方生產據點種類檢查
+  const ownB = cat => G.owner.filter((o, idx) => o === s && TERRAIN[G.terrain[idx]].build && TERRAIN[G.terrain[idx]].build.includes(cat)).length;
+  const hasPorts = ownB('sea') > 0;
+  const hasAirports = ownB('air') > 0;
+  const hasFactories = ownB('land') > 0;
+
+  // 1. 海軍適配度 (Navy Suitability)
+  let navyScore = 1.0;
+  if (!hasPorts || seaRatio < 0.10) {
+    navyScore = 0.05;
+  } else if (seaGap || seaRatio >= 0.25) {
+    navyScore = 2.4 + enemyShip * 0.7;
+  } else {
+    navyScore = 0.6 + enemyShip * 0.5;
+  }
+
+  // 2. 空軍適配度 (Air Suitability)
+  let airScore = 1.0;
+  if (!hasAirports) {
+    airScore = 0.1;
+  } else {
+    if (enemyAA >= 3) {
+      airScore = 0.65;
+    } else if (enemyAA <= 1) {
+      airScore = 1.85 + (enemyHard >= 2 ? 0.4 : 0);
+    } else {
+      airScore = 1.1;
+    }
+    if (roughRatio > 0.25) airScore += 0.5;
+    if (enemyAir >= 2) airScore += 0.4;
+  }
+
+  // 3. 甲軍/重裝甲適配度 (Armor Suitability)
+  let armorScore = 1.0;
+  if (!hasFactories) {
+    armorScore = 0.1;
+  } else if (seaGap && seaRatio > 0.38) {
+    armorScore = 0.4;
+  } else {
+    if (openRatio > 0.32) armorScore += 0.8;
+    if (enemyHard >= 2) armorScore += 0.5;
+    if (roughRatio > 0.35) armorScore -= 0.3;
+  }
+
+  return { navyScore, airScore, armorScore, enemyAir, enemyHard, enemySoft, enemyShip, enemyAA, seaGap };
 }
 
 function aiGoals(u, baseField) {
@@ -153,7 +241,8 @@ function aiGoals(u, baseField) {
   const doc = getDoctrine(nat);
   const persona = getPersona(s);
   const uMax = u.maxHp || d.maxHp || 10;
-  const effRetreatHp = persona.id === 'C' ? Math.max(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp) : Math.min(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp);
+  // 藍發策略：廉價奪城步兵決死不退 (0%後撤門檻)；高代價主力裝甲/戰機/艦艇受損 (<28% HP) 則後撤修復
+  const effRetreatHp = persona.id === 'L' ? ((d.cost <= 160 || d.capture) ? 0 : 0.28) : (persona.id === 'C' ? Math.max(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp) : Math.min(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp));
   const hurt = effRetreatHp > 0 && u.hp <= uMax * effRetreatHp;
   const rTurns = baseField ? Math.ceil(Math.max(1, baseField[here]) / d.move) : 1;
   const fuelMargin = doc.strictRtb ? 6 : 4;
@@ -225,20 +314,30 @@ function aiGoals(u, baseField) {
       let pri = isCap ? -5 * doc.decapitation * persona.decapitation : (isFab ? -4 * doc.decapitation : (G.owner[i] >= 0 ? -1 : Math.round(0 - (persona.captureWeight - 1) * 3)));
       // B 綜合型：加重步步為營推進廊道據點（沿線城市、工廠、機場）佔領權重
       if (persona.id === 'B') pri -= 3;
+      // 藍發規則 2：多佔領城市增加生產力。大幅提高全圖據點搶奪優先度
+      if (persona.id === 'L') {
+        const isNeutral = G.owner[i] < 0;
+        pri = isCap ? -28 : (isFab ? -24 : (isNeutral ? -16 : -20));
+      }
       add(i, pri);
     }
   }
   for (const e of G.units) if (e.side !== s && canHit(u.type, e)) {
-    // A 攻擊型：以全殲敵軍部隊為最高目標 (殲滅優先)
-    const foePri = e.vip ? -6 : d.capture ? 4 : (persona.id === 'A' ? -6 : persona.id === 'B' ? -2 : 0);
+    // A 攻擊型：以全殲敵軍部隊為最高目標 (殲滅優先)；藍發：集火殘血致死與奪城敵軍
+    let foePri = e.vip ? -6 : d.capture ? 4 : (persona.id === 'A' ? -6 : persona.id === 'B' ? -2 : 0);
+    if (persona.id === 'L' && !d.capture) {
+      foePri = (e.hp <= 4) ? -8 : (G.capture[idxOf(e.x, e.y)] ? -9 : -5);
+    }
     add(idxOf(e.x, e.y), foePri);
   }
   if (!d.capture && d.cat !== 'air') {
     for (let i = 0; i < G.owner.length; i++) {
       if (G.owner[i] === 1 - s) {
-        // B 綜合型：持續向敵方首都與前線據點推進
-        const bOff = persona.id === 'B' ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
+        // B 綜合型 / 藍發：持續向敵方首都與前線據點推進掩護
+        const bOff = (persona.id === 'B' || persona.id === 'L') ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
         add(i, bOff);
+      } else if (persona.id === 'L' && G.owner[i] < 0 && TERRAIN[G.terrain[i]].prop) {
+        add(i, 2); // 藍發策略：非步兵主力向中立城市周圍前進清除威脅
       }
     }
   }
@@ -326,7 +425,7 @@ async function aiAct(u, token) {
     base += missionHoldBonus(u, i);
     const thrW = mode === 'retreat' || mode === 'vip' || d.carry ? 2.6 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
     base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW * persona.threatWeight / (mode === 'attack' || mode === 'deliver' ? ag : 1);
-    if (t.build && G.owner[i] === s && d.cat !== 'air') base -= 45;
+    if (t.build && G.owner[i] === s && d.cat !== 'air') base -= persona.id === 'L' ? 95 : 45;
     if (t.prop && G.owner[i] !== s && !d.capture && !(d.carry && d.carry.runway && (u.cargo || []).length)) base -= 30;
     if (mode === 'deliver' && (u.cargo || []).length) {
       const c0 = u.cargo[0];
@@ -355,9 +454,9 @@ async function aiAct(u, token) {
 
     consider(base, null);
     if (d.capture && t.prop && G.owner[i] !== s) {
-      let cs = 350 + (G.owner[i] >= 0 ? 120 : 0) + (G.terrain[i] === 'capital' ? (3000 * persona.decapitation) : 0);
+      let cs = (persona.id === 'L' ? 1400 : 350) + (G.owner[i] >= 0 ? (persona.id === 'L' ? 350 : 120) : (persona.id === 'L' ? 250 : 0)) + (G.terrain[i] === 'capital' ? (3000 * persona.decapitation) : 0);
       const c = G.capture[i];
-      if (c && c.pts < CAPTURE_POINTS) cs += 400 + (CAPTURE_POINTS - c.pts) * 20;
+      if (c && c.pts < CAPTURE_POINTS) cs += (persona.id === 'L' ? 1500 : 400) + (CAPTURE_POINTS - c.pts) * 20;
       cs += missionCaptureBonus(u, i);
       consider(base + cs * persona.captureWeight, { kind: 'capture' });
     } else if (d.capture && t.prop && G.owner[i] === s && G.capture[i]) {
@@ -369,8 +468,14 @@ async function aiAct(u, token) {
         const f = forecast(u, e, x, y);
         if (f.dmg === 0) continue;
         const ec = UNITS[e.type].cost;
-        let val = (f.dmg * ec / 10 * ag + (f.dmg >= e.hp ? ec * 0.4 : 0) - f.counter * d.cost / 10 * 0.9 / ag) * persona.attackWeight;
-        if (G.capture[idxOf(e.x, e.y)]) val += 250;
+        let val = (f.dmg * ec / 10 * ag + (f.dmg >= e.hp ? ec * (persona.id === 'L' ? 1.6 : 0.4) : 0) - f.counter * d.cost / 10 * 0.9 / ag) * persona.attackWeight;
+        if (persona.id === 'L') {
+          if (f.dmg >= e.hp) val += 400; // 藍發策略 4：集火滅頂
+          else if (e.hp <= 5) val += (6 - e.hp) * 45; // 殘血優先補刀
+          if (G.capture[idxOf(e.x, e.y)]) val += 500; // 保城殲滅奪城敵軍
+        } else {
+          if (G.capture[idxOf(e.x, e.y)]) val += 250;
+        }
         if (e.vip) val += 500;
         consider(base + val + 30 * ag, { kind: 'attack', target: e });
       }
@@ -491,6 +596,55 @@ function aiProduce(s) {
       wingman_carrier: airFull ? 0 : (cnt('wingman_carrier') >= 2 ? 0.4 : 1.8),
       usv_wolfpack: 1.5 + enemyShip * 0.8,
     };
+    if (persona.id === 'L') {
+      const suit = evaluateBattlefieldSuitability(s);
+      // 藍發規則 2：多佔領城市增加生產力。若地圖上有未佔領城市/工廠，強烈提高奪城部隊比重
+      if (openProps > 0) {
+        const neededCapturers = Math.max(3, Math.min(10, Math.ceil(openProps * 0.8)));
+        if (capturers < neededCapturers) {
+          w.inf = 10;
+          w.wafer_inf = 8;
+          w.marine = (suit.seaGap || suit.navyScore > 1.2) ? 9 : 5;
+          w.truck = (!suit.seaGap && longMarch && capturers >= 1) ? 3.0 : 1.2;
+          w.lst = (suit.seaGap && capturers >= 1) ? 3.5 : 1.0;
+        }
+      }
+      // 藍發規則 3：自動選擇戰場適合用空軍、甲軍還是海軍，並動態實施兵種相剋
+      // 甲軍（重裝甲/主力戰車/突擊車）
+      w.tank *= suit.armorScore * (1 + suit.enemyHard * 0.25);
+      w.anduril_tank *= suit.armorScore * 1.3;
+      w.euv_fortress *= suit.armorScore * 1.2;
+      w.recon *= suit.armorScore * 0.9;
+
+      // 空軍（空優戰機/強擊機/直升機/轟炸機/奈米蜂群/忠誠僚機母艦）
+      w.fighter *= suit.airScore * (1 + suit.enemyAir * 0.5);
+      w.attacker *= suit.airScore * (1 + (suit.enemyHard + suit.enemyShip) * 0.35);
+      w.heli *= suit.airScore * (suit.enemyAA >= 2 ? 0.4 : 1.3);
+      w.bomber *= suit.airScore * (suit.enemyAA >= 2 ? 0.3 : 1.4);
+      w.nano_swarm *= suit.airScore * 1.2;
+      w.wingman_carrier *= suit.airScore * 1.3;
+
+      // 海軍（驅逐艦/無人狼群/航母/登陸艦）
+      w.destroyer *= suit.navyScore * (1 + suit.enemyShip * 0.6);
+      w.usv_wolfpack *= suit.navyScore * 1.4;
+      w.lst *= suit.navyScore * (suit.seaGap ? 2.5 : 0.8);
+      if (suit.seaGap || suit.navyScore > 1.2) w.marine *= 2.0;
+
+      // 敵情相剋火網配置
+      if (suit.enemyAir >= 2) {
+        w.aa *= 2.2;
+        w.sam *= 2.5;
+        w.laser_aa *= 2.8;
+      }
+      if (suit.enemyHard >= 3) {
+        w.atinf *= 2.2;
+        w.attacker *= 1.6;
+      }
+      // 間接砲兵掩護
+      w.arty *= 1.4;
+      w.rocket *= 1.3;
+      w.palantir_arty *= 1.8;
+    }
     let opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     // C 保守型：硬性保障陸空比 >= 10:1，若產出該空軍會導致 Land : Air < 10:1，嚴格剔除
     if (persona.id === 'C') {
@@ -515,6 +669,31 @@ function aiProduce(s) {
     let r = Math.random() * total, pick = opts[0];
     for (let k = 0; k < opts.length; k++) { r -= ws[k]; if (r <= 0) { pick = opts[k]; break; } }
     produce(pick, x, y, s);
+  }
+
+  // 藍發規則 1：不得讓錢大於 100。只要有可用生產點且資金 > 100，全力爆兵直到資金 <= 100 或無可用據點
+  const persona = getPersona(s);
+  if (persona.id === 'L' && G.funds[s] > 100) {
+    const remainingSites = [];
+    for (let i = 0; i < G.owner.length; i++) {
+      const [x, y] = ixy(i);
+      if (buildOptions(x, y, s).length) remainingSites.push(i);
+    }
+    remainingSites.sort((a, b) => (footField ? footField[a] - footField[b] : 0));
+    for (const i of remainingSites) {
+      if (G.funds[s] <= 100) break;
+      const [x, y] = ixy(i);
+      const f = G.funds[s];
+      const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f);
+      if (!opts.length) continue;
+      opts.sort((a, b) => {
+        const da = UNITS[a], db = UNITS[b];
+        const canDrainA = (f - da.cost <= 100) ? 2.5 : 1.0;
+        const canDrainB = (f - db.cost <= 100) ? 2.5 : 1.0;
+        return (db.cost * canDrainB) - (da.cost * canDrainA);
+      });
+      produce(opts[0], x, y, s);
+    }
   }
 }
 
