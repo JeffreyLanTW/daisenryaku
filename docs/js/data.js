@@ -266,7 +266,7 @@ const NATIONS = {
       marine: ['陸戰隊', '海軍陸戰隊（AAV7 兩棲突擊車）'], stealth: ['F-117A', 'F-117A 夜鷹匿蹤攻擊機'],
     },
     mods: [['all', { cost: 1.15 }], ['tank', { atk: 1 }], ['fighter', { atk: 1 }], ['attacker', { atk: 1 }], ['heli', { atk: 1 }]],
-    prefer: { fighter: 1.5, attacker: 1.5, heli: 1.3, stealth: 1.3 }, adj: 0.911,
+    prefer: { fighter: 1.5, attacker: 1.5, heli: 1.3, stealth: 1.3 }, adj: 0.87,
   },
   JP: {
     name: '日本', full: '日本自衛隊', army: '自衛隊', code: 'JP', style: 'west', camo: '#58613f',
@@ -320,7 +320,7 @@ const NATIONS = {
     },
     mods: [['soft', { jungle: 20 }], ['inf', { cost: 0.75 }], ['atinf', { cost: 0.8 }], ['marine', { cost: 0.8 }],
       ['tank', { atk: -2, cost: 0.65, move: 1 }], ['air', { atk: -1, cost: 0.8 }], ['destroyer', { atk: -2, cost: 0.6 }]],
-    prefer: { inf: 1.6, atinf: 1.4, marine: 1.3, recon: 1.3 }, adj: 0.941,
+    prefer: { inf: 1.6, atinf: 1.4, marine: 1.3, recon: 1.3 }, adj: 1.0,
   },
   VN: {
     name: '越南', full: '越南人民軍', army: '越軍', code: 'VN', style: 'east', camo: '#4d6338',
@@ -334,7 +334,7 @@ const NATIONS = {
     },
     mods: [['soft', { jungle: 15 }], ['inf', { cost: 0.8 }], ['aa', { atk: 1 }], ['sam', { atk: 1 }],
       ['tank', { atk: -1, cost: 0.8 }], ['fighter', { atk: -1, cost: 0.8 }], ['destroyer', { atk: -1, cost: 0.85 }]],
-    prefer: { inf: 1.5, aa: 1.4, sam: 1.3 }, adj: 1.049,
+    prefer: { inf: 1.5, aa: 1.4, sam: 1.3 }, adj: 0.99,
   },
   RU: {
     name: '俄羅斯', full: '俄羅斯（蘇聯）軍', army: '俄軍', code: 'RU', style: 'east', camo: '#53643b',
@@ -360,7 +360,7 @@ const NATIONS = {
       marine: ['兩棲旅', '兩棲作戰旅'],
     },
     mods: [['all', { cost: 0.92 }]],
-    prefer: {}, adj: 0.99,
+    prefer: {}, adj: 1.07,
   },
   PK: {
     name: '巴基斯坦', full: '巴基斯坦武裝部隊', army: '巴軍', code: 'PK', style: 'west', camo: '#6d6847',
@@ -453,7 +453,7 @@ const NATIONS = {
       laser_aa: ['矽光子防空', '矽光子高能雷射防空車'], nano_swarm: ['遊蕩蜂群', '奈米滯空遊蕩無人蜂群'],
     },
     mods: [['land', { armor: 0.85 }], ['sam', { atk: 2 }], ['all', { cost: 1.15 }]],
-    prefer: { euv_fortress: 1.8, laser_aa: 1.6, wafer_inf: 1.4, nano_swarm: 1.5 }, adj: 1.05,
+    prefer: { euv_fortress: 1.8, laser_aa: 1.6, wafer_inf: 1.4, nano_swarm: 1.5 }, adj: 1.12,
   },
   USCORP: {
     name: '美商國防', full: '美商尖端科技集團', army: '矽谷聯軍', code: 'USCORP', style: 'west', camo: '#1e3d59',
@@ -468,7 +468,7 @@ const NATIONS = {
       wingman_carrier: ['僚機母艦', '次世代無人空戰母艦機'], usv_wolfpack: ['無人作戰艦', 'USV 無人水面攔截狼群'],
     },
     mods: [['air', { move: 1 }], ['rocket', { range: [3, 6] }], ['all', { cost: 1.2 }]],
-    prefer: { anduril_tank: 1.8, palantir_arty: 1.7, wingman_carrier: 1.6, usv_wolfpack: 1.5 }, adj: 1.08,
+    prefer: { anduril_tank: 1.8, palantir_arty: 1.7, wingman_carrier: 1.6, usv_wolfpack: 1.5 }, adj: 0.92,
   },
 };
 const CARRIERS = {
