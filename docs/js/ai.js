@@ -4,7 +4,8 @@
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // 多源反向 Dijkstra：每格到最近目標的移動成本。goals: Map(idx -> 起始偏移，越小越優先)
-function distField(goals, mt) {
+// extra：每格額外成本（藍發用來避開己方部隊擁擠的路線）
+function distField(goals, mt, extra = null) {
   const N = G.w * G.h, d = new Float64Array(N).fill(Infinity), done = new Uint8Array(N), open = new MinHeap();
   for (const [g, off] of goals) if (off < d[g]) d[g] = off;
   for (const [g] of goals) open.push(d[g], g);
@@ -12,7 +13,7 @@ function distField(goals, mt) {
     const cur = open.pop();
     if (done[cur]) continue;
     done[cur] = 1;
-    const c = goals.has(cur) ? 1 : moveCost(G.terrain[cur], mt);
+    const c = goals.has(cur) ? 1 : moveCost(G.terrain[cur], mt) + (extra ? extra[cur] : 0);
     if (c === Infinity) continue;
     const [cx, cy] = ixy(cur);
     for (const [nx, ny] of neighbors(cx, cy)) {
@@ -136,7 +137,9 @@ const AI_PERSONAS = {
     // funnel：圍攻時是否只朝敵方首都（false＝同時向所有敵方據點多路推進）
     // 進攻判斷：pressTurn/pressRatio/pressLead 轉入圍攻的回合、兵力比與領先值；assaultRatio 首都外圍總攻的局部兵力比；
     // stageTurns 集結超過幾回合就以 stageRatio 強攻；localRatio 局部兵力優勢時把威脅權重降為 localThreat（不必等總攻才交戰）
-    pressTurn: 6, pressRatio: 1.4, pressLead: 2500, assaultRatio: 1.4, assaultThreat: 0.15, stageTurns: 99, stageRatio: 1.4, localRatio: 99, localThreat: 0.75, funnel: true,
+    pressTurn: 4, pressRatio: 1.15, pressLead: 1200, assaultRatio: 1.1, assaultThreat: 0.15, stageTurns: 3, stageRatio: 0.9, localRatio: 1.1, localThreat: 0.25, funnel: true,
+    // congestion：己方地面部隊佔用／擁擠格的額外路徑成本（讓後方部隊繞路，不擠在狹窄入口）
+    congestion: 1.5,
     retreatHp: 0.28, repairWeight: 1.8, mergeThreshold: 0.40,
     prodWeights: {}
   }
@@ -322,7 +325,9 @@ async function aiAct(u, token) {
   const reach = computeReach(u);
   const baseField = d.fuel !== undefined ? distField(ownBases(s, 'air', u), 'air') : null;
   const { goals, mode } = aiGoals(u, baseField);
-  let field = distField(goals, d.mt);
+  // 藍發地面部隊：路徑計入己方擁擠成本，主路線塞住時改走其他入口
+  const cong = getPersona(s).id === 'L' && d.cat === 'land' && mode === 'attack' && G.lfCong && G.lfCong[s];
+  let field = distField(goals, d.mt, cong || null);
   const start = idxOf(u.x, u.y), origDist = field[start];
   // 地面部隊若與目標隔海或距離遙遠（> 6 移動成本），自動向附近的待命運輸工具靠攏
   if (d.cat === 'land' && !d.carry && origDist > 6) {
@@ -650,7 +655,21 @@ function lanfaBaseType(s, i) {
 
 // ===== 藍發風格：奪城分派 =====
 // 以實際移動成本把未佔領據點分派給最近的奪城部隊（一城一隊），收入高的據點優先
+function lanfaCongestion(s) {
+  // 己方地面部隊：所在格 ＋1，相鄰格 ＋0.35（擁擠程度），乘上 congestion 係數
+  const k = AI_PERSONAS.L.congestion, N = G.w * G.h, a = new Float64Array(N);
+  if (!k) return null;
+  for (const u of G.units) {
+    if (u.side !== s || UNITS[u.type].cat !== 'land') continue;
+    const i = idxOf(u.x, u.y);
+    a[i] += k;
+    for (const [nx, ny] of neighbors(u.x, u.y)) a[idxOf(nx, ny)] += k * 0.35;
+  }
+  return a;
+}
 function lanfaAssign(s) {
+  G.lfCong = G.lfCong || [null, null];
+  G.lfCong[s] = lanfaCongestion(s);
   // 兵力比（價值）：大於 1.4 時轉入全面進攻、直取敵方首都
   const val = side => G.units.filter(u => u.side === side).reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
   G.lfPower = G.lfPower || [1, 1];
