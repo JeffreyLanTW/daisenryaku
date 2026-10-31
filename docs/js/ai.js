@@ -133,9 +133,10 @@ const AI_PERSONAS = {
     id: 'L', name: '藍發', en: 'LanFa', badge: '藍發風格',
     desc: '相剋生產・搶城滾雪球：依敵軍編成與可接戰範圍計算每塊錢的相剋價值、資金每回合分配到各生產據點用完、奪城部隊一城一隊分派、兵力佔優集結圍攻敵方首都、本土防衛攔截與致死集火',
     attackWeight: 1.5, threatWeight: 0.75, decapitation: 3.5, captureWeight: 4.5, coverBonus: 1.5,
+    // funnel：圍攻時是否只朝敵方首都（false＝同時向所有敵方據點多路推進）
     // 進攻判斷：pressTurn/pressRatio/pressLead 轉入圍攻的回合、兵力比與領先值；assaultRatio 首都外圍總攻的局部兵力比；
     // stageTurns 集結超過幾回合就以 stageRatio 強攻；localRatio 局部兵力優勢時把威脅權重降為 localThreat（不必等總攻才交戰）
-    pressTurn: 6, pressRatio: 1.4, pressLead: 2500, assaultRatio: 1.4, assaultThreat: 0.15, stageTurns: 99, stageRatio: 1.4, localRatio: 99, localThreat: 0.75,
+    pressTurn: 6, pressRatio: 1.4, pressLead: 2500, assaultRatio: 1.4, assaultThreat: 0.15, stageTurns: 99, stageRatio: 1.4, localRatio: 99, localThreat: 0.75, funnel: true,
     retreatHp: 0.28, repairWeight: 1.8, mergeThreshold: 0.40,
     prodWeights: {}
   }
@@ -287,7 +288,7 @@ function aiGoals(u, baseField) {
         // B 綜合型 / 藍發：持續向敵方首都與前線據點推進掩護；藍發兵力佔優時全面壓上
         const press = persona.id === 'L' && G.lfPower && G.lfPower[s] >= persona.pressRatio;
         // 圍攻：只朝敵方首都推進，其他據點交給奪城部隊
-        if (press && G.lfSiege && G.lfSiege[s] != null && G.terrain[i] !== 'capital') continue;
+        if (press && persona.funnel && G.lfSiege && G.lfSiege[s] != null && G.terrain[i] !== 'capital') continue;
         const bOff = press ? (G.terrain[i] === 'capital' ? -14 : -3) : (persona.id === 'B' || persona.id === 'L') ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
         add(i, bOff);
       } else if (persona.id === 'L' && G.owner[i] < 0 && TERRAIN[G.terrain[i]].prop) {
