@@ -945,7 +945,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v71</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v72</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
@@ -969,10 +969,11 @@ function openHelp() {
       <li><b>陸戰隊</b>可以渡海（海上移動消耗 2）並登陸佔領，但在海上沒有地形掩護。</li>
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
       <li><b>佔領與持久防禦</b>：步兵類部隊每回合扣除等同 HP 的佔領耐久（總計 20），受損時防禦減免亦隨之降低；部隊離開或陣亡後耐久<b>持續保留</b>，原陣營可派步兵執行「🛠️ 修復據點」恢復。</li></ul>
-    <h4>國家與四大 AI 戰術風格</h4><p>16 個陣營各有專屬 AI 作戰教條、專屬色系與偏好。新遊戲與戰役可自選四大 AI 戰術風格：<b>A 攻擊型</b>（極限殲敵直取斬首）、<b>B 綜合型</b>（步步為營首都推進）、<b>C 保守型</b>（要塞扼守殘血後撤合流）與 <b>L 藍發風格</b>（極限爆兵資金不過百、全圖搶城滾雪球、海陸空動態適配相剋與致死集火）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
+    <h4>國家與四大 AI 戰術風格</h4><p>16 個陣營各有專屬 AI 作戰教條、專屬色系與偏好。新遊戲與戰役可自選四大 AI 戰術風格：<b>A 攻擊型</b>（極限殲敵直取斬首）、<b>B 綜合型</b>（步步為營首都推進）、<b>C 保守型</b>（要塞扼守殘血後撤合流）與 <b>L 藍發風格</b>（依敵軍編成與可接戰範圍計算相剋價值生產、資金每回合分配用完、奪城一城一隊、兵力佔優全面壓上、本土防衛與致死集火）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v72</span><span class="cl-date">2026.10.31</span><p>【藍發風格強化】生產改為「相剋價值」模型：依敵軍實際編成（價值加權）計算每種兵種的期望傷害、承受火力與有效血量，只計算從該生產據點以其移動方式能接戰的敵軍（避免在內陸戰場量產驅逐艦），不買無攻擊力的運輸與航艦；資金依空閒生產據點平均分配、前線優先，每回合用完；奪城部隊依實際移動回合數一城一隊分派（高收入、首都優先），敵方仍有據點時增派；兵力價值超過敵軍 1.3 倍時全軍壓上直取首都；移動目標依兵種相剋加權、不主動接近剋制自己的敵軍；逼近我方首都的敵方奪城部隊最優先攔截；陸路壅塞時放寬空軍上限以空中突破。自由對戰 AI 對決（每張地圖換邊各一場）：對 A/B/C 三種風格勝率由 20–70% 提升至 68–90%。</p></div>
         <div class="cl-item"><span class="cl-ver">v71</span><span class="cl-date">2026.10.30</span><p>【高勝率藍發 AI 作戰風格】實裝全新「藍發 (LanFa)」作戰風格與四大核心規則：1. 資金不過百（只要有可用據點且資金大於 100，不留餘錢極限投放產能）、2. 全圖搶城擴產（大幅提升中立與敵方城鎮奪取權重，滾雪球拉開經濟差距）、3. 海陸空戰場自動適配（依據海域面積、島嶼隔海、崎嶇地形與敵方防空密度自主調配驅逐艦/無人狼群、主力戰車或空優戰機，動態兵種相剋）、4. 滅頂集火一擊必殺、受創高價值主力殘血維修與砲兵協同掩護；支援新遊戲選單、電腦代理切換與戰役對決。</p></div>
         <div class="cl-item"><span class="cl-ver">v70</span><span class="cl-date">2026.10.29</span><p>【Q版國別軍武剪影與專屬色盤】全面重繪 16 國可愛 Q 版 (SD/Chibi) 部隊剪影圖示：圓潤飽滿大頭比例、粗黑輪廓與高對比負空間，老花與 iPad 實機一目了然；步兵依國別配備標誌性大鋼盔（德軍 M35 喇叭裙邊、蘇俄/朝/越 SSh-40 圓頂紅星、日軍 88 式前簷太陽徽、英軍平沿十字徽、法軍平頂軍帽、美台韓 PASGT 圓頂徽）；戰機依標誌性氣動外形區隔（美日雙垂尾雙發、俄系後掠大邊條、法英德前翼三角翼）；戰車（方正/鑄造圓頂/楔形砲塔）、艦艇（神盾八角板/俄式高桅）及專屬 16 國色盤全面煥新。</p></div>
         <div class="cl-item"><span class="cl-ver">v69</span><span class="cl-date">2026.10.28</span><p>【三大 AI 風格硬約束重構】全面升級三大 AI 與電腦代理戰術風格硬性行為約束：<b>A 攻擊型</b>（更名高對比標籤，將全殲敵軍部隊置於最高效用優先級，實裝每場戰役戰機燃料墜毀上限額度 counter $\le 3$，額度內放寬返航檢查允許單向深遠突擊，達 3 次後嚴格執行燃料返航安全約束）；<b>B 綜合型</b>（聚焦步步為營穩步擴張領土，沿推進廊道持續向敵方首都推進，系統性佔領沿線城市、工廠與機場）；<b>C 保守型</b>（實裝首都 15 格硬約束半徑 Hard 15-Tile HQ Tether，生產強制陸空比 $\ge 10:1$，受損高門檻主動後撤據點或相鄰同型部隊非破壞性合流）。無頭模擬器 balance.js 同步支援風格硬約束自動遙測。</p></div>
@@ -1099,7 +1100,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v71</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v72</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

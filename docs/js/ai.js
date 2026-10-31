@@ -131,7 +131,7 @@ const AI_PERSONAS = {
   },
   L: {
     id: 'L', name: '藍發', en: 'LanFa', badge: '藍發風格',
-    desc: '全能立體・極限產能投放：資金不得大於100全數換為前線部隊、全圖搶城擴張經濟、依戰場地貌自動選擇海陸空適配相剋、致死集火與殘血維修',
+    desc: '相剋生產・搶城滾雪球：依敵軍編成與可接戰範圍計算每塊錢的相剋價值、資金每回合分配到各生產據點用完、奪城部隊一城一隊分派、兵力佔優全面壓上直取首都、本土防衛攔截與致死集火',
     attackWeight: 1.5, threatWeight: 0.75, decapitation: 3.5, captureWeight: 4.5, coverBonus: 1.5,
     retreatHp: 0.28, repairWeight: 1.8, mergeThreshold: 0.40,
     prodWeights: {}
@@ -143,86 +143,6 @@ function getPersona(side) {
   const p = G.players[side].persona;
   if (p === 'L' || p === 'LANFA' || p === 'lanfa' || p === '藍發') return AI_PERSONAS.L;
   return AI_PERSONAS[p] || AI_PERSONAS.B;
-}
-
-// 藍發規則 3：自動分析戰場環境與敵情相剋，動態評估海陸空適配度
-function evaluateBattlefieldSuitability(s) {
-  const foes = G.units.filter(u => u.side !== s);
-  const mine = G.units.filter(u => u.side === s);
-  const totalTiles = G.w * G.h;
-  let seaTiles = 0, roughTiles = 0, openTiles = 0;
-  for (let i = 0; i < totalTiles; i++) {
-    const t = G.terrain[i];
-    if (['sea', 'deep', 'reef', 'coast'].includes(t)) seaTiles++;
-    else if (['mountain', 'forest'].includes(t)) roughTiles++;
-    else if (['plain', 'road'].includes(t)) openTiles++;
-  }
-  const seaRatio = seaTiles / totalTiles;
-  const roughRatio = roughTiles / totalTiles;
-  const openRatio = openTiles / totalTiles;
-
-  // 檢查己方與目標據點是否隔海
-  let seaGap = false;
-  const propGoals = new Map();
-  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) propGoals.set(i, 0);
-  const footField = propGoals.size ? distField(propGoals, 'foot') : null;
-  if (footField && mine.some(u => UNITS[u.type].cat === 'land' && footField[idxOf(u.x, u.y)] === Infinity)) {
-    seaGap = true;
-  }
-
-  // 敵軍分類計數
-  const ecls = c => foes.filter(u => UNITS[u.type].cls === c).length;
-  const enemyAir = ecls('air');
-  const enemyHard = ecls('hard');
-  const enemySoft = ecls('soft');
-  const enemyShip = ecls('ship');
-  const enemyAA = foes.filter(u => ['aa', 'sam', 'laser_aa'].includes(UNITS[u.type].base)).length;
-
-  // 己方生產據點種類檢查
-  const ownB = cat => G.owner.filter((o, idx) => o === s && TERRAIN[G.terrain[idx]].build && TERRAIN[G.terrain[idx]].build.includes(cat)).length;
-  const hasPorts = ownB('sea') > 0;
-  const hasAirports = ownB('air') > 0;
-  const hasFactories = ownB('land') > 0;
-
-  // 1. 海軍適配度 (Navy Suitability)
-  let navyScore = 1.0;
-  if (!hasPorts || seaRatio < 0.10) {
-    navyScore = 0.05;
-  } else if (seaGap || seaRatio >= 0.25) {
-    navyScore = 2.4 + enemyShip * 0.7;
-  } else {
-    navyScore = 0.6 + enemyShip * 0.5;
-  }
-
-  // 2. 空軍適配度 (Air Suitability)
-  let airScore = 1.0;
-  if (!hasAirports) {
-    airScore = 0.1;
-  } else {
-    if (enemyAA >= 3) {
-      airScore = 0.65;
-    } else if (enemyAA <= 1) {
-      airScore = 1.85 + (enemyHard >= 2 ? 0.4 : 0);
-    } else {
-      airScore = 1.1;
-    }
-    if (roughRatio > 0.25) airScore += 0.5;
-    if (enemyAir >= 2) airScore += 0.4;
-  }
-
-  // 3. 甲軍/重裝甲適配度 (Armor Suitability)
-  let armorScore = 1.0;
-  if (!hasFactories) {
-    armorScore = 0.1;
-  } else if (seaGap && seaRatio > 0.38) {
-    armorScore = 0.4;
-  } else {
-    if (openRatio > 0.32) armorScore += 0.8;
-    if (enemyHard >= 2) armorScore += 0.5;
-    if (roughRatio > 0.35) armorScore -= 0.3;
-  }
-
-  return { navyScore, airScore, armorScore, enemyAir, enemyHard, enemySoft, enemyShip, enemyAA, seaGap };
 }
 
 function aiGoals(u, baseField) {
@@ -321,20 +241,36 @@ function aiGoals(u, baseField) {
       }
       add(i, pri);
     }
+    // 藍發：每支奪城部隊分派各自的目標據點，避免擠向同一座城
+    const tgt = persona.id === 'L' && G.lfAssign instanceof Map && G.lfAssign.get(u.id);
+    if (tgt !== undefined && tgt !== null && G.owner[tgt] !== s) add(tgt, -45);
   }
   for (const e of G.units) if (e.side !== s && canHit(u.type, e)) {
     // A 攻擊型：以全殲敵軍部隊為最高目標 (殲滅優先)；藍發：集火殘血致死與奪城敵軍
     let foePri = e.vip ? -6 : d.capture ? 4 : (persona.id === 'A' ? -6 : persona.id === 'B' ? -2 : 0);
     if (persona.id === 'L' && !d.capture) {
+      // 兵種相剋：我方對其火力高、對方對我火力低的目標優先接近；被剋制的目標不主動靠近
+      const ed = UNITS[e.type];
+      const mine = d.atk[CLASSES.indexOf(ed.cls)], theirs = canHit(e.type, u) ? ed.atk[CLASSES.indexOf(d.cls)] * (d.armor || 1) : 0;
+      const edge = (mine - theirs) / 2;
+      if (edge < -1.5 && !G.capture[idxOf(e.x, e.y)]) continue;
       foePri = (e.hp <= 4) ? -8 : (G.capture[idxOf(e.x, e.y)] ? -9 : -5);
+      foePri -= Math.max(-2, Math.min(4, edge));
+      // 本土防衛：逼近我方首都的敵方奪城部隊最優先攔截
+      if (ed.capture && G.caps && G.caps[s] >= 0) {
+        const [hx, hy] = ixy(G.caps[s]);
+        const dh = hexDist(e.x, e.y, hx, hy);
+        if (dh <= ed.move * 2) foePri -= 8 - dh;
+      }
     }
     add(idxOf(e.x, e.y), foePri);
   }
   if (!d.capture && d.cat !== 'air') {
     for (let i = 0; i < G.owner.length; i++) {
       if (G.owner[i] === 1 - s) {
-        // B 綜合型 / 藍發：持續向敵方首都與前線據點推進掩護
-        const bOff = (persona.id === 'B' || persona.id === 'L') ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
+        // B 綜合型 / 藍發：持續向敵方首都與前線據點推進掩護；藍發兵力佔優時全面壓上
+        const press = persona.id === 'L' && G.lfPower && G.lfPower[s] >= 1.3;
+        const bOff = press ? (G.terrain[i] === 'capital' ? -9 : -3) : (persona.id === 'B' || persona.id === 'L') ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
         add(i, bOff);
       } else if (persona.id === 'L' && G.owner[i] < 0 && TERRAIN[G.terrain[i]].prop) {
         add(i, 2); // 藍發策略：非步兵主力向中立城市周圍前進清除威脅
@@ -473,6 +409,7 @@ async function aiAct(u, token) {
           if (f.dmg >= e.hp) val += 400; // 藍發策略 4：集火滅頂
           else if (e.hp <= 5) val += (6 - e.hp) * 45; // 殘血優先補刀
           if (G.capture[idxOf(e.x, e.y)]) val += 500; // 保城殲滅奪城敵軍
+          if (UNITS[e.type].capture && G.caps && G.caps[s] >= 0 && hexDist(e.x, e.y, ...ixy(G.caps[s])) <= 3) val += 700; // 首都防衛
         } else {
           if (G.capture[idxOf(e.x, e.y)]) val += 250;
         }
@@ -528,6 +465,7 @@ async function aiAct(u, token) {
 }
 
 function aiProduce(s) {
+  if (getPersona(s).id === 'L') return lanfaProduce(s);
   const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => u.side !== s);
   const cnt = k => G.units.filter(u => u.side === s && UNITS[u.type].base === k).length;
   const ecls = c => foes.filter(u => UNITS[u.type].cls === c).length;
@@ -596,55 +534,6 @@ function aiProduce(s) {
       wingman_carrier: airFull ? 0 : (cnt('wingman_carrier') >= 2 ? 0.4 : 1.8),
       usv_wolfpack: 1.5 + enemyShip * 0.8,
     };
-    if (persona.id === 'L') {
-      const suit = evaluateBattlefieldSuitability(s);
-      // 藍發規則 2：多佔領城市增加生產力。若地圖上有未佔領城市/工廠，強烈提高奪城部隊比重
-      if (openProps > 0) {
-        const neededCapturers = Math.max(3, Math.min(10, Math.ceil(openProps * 0.8)));
-        if (capturers < neededCapturers) {
-          w.inf = 10;
-          w.wafer_inf = 8;
-          w.marine = (suit.seaGap || suit.navyScore > 1.2) ? 9 : 5;
-          w.truck = (!suit.seaGap && longMarch && capturers >= 1) ? 3.0 : 1.2;
-          w.lst = (suit.seaGap && capturers >= 1) ? 3.5 : 1.0;
-        }
-      }
-      // 藍發規則 3：自動選擇戰場適合用空軍、甲軍還是海軍，並動態實施兵種相剋
-      // 甲軍（重裝甲/主力戰車/突擊車）
-      w.tank *= suit.armorScore * (1 + suit.enemyHard * 0.25);
-      w.anduril_tank *= suit.armorScore * 1.3;
-      w.euv_fortress *= suit.armorScore * 1.2;
-      w.recon *= suit.armorScore * 0.9;
-
-      // 空軍（空優戰機/強擊機/直升機/轟炸機/奈米蜂群/忠誠僚機母艦）
-      w.fighter *= suit.airScore * (1 + suit.enemyAir * 0.5);
-      w.attacker *= suit.airScore * (1 + (suit.enemyHard + suit.enemyShip) * 0.35);
-      w.heli *= suit.airScore * (suit.enemyAA >= 2 ? 0.4 : 1.3);
-      w.bomber *= suit.airScore * (suit.enemyAA >= 2 ? 0.3 : 1.4);
-      w.nano_swarm *= suit.airScore * 1.2;
-      w.wingman_carrier *= suit.airScore * 1.3;
-
-      // 海軍（驅逐艦/無人狼群/航母/登陸艦）
-      w.destroyer *= suit.navyScore * (1 + suit.enemyShip * 0.6);
-      w.usv_wolfpack *= suit.navyScore * 1.4;
-      w.lst *= suit.navyScore * (suit.seaGap ? 2.5 : 0.8);
-      if (suit.seaGap || suit.navyScore > 1.2) w.marine *= 2.0;
-
-      // 敵情相剋火網配置
-      if (suit.enemyAir >= 2) {
-        w.aa *= 2.2;
-        w.sam *= 2.5;
-        w.laser_aa *= 2.8;
-      }
-      if (suit.enemyHard >= 3) {
-        w.atinf *= 2.2;
-        w.attacker *= 1.6;
-      }
-      // 間接砲兵掩護
-      w.arty *= 1.4;
-      w.rocket *= 1.3;
-      w.palantir_arty *= 1.8;
-    }
     let opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     // C 保守型：硬性保障陸空比 >= 10:1，若產出該空軍會導致 Land : Air < 10:1，嚴格剔除
     if (persona.id === 'C') {
@@ -670,30 +559,170 @@ function aiProduce(s) {
     for (let k = 0; k < opts.length; k++) { r -= ws[k]; if (r <= 0) { pick = opts[k]; break; } }
     produce(pick, x, y, s);
   }
+}
 
-  // 藍發規則 1：不得讓錢大於 100。只要有可用生產點且資金 > 100，全力爆兵直到資金 <= 100 或無可用據點
-  const persona = getPersona(s);
-  if (persona.id === 'L' && G.funds[s] > 100) {
-    const remainingSites = [];
-    for (let i = 0; i < G.owner.length; i++) {
-      const [x, y] = ixy(i);
-      if (buildOptions(x, y, s).length) remainingSites.push(i);
+// ===== 藍發風格：奪城分派 =====
+// 以實際移動成本把未佔領據點分派給最近的奪城部隊（一城一隊），收入高的據點優先
+function lanfaAssign(s) {
+  // 兵力比（價值）：大於 1.3 時轉入全面進攻、直取敵方首都
+  const val = side => G.units.filter(u => u.side === side).reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
+  G.lfPower = G.lfPower || [1, 1];
+  G.lfPower[s] = val(s) / Math.max(1, val(1 - s));
+  const press = G.lfPower[s] >= 1.3;
+  const caps = G.units.filter(u => u.side === s && UNITS[u.type].capture && !u.vip);
+  const props = [];
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) props.push(i);
+  const pairs = [];
+  for (const u of caps) {
+    const df = distField(new Map([[idxOf(u.x, u.y), 0]]), UNITS[u.type].mt);
+    for (const i of props) {
+      if (df[i] === Infinity) continue;
+      const t = G.terrain[i], inc = TERRAIN[t].income || 0;
+      // 換算成「回合數」：移動成本 ÷ 移動力，再扣除收入與首都加權
+      const turns = df[i] / UNITS[u.type].move - inc / 150 - (t === 'capital' ? (press ? 6 : 2) : 0) - (G.owner[i] >= 0 ? (press ? 1.5 : 0.5) : 0);
+      pairs.push([turns, u.id, i]);
     }
-    remainingSites.sort((a, b) => (footField ? footField[a] - footField[b] : 0));
-    for (const i of remainingSites) {
-      if (G.funds[s] <= 100) break;
-      const [x, y] = ixy(i);
-      const f = G.funds[s];
-      const opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f);
-      if (!opts.length) continue;
-      opts.sort((a, b) => {
-        const da = UNITS[a], db = UNITS[b];
-        const canDrainA = (f - da.cost <= 100) ? 2.5 : 1.0;
-        const canDrainB = (f - db.cost <= 100) ? 2.5 : 1.0;
-        return (db.cost * canDrainB) - (da.cost * canDrainA);
-      });
-      produce(opts[0], x, y, s);
+  }
+  pairs.sort((a, b) => a[0] - b[0]);
+  const used = new Set(), taken = new Set();
+  G.lfAssign = new Map();
+  for (const [, id, i] of pairs) {
+    if (used.has(id) || taken.has(i)) continue;
+    used.add(id); taken.add(i);
+    G.lfAssign.set(id, i);
+  }
+}
+
+// ===== 藍發風格：生產 =====
+// 依敵軍實際編成計算每種兵種「每塊錢的相剋價值」，奪城部隊只補到據點需要的數量，
+// 資金依空閒生產據點平均分配（前線優先），每回合用完但不買無用的運輸與航艦。
+const LANFA_NON_COMBAT = new Set(['truck', 'thelico', 'airlift', 'lst', 'train', 'carrier', 'wingman_carrier']);
+function lanfaArmy(list) {
+  // 依兵種類別加總兵力價值（價格 × 剩餘血量比例）
+  const v = [0, 0, 0, 0];
+  for (const u of list) {
+    const d = UNITS[u.type];
+    v[CLASSES.indexOf(d.cls)] += d.cost * u.hp / (u.maxHp || d.maxHp || 10);
+  }
+  return v;
+}
+function lanfaProduce(s) {
+  const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => u.side !== s);
+  const cnt = b => mine.filter(u => UNITS[u.type].base === b).length;
+  const E = lanfaArmy(foes), Etot = E.reduce((a, b) => a + b, 0) || 1;
+  // 敵軍對各類別的火力（價值加權的平均攻擊力）
+  const T = [0, 0, 0, 0];
+  for (const e of foes) {
+    const d = UNITS[e.type], w = d.cost * e.hp / (e.maxHp || d.maxHp || 10);
+    d.atk.forEach((a, c) => { T[c] += a * w; });
+  }
+  for (let c = 0; c < 4; c++) T[c] /= Etot;
+  // 據點：尚未佔領者與我方奪城部隊
+  let neutral = 0, enemyProps = 0;
+  const propGoals = new Map();
+  for (let i = 0; i < G.owner.length; i++) {
+    if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
+    if (G.owner[i] < 0) neutral++; else enemyProps++;
+    propGoals.set(i, 0);
+  }
+  const footField = propGoals.size ? distField(propGoals, 'foot') : null;
+  const capturers = mine.filter(u => UNITS[u.type].capture || (u.cargo || []).some(c => UNITS[c.type].capture)).length;
+  const needCap = Math.min(9, Math.max(2, Math.ceil(neutral * 0.6) + Math.min(5, Math.ceil(enemyProps / 3) + 1)));
+  const seaGap = footField ? mine.some(u => UNITS[u.type].cat === 'land' && footField[idxOf(u.x, u.y)] === Infinity) : false;
+  const enemyShip = foes.filter(u => UNITS[u.type].cls === 'ship').length;
+  const enemyAA = foes.filter(u => { const d = UNITS[u.type]; return d.cat === 'land' && d.atk[2] >= 6; }).length;
+  const airBases = G.owner.filter((o, i) => o === s && TERRAIN[G.terrain[i]].heal && TERRAIN[G.terrain[i]].heal.includes('air')).length;
+  const myAir = mine.filter(u => UNITS[u.type].cat === 'air').length;
+  const indirect = mine.filter(u => isIndirect(u.type)).length;
+  const armySize = mine.length;
+  const thirsty = mine.filter(u => UNITS[u.type].fuel !== undefined);
+  // 陸路壅塞：多數地面部隊離最近目標仍超過 3 回合路程
+  const landers = mine.filter(u => UNITS[u.type].cat === 'land' && !UNITS[u.type].carry);
+  const foeGoals = new Map(propGoals);
+  for (const e of foes) if (UNITS[e.type].cat === 'land') foeGoals.set(idxOf(e.x, e.y), 0);
+  const treadField = foeGoals.size ? distField(foeGoals, 'tread') : null;
+  const far = treadField ? landers.filter(u => treadField[idxOf(u.x, u.y)] > UNITS[u.type].move * 3).length : 0;
+  const landJam = landers.length >= 8 && far >= landers.length * 0.5;
+  const airCap = Math.max(3, Math.ceil(airBases * (landJam ? 3 : 2))) + Math.min(4, Math.floor(G.funds[s] / 2500));
+  // 兵種評分：對敵軍價值的平均傷害 × 有效血量 ÷ 承受火力 ÷ 價格
+  // 可接戰的敵軍：從生產據點依該兵種移動方式能抵達（或抵達相鄰格）的敵軍價值
+  const reachCache = new Map();
+  const reachable = (site, mt) => {
+    const key = site + '|' + mt;
+    if (reachCache.has(key)) return reachCache.get(key);
+    const v = [0, 0, 0, 0];
+    if (mt === 'air') { reachCache.set(key, E); return E; }
+    const df = distField(new Map([[site, 0]]), mt);
+    for (const e of foes) {
+      const ed = UNITS[e.type];
+      let ok = df[idxOf(e.x, e.y)] < Infinity;
+      if (!ok) for (const [nx, ny] of neighbors(e.x, e.y)) if (df[idxOf(nx, ny)] < Infinity) { ok = true; break; }
+      if (ok) v[CLASSES.indexOf(ed.cls)] += ed.cost * e.hp / (e.maxHp || ed.maxHp || 10);
     }
+    reachCache.set(key, v);
+    return v;
+  };
+  const quality = (k, site) => {
+    const d = UNITS[k], b = d.base, c = CLASSES.indexOf(d.cls);
+    if (LANFA_NON_COMBAT.has(b) && !(b === 'lst' && seaGap) && !(b === 'thelico' && seaGap)) return 0;
+    let off = 0;
+    if (foes.length) { const R = reachable(site, d.mt); for (let k2 = 0; k2 < 4; k2++) off += R[k2] / Etot * d.atk[k2]; }
+    else off = (d.atk[0] + d.atk[1]) / 2;
+    if (isIndirect(k)) off *= 1.35;          // 間接射擊不吃反擊
+    if (d.stealth) off *= 1.15;
+    if (d.move >= 6) off *= 1.08;
+    const hp = (d.maxHp || 10) / (d.armor || 1);
+    const vuln = foes.length ? T[c] : 3;
+    let q = (off + 0.6) * hp / (vuln + 2.5) / Math.pow(d.cost, 0.9);
+    // 奪城需求：步兵最便宜，優先補足
+    if (d.capture) q *= capturers < needCap ? (b === 'inf' ? 4 : 2.4) : 0.55;
+    if (d.cat === 'air') {
+      // 空軍上限依機場數與閒置資金放寬：地形阻隔、陸路壅塞時以空軍突破
+      if (myAir >= airCap) return 0;
+      if (enemyAA >= 3) q *= 0.6;
+      if (landJam) q *= 1.6;
+    }
+    if (d.cat === 'sea') {
+      if (b === 'lst') q = seaGap && capturers >= 2 && cnt('lst') < 1 ? 0.02 : 0;
+      else if (!enemyShip && !seaGap) q *= 0.25;
+      else if (cnt(b) > enemyShip + 1) q *= 0.3;
+      const navy = mine.filter(u => UNITS[u.type].cat === 'sea' && !UNITS[u.type].carry).length;
+      if (b !== 'lst' && !seaGap && navy >= enemyShip + 2) return 0;
+    }
+    if (b === 'thelico') q = seaGap && capturers >= 2 && cnt('thelico') < 1 ? 0.015 : 0;
+    if (isIndirect(k) && indirect >= Math.max(2, armySize * 0.3)) q *= 0.35;
+    q /= 1 + 0.12 * cnt(b);                    // 保持兵種多樣，避免單一兵種被剋
+    return q;
+  };
+  // 空閒生產據點：離前線近的先生產
+  const sites = [];
+  for (let i = 0; i < G.owner.length; i++) {
+    const [x, y] = ixy(i);
+    const t = TERRAIN[G.terrain[i]];
+    if (!buildOptions(x, y, s).length) continue;
+    // 讓出機場給缺油或受損的飛機
+    if (t.heal.includes('air') && thirsty.some(u => {
+      const dd = hexDist(u.x, u.y, x, y), ud = UNITS[u.type];
+      return dd <= ud.move * 2 && (u.fuel <= dd + ud.upkeep * 4 + 4 || u.hp <= 6);
+    }) && G.terrain[i] !== 'capital') continue;
+    sites.push(i);
+  }
+  sites.sort((a, b) => (footField ? footField[a] - footField[b] : 0));
+  for (let n = 0; n < sites.length; n++) {
+    const i = sites[n], [x, y] = ixy(i), f = G.funds[s];
+    const share = f / (sites.length - n);
+    let best = null, bestV = 0;
+    for (const k of buildOptions(x, y, s)) {
+      const c = UNITS[k].cost;
+      if (c > f) continue;
+      const q = quality(k, i);
+      if (q <= 0) continue;
+      // 依分配額度選擇：太便宜浪費產能、太貴排擠其他據點
+      const fit = c <= share ? Math.pow(c / share, 0.35) : Math.pow(share / c, 1.3);
+      const v = q * Math.pow(c, 0.9) * fit * (0.92 + Math.random() * 0.16);
+      if (v > bestV) { bestV = v; best = k; }
+    }
+    if (best) produce(best, x, y, s);
   }
 }
 
@@ -736,6 +765,7 @@ async function aiTurn() {
   const token = gameToken, s = G.cur;
   await sleep(SETTINGS.aiStep * 3);
   aiLaunch(s);
+  if (getPersona(s).id === 'L') lanfaAssign(s);
   const prio = u => {
     const d = UNITS[u.type];
     if (isIndirect(u.type)) return 0;

@@ -11,7 +11,7 @@ const RUNS = +(opt('--runs') || 16);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
 const ANALYZE = args.includes('--analyze');
-const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only', '--persona', '--personas'].includes(args[k - 1])).flatMap(a => a.split(',')).filter(Boolean);
+const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only', '--persona', '--personas', '--duel', '--nat'].includes(args[k - 1])).flatMap(a => a.split(',')).filter(Boolean);
 const PERSONAS_ARG = opt('--personas') || opt('--persona') || null;
 
 // 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫（靜默 console 以節省輸出 token）
@@ -421,6 +421,46 @@ if (args.includes('--nations')) {
     console.log('\n國家     勝率   場數');
     ids.map(i => [i, win[i] / n[i]]).sort((x, y) => y[1] - x[1]).forEach(([i, r]) =>
       console.log(`${i} ${vm.runInContext('NATIONS', ctx)[i].name.padEnd(5, '　')} ${String(Math.round(r * 100)).padStart(3)}%   ${n[i]}`));
+  })();
+  return;
+}
+
+// ----- AI 風格對決：自由對戰隨機地圖，兩種風格輪流換邊 -----
+// 用法：node tools/balance.js --duel L,B [--games 20] [--sizes s,m] [--turns 30] [--nat TW,CN]
+if (args.includes('--duel')) {
+  const [pa, pb] = opt('--duel').split(',').map(s => s.trim().toUpperCase());
+  const games = +(opt('--games') || 20), turns = +(opt('--turns') || 30);
+  const SZ = { s: [18, 13], m: [24, 15], l: [30, 19], xl: [40, 25] };
+  const sizes = (opt('--sizes') || 's,m').split(',');
+  const nats = opt('--nat') ? opt('--nat').split(',') : null;
+  vm.runInContext(`
+    async function simDuel(w, h, seed, nations, personas, maxTurn) {
+      newGame({ w, h, seed, players: personas.map(p => ({ ai: true, persona: p })), nations });
+      while (G.winner == null && G.turn <= maxTurn) { await aiTurn(); if (G.winner != null) break; endTurn(); }
+      const score = s => G.owner.filter(o => o === s).length * 300 + G.units.filter(u => u.side === s).reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || 10), 0) + G.funds[s] * 0.5;
+      const props = s => G.owner.filter((o, i) => o === s && TERRAIN[G.terrain[i]].prop).length;
+      return { winner: G.winner != null ? G.winner : (score(0) >= score(1) ? 0 : 1), decisive: G.winner != null, turn: G.turn, props: [props(0), props(1)], units: [0, 1].map(s => G.units.filter(u => u.side === s).length) };
+    }
+  `, ctx);
+  (async () => {
+    const ids = vm.runInContext('NATION_IDS', ctx).filter(n => !['TSMC', 'USCORP'].includes(n));
+    console.log(`\nAI 風格對決 ${pa} vs ${pb}（每種尺寸 ${games} 場：每張地圖雙方換邊各一場；${turns} 回合未分勝負以據點＋兵力評分）`);
+    for (const sz of sizes) {
+      let wa = 0, dec = 0, turnSum = 0, propA = 0, propB = 0;
+      for (let g = 0; g < games; g++) {
+        const m = g >> 1;
+        const nation = nats ? nats[m % nats.length] : ids[m % ids.length];
+        const foe = nats ? nats[(m + 1) % nats.length] : ids[(m * 7 + 3) % ids.length];
+        const aSide = g % 2;          // 同一張地圖換邊各打一場，抵銷地圖不對稱
+        const personas = aSide === 0 ? [pa, pb] : [pb, pa];
+        const nations = [nation, foe];
+        const r = await ctx.simDuel(SZ[sz][0], SZ[sz][1], 5000 + (g >> 1), nations, personas, turns);
+        if (r.winner === aSide) wa++;
+        if (r.decisive) { dec++; turnSum += r.turn; }
+        propA += r.props[aSide]; propB += r.props[1 - aSide];
+      }
+      console.log(`${sz.padEnd(3)} ${SZ[sz].join('×').padEnd(6)} ${pa} 勝率 ${String(Math.round(wa / games * 100)).padStart(3)}%   分出勝負 ${dec}/${games}（平均 ${dec ? (turnSum / dec).toFixed(1) : '-'} 回合）   終局據點 ${(propA / games).toFixed(1)} : ${(propB / games).toFixed(1)}`);
+    }
   })();
   return;
 }
