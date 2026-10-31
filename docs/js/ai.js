@@ -235,7 +235,12 @@ function aiGoals(u, baseField) {
   }
   // 藍發工兵：前往安全的己方城市建設基地（已開工的優先），沒有可建城市就退回首都
   if (d.engineer && persona.id === 'L') {
-    for (const i of lanfaBuildSites(s)) add(i, G.construct && G.construct[i] && G.construct[i].side === s ? -6 : 0);
+    // 越靠近前線的城市越優先（新基地生產的部隊不必長途行軍）
+    const front = new Map();
+    for (const e of G.units) if (e.side !== s) front.set(idxOf(e.x, e.y), 0);
+    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && G.owner[i] !== s && TERRAIN[G.terrain[i]].prop) front.set(i, 0);
+    const ff = front.size ? distField(front, 'foot') : null;
+    for (const i of lanfaBuildSites(s)) add(i, (G.construct && G.construct[i] && G.construct[i].side === s ? -6 : 0) + (ff && ff[i] < Infinity ? Math.min(12, ff[i] / 3) : 6));
     if (!goals.size) G.terrain.forEach((t, i) => { if (t === 'capital' && G.owner[i] === s) add(i, 0); });
     if (goals.size) return { goals, mode: 'build' };
   }
@@ -295,7 +300,9 @@ function aiGoals(u, baseField) {
         const bOff = press ? (G.terrain[i] === 'capital' ? -14 : -3) : (persona.id === 'B' || persona.id === 'L') ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
         add(i, bOff);
       } else if (persona.id === 'L' && G.owner[i] < 0 && TERRAIN[G.terrain[i]].prop) {
-        add(i, 2); // 藍發策略：非步兵主力向中立城市周圍前進清除威脅
+        // 藍發：只有中立城市附近真的有敵軍時才派主力清除，否則交給步兵（主力停在後方中立城旁會造成大量屯兵）
+        const [px, py] = ixy(i);
+        if (G.units.some(e => e.side !== s && hexDist(e.x, e.y, px, py) <= 3)) add(i, 2);
       }
     }
   }
@@ -884,6 +891,19 @@ function lanfaProduce(s) {
     return q;
   };
   const qualityRaw = (k, site) => quality(k, site, true);
+  // 前線距離：到敵方部隊與敵方據點的陸路距離
+  const rearStop = G.lfPower && G.lfPower[s] >= 2 && mine.length >= 40;
+  const crush = G.lfPower && G.lfPower[s] >= 4 && mine.length >= 80;
+  let frontField = null;
+  if (rearStop) {
+    const fg = new Map();
+    for (const e of foes) if (UNITS[e.type].cat === 'land') fg.set(idxOf(e.x, e.y), 0);
+    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && G.owner[i] !== s && TERRAIN[G.terrain[i]].prop) fg.set(i, 0);
+    frontField = fg.size ? distField(fg, 'tread') : null;
+  }
+  // 最靠前線的生產據點距離：最前方的據點永遠可以生產，只停後方
+  let frontMin = Infinity;
+  if (frontField) for (let i = 0; i < G.owner.length; i++) if (G.owner[i] === s && TERRAIN[G.terrain[i]].build && TERRAIN[G.terrain[i]].build.includes('land')) frontMin = Math.min(frontMin, frontField[i]);
   // 空閒生產據點：離前線近的先生產
   const sites = [];
   for (let i = 0; i < G.owner.length; i++) {
@@ -914,6 +934,11 @@ function lanfaProduce(s) {
     for (const k of buildOptions(x, y, s)) {
       const c = UNITS[k].cost;
       let q = quality(k, i);
+      // 大幅領先時停止後方生產：地面部隊只在前線附近的據點生產（避免後方產出的部隊長途行軍塞路屯兵）
+      if (q > 0 && rearStop && UNITS[k].cat === 'land' && !UNITS[k].engineer) {
+        const fd = frontField ? frontField[i] : 0;
+        if (fd > frontMin + 10 || (crush && !UNITS[k].capture && fd > frontMin + 4)) q = 0;
+      }
       // 資金閒置時機場一定要能生產：放寬空軍上限
       if (q <= 0 && UNITS[k].cat === 'air' && f >= 3000 && !longSortie && !LANFA_NON_COMBAT.has(UNITS[k].base) && myAir < airCap + 4) q = qualityRaw(k, i);
       if (q <= 0) continue;
