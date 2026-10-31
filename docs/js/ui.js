@@ -586,33 +586,45 @@ function updateAutoPilotUI() {
     $('#apMin').textContent = SETTINGS.apMin ? '▸' : '▾';
     $('#apTitle').innerHTML = spectating ? '👀 <b>觀戰中</b>（雙方電腦）' : '🤖 <b>電腦代理指揮中</b>';
     $('#btnStopAutoPilot').innerHTML = spectating ? '⏹️ 停止觀戰' : '⏹️ 中斷代理';
-    // 雙方操作與風格：下拉選單選好後按「套用」才生效；選單只在視窗出現時建立一次，不會被即時更新蓋掉
+    // 雙方操作、AI 風格與電腦速度：分段按鈕，點選即時切換（選項全部可見，不是循環切換）
     if (!bar.dataset.built) {
       bar.dataset.built = '1';
+      const seg = (attrs, opts) => `<span class="ap-seg">${opts.map(([v, n, t]) => `<button type="button" ${attrs} data-v="${v}" title="${t || n}">${n}</button>`).join('')}</span>`;
+      const per = [['A', 'A', 'A 攻擊型：極限殲敵'], ['B', 'B', 'B 綜合型：平衡協同'], ['C', 'C', 'C 保守型：要塞扼守'], ['L', '藍發', '藍發：高勝率適配']];
       $('#apSides').innerHTML = [0, 1].map(k => `<div class="ap-side" style="--c:${SIDES[k].color}">
-          <span class="ap-side-name" style="color:${SIDES[k].light}">${SIDES[k].name}${k === G.cur ? ' ▶' : ''}</span>
-          <select id="apCtl${k}" title="操作"><option value="h">${k === G.cur && G.autoPilot ? '玩家（代理中）' : '玩家'}</option><option value="ai" ${G.players[k].ai ? 'selected' : ''}>電腦</option></select>
-          <select id="apPer${k}" title="AI 風格">${personaOptions(G.players[k].persona)}</select>
-        </div>`).join('') + '<button id="apApply" class="btn-ap-sub" title="套用雙方操作與風格">套用</button>';
-      $('#apApply').onclick = applyApSides;
+          <span class="ap-side-name" style="color:${SIDES[k].light}">${SIDES[k].name}<i class="ap-turn"></i></span>
+          ${seg(`data-ap="ctl" data-k="${k}"`, [['h', '玩家'], ['ai', '電腦']])}
+          ${seg(`data-ap="per" data-k="${k}"`, per)}
+        </div>`).join('') + `<div class="ap-speed"><span>速度</span>${seg('data-ap="spd"', [['200', '慢'], ['110', '普通'], ['45', '快'], ['10', '極快']])}</div>`;
+      $('#apSides').onclick = e => { const b = e.target.closest('button[data-ap]'); if (b) apSegClick(b); };
     }
+    // 依目前狀態標示選取
+    $('#apSides').querySelectorAll('button[data-ap]').forEach(b => {
+      const k = +b.dataset.k, v = b.dataset.v;
+      const on = b.dataset.ap === 'ctl' ? (G.players[k].ai ? 'ai' : 'h') === v
+        : b.dataset.ap === 'per' ? (G.players[k].persona || 'B') === v : String(SETTINGS.aiStep) === v;
+      b.classList.toggle('on', on);
+    });
+    $('#apSides').querySelectorAll('.ap-side').forEach((el, k) => { el.querySelector('.ap-turn').textContent = k === G.cur ? ' ▶' : ''; });
     $('#apStats').innerHTML = battleStatsInner(false);
   }
 }
-// 套用代理視窗中的雙方設定
-function applyApSides() {
+// 代理視窗分段按鈕：點選即生效
+function apSegClick(b) {
   if (!G) return;
-  const wasHuman = !G.players[G.cur].ai;
-  for (const k of [0, 1]) {
-    G.players[k].ai = $('#apCtl' + k).value === 'ai';
-    G.players[k].persona = $('#apPer' + k).value;
+  const k = +b.dataset.k, v = b.dataset.v;
+  if (b.dataset.ap === 'spd') { SETTINGS.aiStep = +v; showToast('電腦速度：' + b.textContent); }
+  else if (b.dataset.ap === 'per') {
+    G.players[k].persona = v;
+    showToast(`${SIDES[k].name} AI 風格：${(AI_PERSONAS[v] || {}).badge || v}`);
+  } else {
+    const wasHuman = !G.players[G.cur].ai;
+    G.players[k].ai = v === 'ai';
+    // 目前回合改由電腦指揮：交給 turnIntro 的電腦回合流程
+    if (k === G.cur && G.players[k].ai && G.autoPilot && UIS.mode !== 'busy') G.autoPilot = false;
+    showToast(`${SIDES[k].name}：${G.players[k].ai ? '電腦指揮' : '玩家指揮'}${G.players.every(p => p.ai) ? '（觀戰模式）' : ''}`);
+    if (k === G.cur && wasHuman && G.players[k].ai && G.winner == null && UIS.mode !== 'busy') { clearSel(); setInspect(null); turnIntro(); }
   }
-  // 目前回合改由電腦指揮：代理旗標不再需要（電腦回合由 turnIntro 接手）
-  if (G.players[G.cur].ai && G.autoPilot && UIS.mode !== 'busy') G.autoPilot = false;
-  const info = [0, 1].map(k => `${SIDES[k].name}：${G.players[k].ai ? '電腦' : '玩家'}・${(AI_PERSONAS[G.players[k].persona] || {}).badge || G.players[k].persona}`).join('　');
-  showToast('已套用　' + info);
-  $('#autoPilotBar').dataset.built = '';
-  if (wasHuman && G.players[G.cur].ai && G.winner == null && UIS.mode !== 'busy') { clearSel(); setInspect(null); turnIntro(); }
   updateAutoPilotUI(); refreshPanel();
 }
 
@@ -1091,7 +1103,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v75</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v76</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1122,6 +1134,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v76</span><span class="cl-date">2026.10.31</span><p>【代理視窗點選即時切換】電腦代理／觀戰視窗取消「套用」按鈕，改為分段按鈕點選即生效：雙方「玩家／電腦」、AI 風格（A／B／C／藍發）與電腦速度（慢／普通／快／極快），目前選項以亮色標示。</p></div>
         <div class="cl-item"><span class="cl-ver">v75</span><span class="cl-date">2026.10.31</span><p>【藍發積極進攻與代理視窗改版】藍發不再屯兵：周圍 5 格內兵力達敵軍 1.1 倍即主動交戰（不必等總攻）；兵力領先 1.15 倍、第 4 回合起即轉入首都圍攻，外圍局部兵力 1.1 倍總攻，集結超過 3 回合以 0.9 倍強攻；路徑計入己方擁擠成本，主要入口塞住時後方部隊改走其他路線；兵力 2 倍時偏好飛機與高機動部隊、圍攻時以運輸直升機空運步兵到敵方首都。自由對戰 80 回合（中、大地圖 120 場）勝率 97.5%→98.3%、決定性勝利回合中型 36–43→30–39、大型 46–50→40–45，終局殘留部隊減少約兩成。電腦代理視窗改版：雙方操作（玩家／電腦）與 AI 風格改為下拉選單，按「套用」才生效；視窗內同時顯示雙方即時戰場資訊；雙方都設電腦時顯示「觀戰中」，可一鍵停止觀戰；可收合。新遊戲的工兵選項預設關閉（關閉時大地圖後期資金仍會累積）。</p></div>
         <div class="cl-item"><span class="cl-ver">v74</span><span class="cl-date">2026.10.31</span><p>【工兵基地建設與觀戰設定】新增兵種「工兵」（💰300）：停在己方城市（非首都）可建設 🏭工廠（💰1000，生產與補給地面部隊）、✈️機場（💰1200，生產與補給飛機）或 ⚓港口（💰1000，須臨海）；建設點數 20、每回合扣除工兵 HP，約 2 回合完工，城市被佔領時建設中斷，地圖顯示建設進度。藍發 AI 在資金閒置或生產據點不足時派工兵到安全城市建基地（沒有機場先建機場、需要海軍時建港口、其餘建工廠）：大地圖終局閒置資金由 1–1.7 萬降至約 1,600–1,900，兵力價值提升約 4 成，自由對戰勝率 83.9%（360 場）。新增右下 ⚙️ 戰場設定：遊戲中隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則開關與電腦速度（新增「極快」）；新遊戲也可選擇是否開放工兵。</p></div>
         <div class="cl-item"><span class="cl-ver">v73</span><span class="cl-date">2026.10.31</span><p>【戰場資訊面板與藍發資金運用】新增 📊 戰場資訊面板（右下工具列開關，電腦代理時自動顯示）：雙方部隊數、兵力價值、據點、每回合收入、資金對比長條與估計勝率環圖（依兵力、收入、據點與資金估算），並顯示閒置生產據點；可收合、可移到左上或左下，手機橫向自動縮小。藍發資金運用：空閒生產據點全部用掉，只有局勢穩定時（第 8 回合後、兵力不落後、本土無敵軍）才為下 1–2 回合買得起的高價單位預留資金；資金越多越偏好高價高戰力單位；搶城時工廠與機場優先；油滿血滿的飛機不佔用機場與首都、受損飛機有其他機場時不停首都；沒有理想目標的部隊改為支援前線而非回基地停放；出擊距離太遠時減少空軍、資金閒置時港口可造艦威脅敵方沿海據點；平衡工具對決報告新增終局資金。註：大地圖後期收入常超過生產據點的產能上限，資金仍會累積，面板的「閒置生產」可用來判斷是否還有據點沒用到。</p></div>
@@ -1252,7 +1265,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v75</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v76</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

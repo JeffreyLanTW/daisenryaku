@@ -919,10 +919,13 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 #autoPilotBar.min .ap-body { display: none; }
 #autoPilotBar .ap-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: start; }
 #autoPilotBar .ap-sides { display: flex; flex-direction: column; gap: 5px; }
-#autoPilotBar .ap-side { display: grid; grid-template-columns: 64px 1fr; gap: 4px; align-items: center; border-left: 4px solid var(--c); padding-left: 6px; }
+#autoPilotBar .ap-side { display: grid; grid-template-columns: 60px 1fr; gap: 4px; align-items: center; border-left: 4px solid var(--c); padding-left: 6px; }
 #autoPilotBar .ap-side-name { grid-row: span 2; font-weight: 700; font-size: 13px; }
-#autoPilotBar .ap-side select { font-size: 12px; padding: 3px 4px; min-width: 0; }
-#autoPilotBar #apApply { align-self: flex-end; }
+#autoPilotBar .ap-seg { display: flex; border: 1px solid #475569; border-radius: 7px; overflow: hidden; }
+#autoPilotBar .ap-seg button { flex: 1; min-width: 0; padding: 4px 6px; font-size: 12px; border: 0; border-radius: 0; border-right: 1px solid #475569; background: #1e293b; color: #cbd5e1; white-space: nowrap; }
+#autoPilotBar .ap-seg button:last-child { border-right: 0; }
+#autoPilotBar .ap-seg button.on { background: #38bdf8; color: #0b1220; font-weight: 800; }
+#autoPilotBar .ap-speed { display: grid; grid-template-columns: 60px 1fr; gap: 4px; align-items: center; padding-left: 10px; font-size: 12px; color: var(--muted); }
 #autoPilotBar .ap-stats { font-size: 12px; min-width: 0; }
 #autoPilotBar .ap-stats .bs-row { display: grid; grid-template-columns: 30px 38px 1fr 38px; align-items: center; gap: 4px; margin-top: 3px; }
 #autoPilotBar .ap-stats .bs-head { display: flex; align-items: center; gap: 6px; }
@@ -938,7 +941,8 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   #autoPilotBar.autopilot-banner { top: 6px; padding: 5px 8px; gap: 4px; }
   #autoPilotBar .ap-title { font-size: 13px; }
   #autoPilotBar .ap-body { gap: 6px; }
-  #autoPilotBar .ap-side { grid-template-columns: 50px 1fr; }
+  #autoPilotBar .ap-side, #autoPilotBar .ap-speed { grid-template-columns: 48px 1fr; }
+  #autoPilotBar .ap-seg button { padding: 3px 4px; font-size: 11px; }
   #autoPilotBar .ap-side-name { font-size: 12px; }
   #autoPilotBar .ap-stats .bs-row { grid-template-columns: 26px 32px 1fr 32px; margin-top: 1px; }
   #autoPilotBar .ap-stats .bs-foot { display: none; }
