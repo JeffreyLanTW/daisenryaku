@@ -495,19 +495,19 @@ if (args.includes('--duel')) {
   })();
   function report() {
     console.log(`\nAI 風格對決 ${pa} vs ${vs.join('/')}（每種尺寸 ${games} 場，每張地圖換邊各一場；${turns} 回合未分勝負以評分判定）`);
-    console.log('對手 尺寸         勝率   決定性勝/敗   平均決勝回合   終局據點   終局兵力價值');
+    console.log('對手 尺寸         勝率   決定性勝/敗   平均決勝回合   終局據點   終局兵力價值   終局資金');
     let tw = 0, tn = 0, tdec = 0;
     for (const pb of vs) for (const sz of sizes) {
       const rs = list.map((j, k) => [j, done[k]]).filter(([j]) => j.pb === pb && j.sz === sz);
-      let w = 0, dw = 0, dl = 0, tsum = 0, pA = 0, pB = 0, vA = 0, vB = 0;
+      let w = 0, dw = 0, dl = 0, tsum = 0, pA = 0, pB = 0, vA = 0, vB = 0, fA = 0, fB = 0;
       for (const [j, r] of rs) {
         const me = j.aSide, win = r.winner === me;
         if (win) w++;
         if (r.decisive) { if (win) { dw++; tsum += r.turn; } else dl++; }
-        pA += r.props[me]; pB += r.props[1 - me]; vA += r.val[me]; vB += r.val[1 - me];
+        pA += r.props[me]; pB += r.props[1 - me]; vA += r.val[me]; vB += r.val[1 - me]; fA += r.funds[me]; fB += r.funds[1 - me];
       }
       const n = rs.length; tw += w; tn += n; tdec += dw;
-      console.log(`${pb.padEnd(4)} ${sz.padEnd(3)} ${DUEL_SZ[sz].join('×').padEnd(6)}  ${String(Math.round(w / n * 100)).padStart(4)}%   ${String(dw).padStart(4)} / ${String(dl).padEnd(4)}   ${(dw ? (tsum / dw).toFixed(1) : '-').padStart(8)}       ${(pA / n).toFixed(1).padStart(4)}:${(pB / n).toFixed(1).padEnd(4)}  ${String(Math.round(vA / n)).padStart(6)}:${Math.round(vB / n)}`);
+      console.log(`${pb.padEnd(4)} ${sz.padEnd(3)} ${DUEL_SZ[sz].join('×').padEnd(6)}  ${String(Math.round(w / n * 100)).padStart(4)}%   ${String(dw).padStart(4)} / ${String(dl).padEnd(4)}   ${(dw ? (tsum / dw).toFixed(1) : '-').padStart(8)}       ${(pA / n).toFixed(1).padStart(4)}:${(pB / n).toFixed(1).padEnd(4)}  ${String(Math.round(vA / n)).padStart(6)}:${String(Math.round(vB / n)).padEnd(6)}  ${String(Math.round(fA / n)).padStart(6)}:${Math.round(fB / n)}`);
     }
     console.log(`總計 ${pa} 勝率 ${(tw / tn * 100).toFixed(1)}%（${tw}/${tn}），決定性勝利 ${tdec}`);
     if (args.includes('--losses')) {

@@ -9,6 +9,18 @@ const UIS = {
 };
 const SETTINGS = { aiStep: 110, labels: true };
 try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETTINGS.labels = l === '1'; } catch (e) { /* 忽略 */ }
+// 戰場資訊面板：stats 平常是否開啟、statsPos 位置（bl 左下 / tl 左上）、statsMin 收合
+SETTINGS.stats = false; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false;
+try {
+  SETTINGS.stats = localStorage.getItem('daisenryaku_stats') === '1';
+  SETTINGS.statsPos = localStorage.getItem('daisenryaku_stats_pos') || 'bl';
+  SETTINGS.statsMin = localStorage.getItem('daisenryaku_stats_min') === '1';
+} catch (e) { /* 忽略 */ }
+const saveStatsPref = () => { try {
+  localStorage.setItem('daisenryaku_stats', SETTINGS.stats ? '1' : '0');
+  localStorage.setItem('daisenryaku_stats_pos', SETTINGS.statsPos);
+  localStorage.setItem('daisenryaku_stats_min', SETTINGS.statsMin ? '1' : '0');
+} catch (e) { /* 忽略 */ } };
 let modalDismissable = false, modalOpenedAt = 0;
 let lastPointerType = 'mouse';
 const isTouch = () => lastPointerType === 'touch' || lastPointerType === 'pen';
@@ -524,6 +536,7 @@ function updateNextUnitButton() {
 
 // ----- 電腦代理指揮 (Auto-Pilot) 狀態管理與執行佇列 -----
 function updateAutoPilotUI() {
+  renderBattleStats();
   const btn = $('#btnAutoPilot');
   const bar = $('#autoPilotBar');
   if (!G) {
@@ -640,8 +653,79 @@ async function runAutoPilotTurn(side) {
     refreshPanel();
   }
 }
+// ----- 戰場資訊面板：雙方部隊、兵力、據點、收入對比與估計勝率 -----
+function battleStatsData() {
+  const side = k => {
+    const units = G.units.filter(u => u.side === k);
+    const val = units.reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
+    let props = 0, sites = 0, idle = 0;
+    for (let i = 0; i < G.owner.length; i++) {
+      if (G.owner[i] !== k) continue;
+      const t = TERRAIN[G.terrain[i]];
+      if (t.prop) props++;
+      if (t.build) {
+        sites++;
+        const [x, y] = ixy(i);
+        if (!unitAt(x, y) && buildOptions(x, y, k).some(b => UNITS[b].cost <= G.funds[k])) idle++;
+      }
+    }
+    return { units: units.length, val: Math.round(val), props, income: incomeOf(k), funds: G.funds[k], sites, idle };
+  };
+  const d = [side(0), side(1)];
+  // 估計勝率：兵力價值為主，加上收入（未來兵力）、據點與資金；平方後比較（集中兵力的優勢不是線性的）
+  const str = x => x.val + x.income * 6 + x.props * 100 + x.funds * 0.25;
+  let p0 = G.winner != null ? (G.winner === 0 ? 1 : 0) : str(d[0]) ** 2 / Math.max(1, str(d[0]) ** 2 + str(d[1]) ** 2);
+  if (G.winner == null) p0 = Math.min(0.98, Math.max(0.02, p0));
+  return { d, p0 };
+}
+function renderBattleStats() {
+  const box = $('#battleStats');
+  if (!box) return;
+  const show = G && (SETTINGS.stats || G.autoPilot) && UIS.mode !== 'deploy';
+  box.classList.toggle('hidden', !show);
+  const zb = $('#zStats');
+  if (zb) zb.classList.toggle('on', !!SETTINGS.stats);
+  if (!show) return;
+  box.classList.toggle('pos-tl', SETTINGS.statsPos === 'tl');
+  box.classList.toggle('min', !!SETTINGS.statsMin);
+  const { d, p0 } = battleStatsData(), c = [SIDES[0].color, SIDES[1].color];
+  const pct0 = Math.round(p0 * 100);
+  // 環圖：藍方估計勝率
+  const R = 14, C = 2 * Math.PI * R;
+  const donut = `<svg class="bs-donut" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="${R}" fill="none" stroke="${c[1]}" stroke-width="6"/>
+    <circle cx="18" cy="18" r="${R}" fill="none" stroke="${c[0]}" stroke-width="6" stroke-dasharray="${(C * p0).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 18 18)"/></svg>`;
+  const bar = (label, a, b, fmt = v => v) => {
+    const t = a + b, pa = t > 0 ? a / t * 100 : 50;
+    return `<div class="bs-row"><span class="bs-l">${label}</span><span class="bs-n" style="color:${SIDES[0].light}">${fmt(a)}</span>
+      <span class="bs-bar"><i style="width:${pa.toFixed(1)}%;background:${c[0]}"></i><i style="width:${(100 - pa).toFixed(1)}%;background:${c[1]}"></i></span>
+      <span class="bs-n r" style="color:${SIDES[1].light}">${fmt(b)}</span></div>`;
+  };
+  const k = v => v >= 10000 ? (v / 1000).toFixed(0) + 'k' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(v);
+  box.innerHTML = `<div class="bs-head">${donut}
+      <span class="bs-win" title="估計勝率：${SIDES[0].name} ${pct0}% / ${SIDES[1].name} ${100 - pct0}%（依兵力價值、收入、據點與資金估算）"><small>勝率</small> <b style="color:${SIDES[0].light}">${pct0}%</b> : <b style="color:${SIDES[1].light}">${100 - pct0}%</b></span>
+      <button class="bs-btn" data-bs="pos" title="移到${SETTINGS.statsPos === 'tl' ? '左下' : '左上'}">⇅</button>
+      <button class="bs-btn" data-bs="min" title="${SETTINGS.statsMin ? '展開' : '收合'}">${SETTINGS.statsMin ? '▸' : '▾'}</button></div>
+    <div class="bs-body">
+      ${bar('部隊', d[0].units, d[1].units)}
+      ${bar('兵力', d[0].val, d[1].val, k)}
+      ${bar('據點', d[0].props, d[1].props)}
+      ${bar('收入', d[0].income, d[1].income, v => '+' + k(v))}
+      ${bar('資金', d[0].funds, d[1].funds, k)}
+      <div class="bs-foot" title="閒置生產：沒有部隊佔用、資金足夠卻還沒生產的生產據點 / 全部生產據點"><span style="color:${SIDES[0].light}">閒置生產 ${d[0].idle}/${d[0].sites}</span>
+        <span style="color:${SIDES[1].light}">閒置生產 ${d[1].idle}/${d[1].sites}</span></div>
+    </div>`;
+  box.querySelectorAll('[data-bs]').forEach(b => {
+    b.onclick = e => {
+      e.stopPropagation();
+      if (b.dataset.bs === 'pos') SETTINGS.statsPos = SETTINGS.statsPos === 'tl' ? 'bl' : 'tl';
+      else SETTINGS.statsMin = !SETTINGS.statsMin;
+      saveStatsPref(); renderBattleStats();
+    };
+  });
+}
 function refreshPanel() {
   if (!G) return;
+  renderBattleStats();
   const S = SIDES[G.cur];
   $('#turnInfo').innerHTML = `第 <b>${G.turn}</b> 回合${isNight() ? ' · 🌙 夜間' : ''} · <span style="color:${S.light}">${S.name}${G.players[G.cur].ai ? '（電腦）' : ''}</span>`;
   $('#funds').innerHTML = SIDES.map((s, k) =>
@@ -945,9 +1029,10 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v72</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v73</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
+      <li>右下 <b>📊</b> 開關<b>戰場資訊</b>：雙方部隊、兵力、據點、收入、資金對比與估計勝率；電腦代理時自動顯示，可收合（▾）或移到左上／左下（⇅）。</li>
       <li>點擊己方部隊 → 藍色格為可移動範圍，紅色為可攻擊目標。</li>
       <li>點擊目的地後選擇行動：攻擊、佔領、修復、待機或取消。直接點擊紅色敵軍可自動移動並攻擊。</li>
       <li><b>移動命令</b>：點擊範圍外的地點，部隊會設定該處為最終目的地，之後每回合開始自動前進（右下角黃旗）。選取部隊後可取消命令。</li>
@@ -973,6 +1058,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v73</span><span class="cl-date">2026.10.31</span><p>【戰場資訊面板與藍發資金運用】新增 📊 戰場資訊面板（右下工具列開關，電腦代理時自動顯示）：雙方部隊數、兵力價值、據點、每回合收入、資金對比長條與估計勝率環圖（依兵力、收入、據點與資金估算），並顯示閒置生產據點；可收合、可移到左上或左下，手機橫向自動縮小。藍發資金運用：空閒生產據點全部用掉，只有局勢穩定時（第 8 回合後、兵力不落後、本土無敵軍）才為下 1–2 回合買得起的高價單位預留資金；資金越多越偏好高價高戰力單位；搶城時工廠與機場優先；油滿血滿的飛機不佔用機場與首都、受損飛機有其他機場時不停首都；沒有理想目標的部隊改為支援前線而非回基地停放；出擊距離太遠時減少空軍、資金閒置時港口可造艦威脅敵方沿海據點；平衡工具對決報告新增終局資金。註：大地圖後期收入常超過生產據點的產能上限，資金仍會累積，面板的「閒置生產」可用來判斷是否還有據點沒用到。</p></div>
         <div class="cl-item"><span class="cl-ver">v72</span><span class="cl-date">2026.10.31</span><p>【藍發風格強化】生產改為「相剋價值」模型：依敵軍實際編成（價值加權）計算每種兵種的期望傷害、承受火力與有效血量，只計算從該生產據點以其移動方式能接戰的敵軍（不在內海量產驅逐艦），不買無攻擊力的運輸與航艦；資金依空閒生產據點平均分配、前線優先，每回合用完，資金閒置時放寬空軍與艦艇上限；奪城部隊依實際移動回合數一城一隊分派且沿用到手為止（高收入、首都優先）；兵力價值領先 1.4 倍且第 6 回合後轉入首都圍攻：主力集結於敵方首都外圍，局部兵力達守軍 1.4 倍時一齊總攻，優先清除首都上的守軍讓步兵進佔；移動目標依兵種相剋加權、掩蔽加成設上限避免停在山林；逼近我方首都的敵方奪城部隊最優先攔截。平衡工具新增 --duel 對決模式（每張地圖換邊、固定亂數可重現、--jobs 平行、--losses 列出敗局）。自由對戰對 A/B/C 三種風格（360 場）：30 回合判定勝率由原版藍發的約 47% 提升至 84%；延長至 80 回合時勝率 90%，其中 233 場以攻陷首都或全殲敵軍決勝。</p></div>
         <div class="cl-item"><span class="cl-ver">v71</span><span class="cl-date">2026.10.30</span><p>【高勝率藍發 AI 作戰風格】實裝全新「藍發 (LanFa)」作戰風格與四大核心規則：1. 資金不過百（只要有可用據點且資金大於 100，不留餘錢極限投放產能）、2. 全圖搶城擴產（大幅提升中立與敵方城鎮奪取權重，滾雪球拉開經濟差距）、3. 海陸空戰場自動適配（依據海域面積、島嶼隔海、崎嶇地形與敵方防空密度自主調配驅逐艦/無人狼群、主力戰車或空優戰機，動態兵種相剋）、4. 滅頂集火一擊必殺、受創高價值主力殘血維修與砲兵協同掩護；支援新遊戲選單、電腦代理切換與戰役對決。</p></div>
         <div class="cl-item"><span class="cl-ver">v70</span><span class="cl-date">2026.10.29</span><p>【Q版國別軍武剪影與專屬色盤】全面重繪 16 國可愛 Q 版 (SD/Chibi) 部隊剪影圖示：圓潤飽滿大頭比例、粗黑輪廓與高對比負空間，老花與 iPad 實機一目了然；步兵依國別配備標誌性大鋼盔（德軍 M35 喇叭裙邊、蘇俄/朝/越 SSh-40 圓頂紅星、日軍 88 式前簷太陽徽、英軍平沿十字徽、法軍平頂軍帽、美台韓 PASGT 圓頂徽）；戰機依標誌性氣動外形區隔（美日雙垂尾雙發、俄系後掠大邊條、法英德前翼三角翼）；戰車（方正/鑄造圓頂/楔形砲塔）、艦艇（神盾八角板/俄式高桅）及專屬 16 國色盤全面煥新。</p></div>
@@ -1100,7 +1186,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v72</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v73</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1412,6 +1498,10 @@ function setupInput() {
     showToast(`🎼 ${AUDIO.on.track + 1}/${TRACKS.length} ${n}`);
   });
   document.addEventListener('click', e => { if (e.target.closest('button')) sfx('click'); });
+  $('#zStats').onclick = tapGuard(() => {
+    SETTINGS.stats = !SETTINGS.stats; saveStatsPref(); renderBattleStats();
+    showToast(SETTINGS.stats ? '戰場資訊：開' : '戰場資訊：關（電腦代理時仍會顯示）');
+  });
   const lb = $('#zLabel');
   lb.classList.toggle('on', SETTINGS.labels);
   lb.onclick = () => {

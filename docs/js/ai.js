@@ -287,6 +287,11 @@ function aiGoals(u, baseField) {
     }
   }
   for (const [i, off] of mg) add(i, off);
+  // 藍發：沒有理想目標時不回基地停放（會佔住生產據點），改為支援前線：最近的敵軍與敵方據點
+  if (!goals.size && persona.id === 'L') {
+    for (const e of G.units) if (e.side !== s && canHit(u.type, e)) add(idxOf(e.x, e.y), 3);
+    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && G.owner[i] !== s && TERRAIN[G.terrain[i]].prop) add(i, 4);
+  }
   if (!goals.size) for (const [i] of ownBases(s, d.cat)) add(i, 0);
   return { goals, mode: 'attack' };
 }
@@ -375,6 +380,8 @@ async function aiAct(u, token) {
     const thrP = persona.id === 'L' && G.lfAssault && G.lfAssault[s] && mode === 'attack' ? 0.15 : persona.threatWeight;
     base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW * thrP / (mode === 'attack' || mode === 'deliver' ? ag : 1);
     if (t.build && G.owner[i] === s && d.cat !== 'air') base -= persona.id === 'L' ? 95 : 45;
+    // 藍發：油滿血滿的飛機不佔用生產據點（機場、首都），讓出來生產
+    if (persona.id === 'L' && t.build && G.owner[i] === s && d.cat === 'air' && mode !== 'retreat' && u.fuel - v.cost >= d.fuel * 0.6 && u.hp >= (u.maxHp || d.maxHp || 10) - 1) base -= 600;
     if (t.prop && G.owner[i] !== s && !d.capture && !(d.carry && d.carry.runway && (u.cargo || []).length)) base -= 30;
     if (mode === 'deliver' && (u.cargo || []).length) {
       const c0 = u.cargo[0];
@@ -397,6 +404,8 @@ async function aiAct(u, token) {
         if (mode === 'retreat') base += 1200;
         else if (u.fuel < d.fuel * 0.7 || u.hp < 8) base += 220;
         else base -= 200;
+        // 藍發：首都同時是地面部隊生產據點，有其他機場時飛機不停首都；補滿就離開，別把機場當停機坪
+        if (persona.id === 'L' && G.terrain[i] === 'capital' && [...ownBases(s, 'air', u)].some(([bi]) => G.terrain[bi] !== 'capital' && bi !== i)) base -= mode === 'retreat' ? 1500 : 900;
       }
     }
     base += Math.random() * 2;
@@ -596,7 +605,8 @@ function lanfaAssign(s) {
       if (df[i] === Infinity) continue;
       const t = G.terrain[i], inc = TERRAIN[t].income || 0;
       // 換算成「回合數」：移動成本 ÷ 移動力，再扣除收入與首都加權
-      const turns = df[i] / UNITS[u.type].move - inc / 150 - (t === 'capital' ? (press ? 6 : 2) : 0) - (G.owner[i] >= 0 ? (press ? 1.5 : 0.5) : 0);
+      // 工廠、機場、港口能多生產一隊：除了收入再加產能價值，讓錢不會因生產據點太少而堆積
+      const turns = df[i] / UNITS[u.type].move - inc / 150 - (TERRAIN[t].build && t !== 'capital' ? 1 : 0) - (t === 'capital' ? (press ? 6 : 2) : 0) - (G.owner[i] >= 0 ? (press ? 1.5 : 0.5) : 0);
       pairs.push([turns, u.id, i]);
     }
   }
@@ -688,6 +698,11 @@ function lanfaProduce(s) {
   const landJam = landers.length >= 8 && far >= landers.length * 0.5;
   // 閒置資金越多，空軍上限越寬（工廠滿載時把錢轉成空軍，不讓資金堆積）
   const surplus = Math.floor(G.funds[s] / 2000);
+  // 出擊距離：敵軍離我方航空基地太遠時，飛機大半時間在基地加油、佔住生產據點，空軍價值打折
+  const airHomes = ownBases(s, 'air');
+  const airField = airHomes.size ? distField(airHomes, 'air') : null;
+  const foeDist = airField && foes.length ? foes.map(e => airField[idxOf(e.x, e.y)]).sort((a, b) => a - b)[Math.floor(foes.length / 2)] : 0;
+  const longSortie = foeDist > 14;
   const airCap = Math.max(3, Math.ceil(airBases * (landJam ? 3 : 2))) + Math.min(12, surplus);
   // 兵種評分：對敵軍價值的平均傷害 × 有效血量 ÷ 承受火力 ÷ 價格
   // 可接戰的敵軍：從生產據點依該兵種移動方式能抵達（或抵達相鄰格）的敵軍價值
@@ -707,7 +722,20 @@ function lanfaProduce(s) {
     reachCache.set(key, v);
     return v;
   };
-  const quality = (k, site) => {
+  // 從港口出發，海路可抵達其相鄰格的敵方據點數
+  const coastCache = new Map();
+  const coastalTargets = site => {
+    if (coastCache.has(site)) return coastCache.get(site);
+    const df = distField(new Map([[site, 0]]), 'sea');
+    let n = 0;
+    for (let i = 0; i < G.owner.length; i++) {
+      if (!TERRAIN[G.terrain[i]].prop || G.owner[i] < 0 || G.owner[i] === s) continue;
+      if (neighbors(...ixy(i)).some(([nx, ny]) => df[idxOf(nx, ny)] < Infinity)) n++;
+    }
+    coastCache.set(site, n);
+    return n;
+  };
+  const quality = (k, site, ignoreCap = false) => {
     const d = UNITS[k], b = d.base, c = CLASSES.indexOf(d.cls);
     if (LANFA_NON_COMBAT.has(b) && !(b === 'lst' && seaGap) && !(b === 'thelico' && seaGap)) return 0;
     let off = 0;
@@ -723,7 +751,8 @@ function lanfaProduce(s) {
     if (d.capture) q *= capturers < needCap ? (b === 'inf' ? 4 : 2.4) : 0.55;
     if (d.cat === 'air') {
       // 空軍上限依機場數與閒置資金放寬：地形阻隔、陸路壅塞時以空軍突破
-      if (myAir >= airCap) return 0;
+      if (myAir >= airCap && !ignoreCap) return 0;
+      if (longSortie) q *= 0.5;
       if (enemyAA >= 3) q *= 0.6;
       if (landJam) q *= 1.6;
     }
@@ -734,13 +763,21 @@ function lanfaProduce(s) {
       const navy = mine.filter(u => UNITS[u.type].cat === 'sea' && !UNITS[u.type].carry).length;
       if (b !== 'lst' && !seaGap && navy >= enemyShip + 2 + Math.min(4, Math.floor(surplus / 3))) return 0;
       // 海上可接戰的敵軍價值太少（例如內海、湖泊）就不造艦；資金大量閒置時門檻放寬
-      if (b !== 'lst' && foes.length) { const R = reachable(site, 'sea'); if (R.reduce((a, v) => a + v, 0) < Etot * (surplus >= 3 ? 0.05 : 0.2)) return 0; }
+      if (b !== 'lst' && foes.length) {
+        const R = reachable(site, 'sea');
+        if (R.reduce((a, v) => a + v, 0) < Etot * (surplus >= 3 ? 0.05 : 0.2)) {
+          // 資金閒置時，能從海上威脅敵方沿海據點也值得造艦（港口不閒置）
+          if (!(surplus >= 2 && coastalTargets(site) > 0)) return 0;
+          q *= 0.5;
+        }
+      }
     }
     if (b === 'thelico') q = seaGap && capturers >= 2 && cnt('thelico') < 1 ? 0.015 : 0;
     if (isIndirect(k) && indirect >= Math.max(2, armySize * 0.3)) q *= 0.35;
     q /= 1 + 0.12 * cnt(b);                    // 保持兵種多樣，避免單一兵種被剋
     return q;
   };
+  const qualityRaw = (k, site) => quality(k, site, true);
   // 空閒生產據點：離前線近的先生產
   const sites = [];
   for (let i = 0; i < G.owner.length; i++) {
@@ -755,19 +792,42 @@ function lanfaProduce(s) {
     sites.push(i);
   }
   sites.sort((a, b) => (footField ? footField[a] - footField[b] : 0));
+  const income = incomeOf(s);
+  // 錢的使用規則：空閒生產據點全部用掉；唯一例外是「為下 1–2 回合買得起的高價單位存錢」
+  // 資金越多越偏好高價高戰力單位（把錢轉成戰力），資金少時才平均分配
+  const rich = Math.min(1, Math.max(0, (G.funds[s] - 3000) / 9000));
+  let reserve = 0;
+  // 只有局勢穩定時才存錢：第 8 回合後、兵力不落後、本土附近沒有敵軍
+  const myVal = mine.reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
+  const home = G.caps && G.caps[s] >= 0 ? ixy(G.caps[s]) : null;
+  const canSave = G.turn >= 8 && myVal >= Etot && !(home && foes.some(e => hexDist(e.x, e.y, home[0], home[1]) <= 6));
   for (let n = 0; n < sites.length; n++) {
-    const i = sites[n], [x, y] = ixy(i), f = G.funds[s];
+    const i = sites[n], [x, y] = ixy(i), f = G.funds[s] - reserve;
     const share = f / (sites.length - n);
-    let best = null, bestV = 0;
+    let best = null, bestV = 0, dream = null, dreamV = 0;
     for (const k of buildOptions(x, y, s)) {
       const c = UNITS[k].cost;
-      if (c > f) continue;
-      const q = quality(k, i);
+      let q = quality(k, i);
+      // 資金閒置時機場一定要能生產：放寬空軍上限
+      if (q <= 0 && UNITS[k].cat === 'air' && f >= 3000 && !longSortie && !LANFA_NON_COMBAT.has(UNITS[k].base) && myAir < airCap + 4) q = qualityRaw(k, i);
       if (q <= 0) continue;
-      // 依分配額度選擇：太便宜浪費產能、太貴排擠其他據點
       const fit = c <= share ? Math.pow(c / share, 0.35) : Math.pow(share / c, 1.3);
-      const v = q * Math.pow(c, 0.9) * fit * (0.92 + Math.random() * 0.16);
+      const v = q * Math.pow(c, 0.9 + 0.35 * rich) * fit * (0.92 + Math.random() * 0.16);
+      if (c > f) {
+        // 存錢目標：下 1–2 回合收入就買得起、而且明顯比現在買得起的更好
+        const full = q * Math.pow(c, 0.9 + 0.35 * rich);
+        if (c <= f + income * 2 && full > dreamV) { dreamV = full; dream = k; }
+        continue;
+      }
       if (v > bestV) { bestV = v; best = k; }
+    }
+    const bestFull = best ? quality(best, i) * Math.pow(UNITS[best].cost, 0.9 + 0.35 * rich) : 0;
+    if (canSave && dream && !reserve && dreamV > bestFull * 1.6) {
+      // 這個據點保留給高價單位：只預留「下回合收入補不足」的金額，其他據點照常生產
+      reserve = Math.max(0, UNITS[dream].cost - income);
+      G.lfSaving = G.lfSaving || [null, null];
+      G.lfSaving[s] = dream;
+      continue;
     }
     if (best) produce(best, x, y, s);
   }

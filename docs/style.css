@@ -883,3 +883,32 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
     text-align: center;
   }
 }
+
+/* ----- 戰場資訊面板（左下或左上，可收合；避開右側縮放鈕與上方代理橫條） ----- */
+#battleStats { position: absolute; left: 10px; bottom: 10px; z-index: 9; width: 270px; max-width: calc(100% - 70px);
+  background: rgba(15, 23, 42, 0.86); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 10px; padding: 6px 8px; font-size: 12px; color: var(--text);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+#battleStats.pos-tl { bottom: auto; top: 10px; }
+#battleStats.min .bs-body { display: none; }
+#battleStats .bs-head { display: flex; align-items: center; gap: 6px; }
+#battleStats .bs-donut { width: 30px; height: 30px; flex: none; }
+#battleStats .bs-win { flex: 1; font-size: 13px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#battleStats .bs-win small { color: var(--muted); font-size: 10px; }
+#battleStats .bs-btn { padding: 0 6px; min-width: 24px; height: 24px; font-size: 12px; background: rgba(30, 40, 52, 0.9); }
+#battleStats .bs-row { display: grid; grid-template-columns: 30px 38px 1fr 38px; align-items: center; gap: 4px; margin-top: 4px; }
+#battleStats .bs-l { color: var(--muted); }
+#battleStats .bs-n { font-variant-numeric: tabular-nums; font-weight: 700; text-align: left; }
+#battleStats .bs-n.r { text-align: right; }
+#battleStats .bs-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #334155; }
+#battleStats .bs-bar i { display: block; height: 100%; transition: width .3s; }
+#battleStats .bs-foot { display: flex; justify-content: space-between; gap: 6px; margin-top: 5px; font-size: 11px; }
+#battleStats .bs-foot small { color: var(--muted); font-size: 10px; }
+#battleStats .bs-foot span:last-child { text-align: right; }
+#zoomCtl #zStats.on { background: var(--gold); border-color: var(--gold); }
+@media (max-height: 520px) and (orientation: landscape), (max-width: 600px) {
+  #battleStats { width: 210px; padding: 4px 6px; font-size: 11px; left: 6px; bottom: 6px; }
+  #battleStats.pos-tl { top: 6px; }
+  #battleStats .bs-row { grid-template-columns: 26px 32px 1fr 32px; margin-top: 2px; }
+  #battleStats .bs-donut { width: 24px; height: 24px; }
+}
