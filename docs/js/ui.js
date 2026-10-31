@@ -1102,7 +1102,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v77</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v78</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1133,6 +1133,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v78</span><span class="cl-date">2026.10.31</span><p>【藍發屯兵修正】找出大量屯兵的主因：舊規則讓戰車、砲兵等主力停在後方未佔領的中立城市旁「清除威脅」，近處的中立城比遠方的敵方首都更有吸引力，導致數十支部隊停在後方；改為只有中立城附近確實有敵軍才派主力。大幅領先（兵力 2 倍、40 支以上）時停止後方據點的地面生產，只由最靠前線的據點生產，壓倒性領先（4 倍、80 支以上）時前線只補步兵；工兵優先在靠近前線的安全城市建基地。終極大地圖（54×33）對 B：決定性勝利平均回合 75→46、終局殘留部隊 532→147；中大地圖勝率 97.5% 不變、殘留部隊再減少約一成五。</p></div>
         <div class="cl-item"><span class="cl-ver">v77</span><span class="cl-date">2026.10.31</span><p>【戰場資訊：生產據點對比】戰場資訊最下面一列改為雙方生產據點（首都、工廠、機場、港口）數量的對比長條，閒置數量移到提示文字。</p></div>
         <div class="cl-item"><span class="cl-ver">v76</span><span class="cl-date">2026.10.31</span><p>【代理視窗點選即時切換】電腦代理／觀戰視窗取消「套用」按鈕，改為分段按鈕點選即生效：雙方「玩家／電腦」、AI 風格（A／B／C／藍發）與電腦速度（慢／普通／快／極快），目前選項以亮色標示。</p></div>
         <div class="cl-item"><span class="cl-ver">v75</span><span class="cl-date">2026.10.31</span><p>【藍發積極進攻與代理視窗改版】藍發不再屯兵：周圍 5 格內兵力達敵軍 1.1 倍即主動交戰（不必等總攻）；兵力領先 1.15 倍、第 4 回合起即轉入首都圍攻，外圍局部兵力 1.1 倍總攻，集結超過 3 回合以 0.9 倍強攻；路徑計入己方擁擠成本，主要入口塞住時後方部隊改走其他路線；兵力 2 倍時偏好飛機與高機動部隊、圍攻時以運輸直升機空運步兵到敵方首都。自由對戰 80 回合（中、大地圖 120 場）勝率 97.5%→98.3%、決定性勝利回合中型 36–43→30–39、大型 46–50→40–45，終局殘留部隊減少約兩成。電腦代理視窗改版：雙方操作（玩家／電腦）與 AI 風格改為下拉選單，按「套用」才生效；視窗內同時顯示雙方即時戰場資訊；雙方都設電腦時顯示「觀戰中」，可一鍵停止觀戰；可收合。新遊戲的工兵選項預設關閉（關閉時大地圖後期資金仍會累積）。</p></div>
@@ -1265,7 +1266,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v77</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v78</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
