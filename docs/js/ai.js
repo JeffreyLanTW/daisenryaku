@@ -133,6 +133,9 @@ const AI_PERSONAS = {
     id: 'L', name: '藍發', en: 'LanFa', badge: '藍發風格',
     desc: '相剋生產・搶城滾雪球：依敵軍編成與可接戰範圍計算每塊錢的相剋價值、資金每回合分配到各生產據點用完、奪城部隊一城一隊分派、兵力佔優集結圍攻敵方首都、本土防衛攔截與致死集火',
     attackWeight: 1.5, threatWeight: 0.75, decapitation: 3.5, captureWeight: 4.5, coverBonus: 1.5,
+    // 進攻判斷：pressTurn/pressRatio/pressLead 轉入圍攻的回合、兵力比與領先值；assaultRatio 首都外圍總攻的局部兵力比；
+    // stageTurns 集結超過幾回合就以 stageRatio 強攻；localRatio 局部兵力優勢時把威脅權重降為 localThreat（不必等總攻才交戰）
+    pressTurn: 6, pressRatio: 1.4, pressLead: 2500, assaultRatio: 1.4, assaultThreat: 0.15, stageTurns: 99, stageRatio: 1.4, localRatio: 99, localThreat: 0.75,
     retreatHp: 0.28, repairWeight: 1.8, mergeThreshold: 0.40,
     prodWeights: {}
   }
@@ -282,7 +285,7 @@ function aiGoals(u, baseField) {
     for (let i = 0; i < G.owner.length; i++) {
       if (G.owner[i] === 1 - s) {
         // B 綜合型 / 藍發：持續向敵方首都與前線據點推進掩護；藍發兵力佔優時全面壓上
-        const press = persona.id === 'L' && G.lfPower && G.lfPower[s] >= 1.4;
+        const press = persona.id === 'L' && G.lfPower && G.lfPower[s] >= persona.pressRatio;
         // 圍攻：只朝敵方首都推進，其他據點交給奪城部隊
         if (press && G.lfSiege && G.lfSiege[s] != null && G.terrain[i] !== 'capital') continue;
         const bOff = press ? (G.terrain[i] === 'capital' ? -14 : -3) : (persona.id === 'B' || persona.id === 'L') ? (G.terrain[i] === 'capital' ? -2 : 1) : (G.terrain[i] === 'capital' ? 2 : 5);
@@ -340,6 +343,20 @@ async function aiAct(u, token) {
     }
   }
   const enemies = G.units.filter(e => e.side !== s);
+  // 局部兵力比（價值）：以格為中心 5 格內我方 ÷ 敵方
+  const lv = e => UNITS[e.type].cost * e.hp / (e.maxHp || UNITS[e.type].maxHp || 10);
+  const friends = G.units.filter(e => e.side === s && e !== u);
+  const edgeCache = new Map();
+  const localEdge = (x, y) => {
+    const k = y * G.w + x;
+    if (edgeCache.has(k)) return edgeCache.get(k);
+    let m = lv(u), f = 0;
+    for (const e of friends) if (hexDist(e.x, e.y, x, y) <= 5) m += lv(e);
+    for (const e of enemies) if (hexDist(e.x, e.y, x, y) <= 5) f += lv(e);
+    const r = f > 0 ? m / f : 99;
+    edgeCache.set(k, r);
+    return r;
+  };
   const thirstyOthers = d.cat === 'air' && G.units.some(o => o !== u && o.side === s && UNITS[o.type].fuel !== undefined && o.fuel <= UNITS[o.type].fuel * 0.55);
   const ag = aiAggression(s);
   let best = { score: -Infinity, dest: start, act: null };
@@ -383,7 +400,9 @@ async function aiAct(u, token) {
     else if (d.cat === 'land') base += t.def * 0.4 * (doc.coverBonus || 1.0) * persona.coverBonus;
     base += missionHoldBonus(u, i);
     const thrW = mode === 'retreat' || mode === 'vip' || d.carry ? 2.6 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
-    const thrP = persona.id === 'L' && G.lfAssault && G.lfAssault[s] && mode === 'attack' ? 0.15 : persona.threatWeight;
+    let thrP = persona.id === 'L' && G.lfAssault && G.lfAssault[s] && mode === 'attack' ? persona.assaultThreat : persona.threatWeight;
+    // 藍發：此格周圍 5 格內我方兵力已達敵軍 localRatio 倍時，不再過度閃避火力（主動交戰）
+    if (persona.id === 'L' && mode === 'attack' && thrP > persona.localThreat && localEdge(x, y) >= persona.localRatio) thrP = persona.localThreat;
     base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW * thrP / (mode === 'attack' || mode === 'deliver' ? ag : 1);
     if (t.build && G.owner[i] === s && d.cat !== 'air') base -= persona.id === 'L' ? 95 : 45;
     // 藍發：油滿血滿的飛機不佔用生產據點（機場、首都），讓出來生產
@@ -636,8 +655,9 @@ function lanfaAssign(s) {
   G.lfPower = G.lfPower || [1, 1];
   // 開局兵力相近時比值容易因一次生產而跳動：第 6 回合後、比值 1.4 以上且領先 2500 以上才轉入壓上
   const mv = val(s), ev = val(1 - s);
-  G.lfPower[s] = G.turn >= 6 && mv - ev >= 2500 ? mv / Math.max(1, ev) : Math.min(1.2, mv / Math.max(1, ev));
-  const press = G.lfPower[s] >= 1.4;
+  const P = AI_PERSONAS.L;
+  G.lfPower[s] = G.turn >= P.pressTurn && mv - ev >= P.pressLead ? mv / Math.max(1, ev) : Math.min(P.pressRatio - 0.01, mv / Math.max(1, ev));
+  const press = G.lfPower[s] >= P.pressRatio;
   const caps = G.units.filter(u => u.side === s && UNITS[u.type].capture && !u.vip);
   const props = [];
   for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) props.push(i);
@@ -685,7 +705,13 @@ function lanfaAssign(s) {
     const [cx, cy] = ixy(cap);
     const local = side => G.units.filter(u => u.side === side && hexDist(u.x, u.y, cx, cy) <= 7)
       .reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
-    G.lfAssault[s] = local(s) >= local(1 - s) * 1.4;
+    // 圍攻集結回合數：集結太久就降低門檻強攻
+    G.lfStage = G.lfStage || [0, 0];
+    G.lfStage[s]++;
+    const need = G.lfStage[s] >= P.stageTurns ? P.stageRatio : P.assaultRatio;
+    G.lfAssault[s] = local(s) >= local(1 - s) * need;
+  } else if (G.lfStage) {
+    G.lfStage[s] = 0;
   }
 }
 

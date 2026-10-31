@@ -11,7 +11,7 @@ const RUNS = +(opt('--runs') || 16);
 const FLAGS = opt('--flags') ? JSON.parse(opt('--flags')) : null;
 const CHECK_ONLY = args.includes('--check');
 const ANALYZE = args.includes('--analyze');
-const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only', '--persona', '--personas', '--duel', '--nat', '--vs', '--jobs'].includes(args[k - 1])).flatMap(a => a.split(',')).filter(Boolean);
+const ids = args.filter((a, k) => !a.startsWith('--') && !['--runs', '--flags', '--carry', '--chain', '--games', '--turns', '--sweep', '--sizes', '--only', '--persona', '--personas', '--duel', '--nat', '--vs', '--jobs', '--tune'].includes(args[k - 1])).flatMap(a => a.split(',')).filter(Boolean);
 const PERSONAS_ARG = opt('--personas') || opt('--persona') || null;
 
 // 載入遊戲程式（不含畫面），並以空函式代替畫面相關呼叫（靜默 console 以節省輸出 token）
@@ -68,6 +68,9 @@ vm.runInContext(`
   }
 `, ctx);
 
+// --tune '{"pressRatio":1.2}'：覆寫藍發風格參數（調參用，子行程透過環境變數繼承）
+if (opt('--tune')) process.env.LF_TUNE = opt('--tune');
+if (process.env.LF_TUNE) vm.runInContext(`Object.assign(AI_PERSONAS.L, ${process.env.LF_TUNE});`, ctx);
 vm.runInContext(`
   async function simDuel(w, h, seed, nations, personas, maxTurn) {
     newGame({ w, h, seed, players: personas.map(p => ({ ai: true, persona: p })), nations });
