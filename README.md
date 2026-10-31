@@ -60,7 +60,7 @@ node tools/balance.js --check          # 只檢查任務地圖
 node tools/balance.js --runs 40        # 帝國篇每個任務 × 各路線模擬 40 場
 node tools/balance.js t1 c5 --runs 20  # 指定任務
 node tools/balance.js --nations --games 8  # 16 國循環賽
-node tools/balance.js --duel L,A --games 40 --sizes s,m,l  # AI 風格對決（每張地圖換邊各一場）
+node tools/balance.js --duel L --vs A,B,C --games 40 --sizes s,m,l --turns 80 --jobs 4 --losses  # AI 風格對決（每張地圖換邊、固定亂數可重現、平行執行、列出敗局）
 node tools/balance.js --chain fs --runs 60  # 整部戰役連續模擬（部隊延續、失敗重試）
 node tools/balance.js f4 --carry 7,150     # 帶入 7 支經驗 150 的部隊測試單一任務
 node tools/mapgen.js island --view          # 預覽大地圖與據點座標（island / strait / chain）

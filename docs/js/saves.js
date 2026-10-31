@@ -26,7 +26,7 @@ function defaultSaveName() {
 }
 function serializeGame() {
   const camp = G.missionId ? { id: campOf(MISSIONS[G.missionId]), flags: CAMP.flags, current: CAMP.current, roster: CAMP.roster || {}, carryFunds: CAMP.carryFunds || 0 } : null;
-  return JSON.stringify({ v: 2, G, camp }, (k, v) => k === '_anim' || k === 'lfAssign' || k === 'lfPower' ? undefined : v);
+  return JSON.stringify({ v: 2, G, camp }, (k, v) => k === '_anim' || k === 'lfAssign' || k === 'lfPower' || k === 'lfSiege' || k === 'lfAssault' ? undefined : v);
 }
 
 // 存檔縮圖：小地圖
