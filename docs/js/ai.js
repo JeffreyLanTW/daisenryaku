@@ -624,7 +624,18 @@ function aiProduce(s) {
       palantir_arty: 2.0,
       wingman_carrier: airFull ? 0 : (cnt('wingman_carrier') >= 2 ? 0.4 : 1.8),
       usv_wolfpack: 1.5 + enemyShip * 0.8,
+      // 擴充兵種（v83）
+      ifv: 1.4 + enemySoft * 0.15, tankdest: 0.6 + enemyHard * 0.35, lighttank: 1.0, mortar: 0.7, sniper: 0.5 + enemySoft * 0.1,
+      specops: capturers < Math.min(7, 2 + openProps / 2) ? 1.5 : 0.5, tbm: 0.35, manpads: 0.2 + enemyAir * 0.8, spsam: enemyAir * 1.0,
+      coastal: enemyShip * 0.8, apc: cnt('apc') < 2 && needFar && capturers >= 2 ? 1.0 : 0,
+      hovercraft: cnt('hovercraft') < 1 && needSea && capturers >= 1 ? 1.2 : 0,
+      multirole: airFull ? 0 : 1.2, uav: airFull ? 0 : 1.0, scoutheli: airFull ? 0 : 0.8, mpa: airFull ? 0 : enemyShip * 0.6,
+      submarine: 0.2 + enemyShip * 0.6, frigate: 0.3 + enemyShip * 0.5, corvette: 0.3 + enemyShip * 0.6,
+      cruiser: enemyAir > 2 || enemyShip > 1 ? 0.5 : 0.15, patrol: 0.3, lhd: cnt('lhd') < 1 && needSea && capturers >= 2 ? 0.8 : 0,
     };
+    // 海軍總量上限：避免在內陸戰場大量造艦
+    const navyNow = mine.filter(u => UNITS[u.type].cat === 'sea' && !UNITS[u.type].carry).length;
+    if (navyNow >= 2 + enemyShip * 1.5) for (const b of ['destroyer', 'submarine', 'frigate', 'corvette', 'cruiser', 'patrol', 'usv_wolfpack']) w[b] = 0;
     let opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     // C 保守型：硬性保障陸空比 >= 10:1，若產出該空軍會導致 Land : Air < 10:1，嚴格剔除
     if (persona.id === 'C') {
@@ -762,7 +773,7 @@ function lanfaAssign(s) {
 // ===== 藍發風格：生產 =====
 // 依敵軍實際編成計算每種兵種「每塊錢的相剋價值」，奪城部隊只補到據點需要的數量，
 // 資金依空閒生產據點平均分配（前線優先），每回合用完但不買無用的運輸與航艦。
-const LANFA_NON_COMBAT = new Set(['truck', 'thelico', 'airlift', 'lst', 'train', 'carrier', 'wingman_carrier']);
+const LANFA_NON_COMBAT = new Set(['truck', 'thelico', 'airlift', 'lst', 'train', 'carrier', 'wingman_carrier', 'hovercraft', 'lhd']);
 function lanfaArmy(list) {
   // 依兵種類別加總兵力價值（價格 × 剩餘血量比例）
   const v = [0, 0, 0, 0];

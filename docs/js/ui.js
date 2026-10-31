@@ -1138,7 +1138,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v82</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v83</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1169,6 +1169,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v83</span><span class="cl-date">2026.10.31</span><p>【兵種擴充一倍、海軍大幅增加】新增 22 種兵種，各國兵種數至少為原本兩倍（例：台灣 19→41、美國 22→44、菲律賓 17→36），海軍由 2–3 種增為 5–10 種。陸軍：步兵戰車、反戰車車（射程 2）、輕戰車、迫擊砲班、狙擊組、特種部隊、戰術彈道飛彈（射程 4–8）、單兵防空、岸置反艦飛彈、短程防空飛彈車、裝甲運兵車、氣墊登陸艇（可上岸）。空軍：多用途戰機、無人機、反潛巡邏機、偵察直升機。海軍：潛艦（只能被驅逐艦、巡防艦、巡洋艦、直升機、反潛機攻擊，攻擊時不受反擊）、巡防艦、飛彈快艇／護衛艦、巡洋艦、巡邏艇、兩棲突擊艦。各國依真實裝備命名（如台灣海龍級潛艦、康定級、美國洛杉磯級、提康德羅加級、俄羅斯阿庫拉級、光榮級），A／B／C／藍發四種 AI 都會依戰況生產。</p></div>
         <div class="cl-item"><span class="cl-ver">v82</span><span class="cl-date">2026.10.31</span><p>【策略參數與介面精簡】電腦代理／觀戰視窗新增「🎛 參數」：雙方各六項策略參數滑桿（攻擊性、閃避火力、佔領重視、斬首、撤退門檻、地形掩蔽），拖曳即時生效、可重設為風格預設，切換風格時自動恢復預設。取消右側戰況卡片。</p></div>
         <div class="cl-item"><span class="cl-ver">v81</span><span class="cl-date">2026.10.31</span><p>【換回合閃爍修正】換回合時頂部按鈕顯示/隱藏讓地圖區域尺寸改變，觸發重設 canvas 尺寸而清空大地圖與小地圖、留下一格空白畫面。改為只在尺寸真的改變時才重設並立即重繪；頂部列固定單列高度（不換行，放不下的按鈕可左右滑動；iPad 以下把存檔、讀檔、說明收進 ☰），電腦回合時「電腦代理」按鈕只隱藏外觀、保留位置，換回合時地圖與小地圖不再閃爍或白一下。</p></div>
         <div class="cl-item"><span class="cl-ver">v80</span><span class="cl-date">2026.10.31</span><p>【觀戰舒適度】電腦回合的鏡頭改為平滑移動到行動部隊，不再瞬間跳轉（拖曳或縮放地圖時立即取消）；觀戰模式的回合標題改為小型淡入淡出標籤，不再閃過整條彩帶。戰場資訊固定在左下獨立面板（📊 開關），不再嵌入電腦代理視窗。</p></div>
@@ -1306,7 +1307,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v82</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v83</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

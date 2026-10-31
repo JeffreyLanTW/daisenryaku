@@ -270,6 +270,8 @@ function reachPath(reach, i) {
 
 // ----- 戰鬥 -----
 function canHit(attType, def) {
+  // 潛艦只能被具反潛能力的部隊攻擊
+  if (UNITS[def.type].sub && !UNITS[attType].asw) return false;
   return UNITS[attType].atk[CLASSES.indexOf(UNITS[def.type].cls)] > 0;
 }
 function targetsFrom(u, x, y) {
