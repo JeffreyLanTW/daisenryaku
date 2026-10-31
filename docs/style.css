@@ -958,3 +958,16 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 @keyframes bannerSoft { 0% { opacity: 0; } 20%, 75% { opacity: 1; } 100% { opacity: 0; } }
 
 #autoPilotBar { width: min(460px, calc(100% - 20px)); }
+
+/* ----- 頂部列固定單列高度：換回合時按鈕顯示/隱藏不會讓頂部列換行、地圖區域尺寸不跳動（避免閃爍） ----- */
+#topbar { flex-wrap: nowrap !important; height: calc(48px + env(safe-area-inset-top)); min-height: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+#topbar::-webkit-scrollbar { display: none; }
+#topbar > * { flex-shrink: 0; }
+#topbar #funds { flex-wrap: nowrap; }
+@media (max-width: 1100px) {
+  #btnCampaign, #btnNew, #btnSave, #btnLoad, #btnHelp, #topbar .sep { display: none; }
+  #btnMore { display: inline-block; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  #topbar { height: calc(40px + env(safe-area-inset-top)); }
+}

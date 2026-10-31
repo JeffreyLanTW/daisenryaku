@@ -566,7 +566,9 @@ function updateAutoPilotUI() {
   const isDeploy = UIS.mode === 'deploy';
   const over = G.winner != null;
   if (btn) {
-    btn.classList.toggle('hidden', !isHuman || isDeploy || over);
+    // 電腦回合只隱藏外觀、保留位置：頂部列不換行、地圖尺寸不跳動
+    btn.classList.toggle('hidden', !!over);
+    btn.style.visibility = (!isHuman || isDeploy) && !G.autoPilot ? 'hidden' : '';
     if (G.autoPilot) {
       btn.classList.add('active');
       btn.innerHTML = '⏹️ 中斷代理';
@@ -1101,7 +1103,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v80</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v81</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1132,6 +1134,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v81</span><span class="cl-date">2026.10.31</span><p>【換回合閃爍修正】換回合時頂部按鈕顯示/隱藏讓地圖區域尺寸改變，觸發重設 canvas 尺寸而清空大地圖與小地圖、留下一格空白畫面。改為只在尺寸真的改變時才重設並立即重繪；頂部列固定單列高度（不換行，放不下的按鈕可左右滑動；iPad 以下把存檔、讀檔、說明收進 ☰），電腦回合時「電腦代理」按鈕只隱藏外觀、保留位置，換回合時地圖與小地圖不再閃爍或白一下。</p></div>
         <div class="cl-item"><span class="cl-ver">v80</span><span class="cl-date">2026.10.31</span><p>【觀戰舒適度】電腦回合的鏡頭改為平滑移動到行動部隊，不再瞬間跳轉（拖曳或縮放地圖時立即取消）；觀戰模式的回合標題改為小型淡入淡出標籤，不再閃過整條彩帶。戰場資訊固定在左下獨立面板（📊 開關），不再嵌入電腦代理視窗。</p></div>
         <div class="cl-item"><span class="cl-ver">v79</span><span class="cl-date">2026.10.31</span><p>【戰場資訊開關修正】📊 按鈕在電腦代理／觀戰時也有效：開啟時戰場資訊嵌入代理視窗、關閉時隱藏；未開代理時顯示獨立面板。戰場資訊預設開啟。</p></div>
         <div class="cl-item"><span class="cl-ver">v78</span><span class="cl-date">2026.10.31</span><p>【藍發屯兵修正】找出大量屯兵的主因：舊規則讓戰車、砲兵等主力停在後方未佔領的中立城市旁「清除威脅」，近處的中立城比遠方的敵方首都更有吸引力，導致數十支部隊停在後方；改為只有中立城附近確實有敵軍才派主力。大幅領先（兵力 2 倍、40 支以上）時停止後方據點的地面生產，只由最靠前線的據點生產，壓倒性領先（4 倍、80 支以上）時前線只補步兵；工兵優先在靠近前線的安全城市建基地。終極大地圖（54×33）對 B：決定性勝利平均回合 75→46、終局殘留部隊 532→147；中大地圖勝率 97.5% 不變、殘留部隊再減少約一成五。</p></div>
@@ -1267,7 +1270,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v80</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v81</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1608,21 +1611,30 @@ function setupInput() {
   $('#modal').addEventListener('pointerdown', e => { if (performance.now() - modalOpenedAt < 400) return; if (e.target.id === 'modal' && modalDismissable) closeModal(); });
 }
 
+// 設定 canvas 寬高會清空畫面：只在尺寸真的改變時才設定，並立即重繪（避免換回合時大地圖與小地圖閃一下）
 function resize() {
   dpr = window.devicePixelRatio || 1;
   const r = cvs.getBoundingClientRect();
-  cvs.width = Math.max(1, Math.round(r.width * dpr));
-  cvs.height = Math.max(1, Math.round(r.height * dpr));
+  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  let changed = false;
+  if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; changed = true; }
   if (G) {
     const [ww, wh] = worldSize();
     const maxH = matchMedia('(max-height: 520px) and (orientation: landscape)').matches ? 96 : Infinity;
-    mini.style.width = ''; 
+    // 暫時清掉寬度量出自然寬度（同一個工作內不會繪出），只有尺寸改變才重設 canvas
+    const prevW = mini.style.width;
+    mini.style.width = '';
     let mw = mini.clientWidth, mh = mw * wh / ww;
+    mini.style.width = prevW;
     if (mh > maxH) { mh = maxH; mw = mh * ww / wh; }
-    mini.style.width = mw + 'px'; mini.style.height = mh + 'px';
-    mini.width = Math.round(mw * dpr); mini.height = Math.round(mh * dpr);
+    const sw = mw + 'px', sh = mh + 'px';
+    if (mini.style.width !== sw) mini.style.width = sw;
+    if (mini.style.height !== sh) mini.style.height = sh;
+    const iw = Math.round(mw * dpr), ih = Math.round(mh * dpr);
+    if (mini.width !== iw || mini.height !== ih) { mini.width = iw; mini.height = ih; changed = true; }
     clampCam();
   }
+  if (changed && G) { draw(performance.now()); drawMini(); }
 }
 
 function initAppIcon() {
