@@ -70,6 +70,9 @@ vm.runInContext(`
 
 // --tune '{"pressRatio":1.2}'：覆寫藍發風格參數（調參用，子行程透過環境變數繼承）
 if (opt('--tune')) process.env.LF_TUNE = opt('--tune');
+// --no-engineer：關閉工兵規則（與遊戲預設相同）
+if (args.includes('--no-engineer')) process.env.NO_ENGINEER = '1';
+if (process.env.NO_ENGINEER) vm.runInContext('SETTINGS.engineer = false;', ctx);
 if (process.env.LF_TUNE) vm.runInContext(`Object.assign(AI_PERSONAS.L, ${process.env.LF_TUNE});`, ctx);
 vm.runInContext(`
   async function simDuel(w, h, seed, nations, personas, maxTurn) {

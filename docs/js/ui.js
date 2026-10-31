@@ -10,17 +10,19 @@ const UIS = {
 const SETTINGS = { aiStep: 110, labels: true };
 try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETTINGS.labels = l === '1'; } catch (e) { /* 忽略 */ }
 // 戰場資訊面板：stats 平常是否開啟、statsPos 位置（bl 左下 / tl 左上）、statsMin 收合
-SETTINGS.stats = false; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false; SETTINGS.engineer = true;
-try { SETTINGS.engineer = localStorage.getItem('daisenryaku_engineer') !== '0'; } catch (e) { /* 忽略 */ }
+SETTINGS.stats = false; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false; SETTINGS.engineer = false; SETTINGS.apMin = false;
+try { SETTINGS.engineer = localStorage.getItem('daisenryaku_engineer2') === '1'; } catch (e) { /* 忽略 */ }   // 預設關閉
 try {
   SETTINGS.stats = localStorage.getItem('daisenryaku_stats') === '1';
   SETTINGS.statsPos = localStorage.getItem('daisenryaku_stats_pos') || 'bl';
   SETTINGS.statsMin = localStorage.getItem('daisenryaku_stats_min') === '1';
+  SETTINGS.apMin = localStorage.getItem('daisenryaku_ap_min') === '1';
 } catch (e) { /* 忽略 */ }
 const saveStatsPref = () => { try {
   localStorage.setItem('daisenryaku_stats', SETTINGS.stats ? '1' : '0');
   localStorage.setItem('daisenryaku_stats_pos', SETTINGS.statsPos);
   localStorage.setItem('daisenryaku_stats_min', SETTINGS.statsMin ? '1' : '0');
+  localStorage.setItem('daisenryaku_ap_min', SETTINGS.apMin ? '1' : '0');
 } catch (e) { /* 忽略 */ } };
 let modalDismissable = false, modalOpenedAt = 0;
 let lastPointerType = 'mouse';
@@ -576,23 +578,42 @@ function updateAutoPilotUI() {
     }
   }
   if (bar) {
-    bar.classList.toggle('hidden', !G.autoPilot || over);
-    if (G.autoPilot) {
-      const p = (G.players[G.cur] && G.players[G.cur].persona) || 'B';
-      const pInfo = (typeof AI_PERSONAS !== 'undefined' && AI_PERSONAS[p]) ? AI_PERSONAS[p] : { name: '綜合型', badge: 'B 綜合型', desc: '' };
-      const badge = $('#apPersonaBadge');
-      if (badge) {
-        badge.textContent = pInfo.badge;
-        badge.className = `ap-badge p-${p}`;
-        badge.title = pInfo.desc;
-      }
-      const cycleBtn = $('#apPersonaCycle');
-      if (cycleBtn) {
-        cycleBtn.innerHTML = `風格: <b>${p}</b> ▾`;
-        cycleBtn.title = `目前戰術風格：${pInfo.name}（點擊切換風格）`;
-      }
+    const spectating = G.players.every(p => p.ai);
+    const show = (G.autoPilot || spectating) && !over && !isDeploy;
+    bar.classList.toggle('hidden', !show);
+    if (!show) { bar.dataset.built = ''; return; }
+    bar.classList.toggle('min', !!SETTINGS.apMin);
+    $('#apMin').textContent = SETTINGS.apMin ? '▸' : '▾';
+    $('#apTitle').innerHTML = spectating ? '👀 <b>觀戰中</b>（雙方電腦）' : '🤖 <b>電腦代理指揮中</b>';
+    $('#btnStopAutoPilot').innerHTML = spectating ? '⏹️ 停止觀戰' : '⏹️ 中斷代理';
+    // 雙方操作與風格：下拉選單選好後按「套用」才生效；選單只在視窗出現時建立一次，不會被即時更新蓋掉
+    if (!bar.dataset.built) {
+      bar.dataset.built = '1';
+      $('#apSides').innerHTML = [0, 1].map(k => `<div class="ap-side" style="--c:${SIDES[k].color}">
+          <span class="ap-side-name" style="color:${SIDES[k].light}">${SIDES[k].name}${k === G.cur ? ' ▶' : ''}</span>
+          <select id="apCtl${k}" title="操作"><option value="h">${k === G.cur && G.autoPilot ? '玩家（代理中）' : '玩家'}</option><option value="ai" ${G.players[k].ai ? 'selected' : ''}>電腦</option></select>
+          <select id="apPer${k}" title="AI 風格">${personaOptions(G.players[k].persona)}</select>
+        </div>`).join('') + '<button id="apApply" class="btn-ap-sub" title="套用雙方操作與風格">套用</button>';
+      $('#apApply').onclick = applyApSides;
     }
+    $('#apStats').innerHTML = battleStatsInner(false);
   }
+}
+// 套用代理視窗中的雙方設定
+function applyApSides() {
+  if (!G) return;
+  const wasHuman = !G.players[G.cur].ai;
+  for (const k of [0, 1]) {
+    G.players[k].ai = $('#apCtl' + k).value === 'ai';
+    G.players[k].persona = $('#apPer' + k).value;
+  }
+  // 目前回合改由電腦指揮：代理旗標不再需要（電腦回合由 turnIntro 接手）
+  if (G.players[G.cur].ai && G.autoPilot && UIS.mode !== 'busy') G.autoPilot = false;
+  const info = [0, 1].map(k => `${SIDES[k].name}：${G.players[k].ai ? '電腦' : '玩家'}・${(AI_PERSONAS[G.players[k].persona] || {}).badge || G.players[k].persona}`).join('　');
+  showToast('已套用　' + info);
+  $('#autoPilotBar').dataset.built = '';
+  if (wasHuman && G.players[G.cur].ai && G.winner == null && UIS.mode !== 'busy') { clearSel(); setInspect(null); turnIntro(); }
+  updateAutoPilotUI(); refreshPanel();
 }
 
 async function toggleAutoPilot() {
@@ -623,17 +644,6 @@ function stopAutoPilot(manual = false) {
   G.autoPilot = false;
   updateAutoPilotUI();
   if (manual) showToast('⏹️ 正在中斷電腦代理，完成當前動作後取回控制…');
-}
-
-function cycleAutoPilotPersona() {
-  if (!G || !G.players[G.cur]) return;
-  const curP = G.players[G.cur].persona || 'B';
-  const order = ['B', 'A', 'C', 'L'];
-  const nextP = order[(order.indexOf(curP) + 1) % order.length];
-  G.players[G.cur].persona = nextP;
-  updateAutoPilotUI();
-  const info = (typeof AI_PERSONAS !== 'undefined' && AI_PERSONAS[nextP]) ? AI_PERSONAS[nextP] : { name: nextP, badge: `${nextP} 型` };
-  showToast(`已切換代理風格：${info.badge} - ${info.name}`);
 }
 
 async function runAutoPilotTurn(side) {
@@ -697,13 +707,27 @@ function battleStatsData() {
 function renderBattleStats() {
   const box = $('#battleStats');
   if (!box) return;
-  const show = G && (SETTINGS.stats || G.autoPilot) && UIS.mode !== 'deploy';
+  // 代理／觀戰視窗已內含雙方資訊時，不再另外顯示獨立面板
+  const apShown = G && (G.autoPilot || G.players.every(p => p.ai)) && G.winner == null;
+  const show = G && SETTINGS.stats && !apShown && UIS.mode !== 'deploy';
   box.classList.toggle('hidden', !show);
   const zb = $('#zStats');
   if (zb) zb.classList.toggle('on', !!SETTINGS.stats);
   if (!show) return;
   box.classList.toggle('pos-tl', SETTINGS.statsPos === 'tl');
   box.classList.toggle('min', !!SETTINGS.statsMin);
+  box.innerHTML = battleStatsInner(true);
+  box.querySelectorAll('[data-bs]').forEach(b => {
+    b.onclick = e => {
+      e.stopPropagation();
+      if (b.dataset.bs === 'pos') SETTINGS.statsPos = SETTINGS.statsPos === 'tl' ? 'bl' : 'tl';
+      else SETTINGS.statsMin = !SETTINGS.statsMin;
+      saveStatsPref(); renderBattleStats();
+    };
+  });
+}
+// 面板內容；withBtns＝獨立面板（含位置與收合按鈕），false＝嵌入代理視窗
+function battleStatsInner(withBtns) {
   const { d, p0 } = battleStatsData(), c = [SIDES[0].color, SIDES[1].color];
   const pct0 = Math.round(p0 * 100);
   // 環圖：藍方估計勝率
@@ -717,10 +741,10 @@ function renderBattleStats() {
       <span class="bs-n r" style="color:${SIDES[1].light}">${fmt(b)}</span></div>`;
   };
   const k = v => v >= 10000 ? (v / 1000).toFixed(0) + 'k' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(v);
-  box.innerHTML = `<div class="bs-head">${donut}
+  return `<div class="bs-head">${donut}
       <span class="bs-win" title="估計勝率：${SIDES[0].name} ${pct0}% / ${SIDES[1].name} ${100 - pct0}%（依兵力價值、收入、據點與資金估算）"><small>勝率</small> <b style="color:${SIDES[0].light}">${pct0}%</b> : <b style="color:${SIDES[1].light}">${100 - pct0}%</b></span>
-      <button class="bs-btn" data-bs="pos" title="移到${SETTINGS.statsPos === 'tl' ? '左下' : '左上'}">⇅</button>
-      <button class="bs-btn" data-bs="min" title="${SETTINGS.statsMin ? '展開' : '收合'}">${SETTINGS.statsMin ? '▸' : '▾'}</button></div>
+      ${withBtns ? `<button class="bs-btn" data-bs="pos" title="移到${SETTINGS.statsPos === 'tl' ? '左下' : '左上'}">⇅</button>
+      <button class="bs-btn" data-bs="min" title="${SETTINGS.statsMin ? '展開' : '收合'}">${SETTINGS.statsMin ? '▸' : '▾'}</button>` : ''}</div>
     <div class="bs-body">
       ${bar('部隊', d[0].units, d[1].units)}
       ${bar('兵力', d[0].val, d[1].val, k)}
@@ -730,14 +754,6 @@ function renderBattleStats() {
       <div class="bs-foot" title="閒置生產：沒有部隊佔用、資金足夠卻還沒生產的生產據點 / 全部生產據點"><span style="color:${SIDES[0].light}">閒置生產 ${d[0].idle}/${d[0].sites}</span>
         <span style="color:${SIDES[1].light}">閒置生產 ${d[1].idle}/${d[1].sites}</span></div>
     </div>`;
-  box.querySelectorAll('[data-bs]').forEach(b => {
-    b.onclick = e => {
-      e.stopPropagation();
-      if (b.dataset.bs === 'pos') SETTINGS.statsPos = SETTINGS.statsPos === 'tl' ? 'bl' : 'tl';
-      else SETTINGS.statsMin = !SETTINGS.statsMin;
-      saveStatsPref(); renderBattleStats();
-    };
-  });
 }
 function refreshPanel() {
   if (!G) return;
@@ -926,7 +942,7 @@ function openBattleSettings() {
       G.rules = Object.assign({}, G.rules, { engineer: box.querySelector('#bsEng').value === '1' });
       SETTINGS.engineer = G.rules.engineer;
       SETTINGS.aiStep = +box.querySelector('#bsSpeed').value;
-      try { localStorage.setItem('daisenryaku_engineer', SETTINGS.engineer ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      try { localStorage.setItem('daisenryaku_engineer2', SETTINGS.engineer ? '1' : '0'); } catch (e) { /* 忽略 */ }
       closeModal();
       showToast(G.players.every(p => p.ai) ? '觀戰模式：雙方由電腦指揮' : '設定已套用');
       // 目前回合由玩家改為電腦：立即交給電腦接手
@@ -964,7 +980,7 @@ function openNewGame() {
       const [w, h] = SIZES[box.querySelector('#ngSize').value];
       SETTINGS.aiStep = +box.querySelector('#ngSpeed').value;
       SETTINGS.engineer = box.querySelector('#ngEng').value === '1';
-      try { localStorage.setItem('daisenryaku_engineer', SETTINGS.engineer ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      try { localStorage.setItem('daisenryaku_engineer2', SETTINGS.engineer ? '1' : '0'); } catch (e) { /* 忽略 */ }
       closeModal();
       startGame({
         w, h, seed: +box.querySelector('#ngSeed').value || 1,
@@ -1075,7 +1091,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v74</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v75</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1106,6 +1122,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v75</span><span class="cl-date">2026.10.31</span><p>【藍發積極進攻與代理視窗改版】藍發不再屯兵：周圍 5 格內兵力達敵軍 1.1 倍即主動交戰（不必等總攻）；兵力領先 1.15 倍、第 4 回合起即轉入首都圍攻，外圍局部兵力 1.1 倍總攻，集結超過 3 回合以 0.9 倍強攻；路徑計入己方擁擠成本，主要入口塞住時後方部隊改走其他路線；兵力 2 倍時偏好飛機與高機動部隊、圍攻時以運輸直升機空運步兵到敵方首都。自由對戰 80 回合（中、大地圖 120 場）勝率 97.5%→98.3%、決定性勝利回合中型 36–43→30–39、大型 46–50→40–45，終局殘留部隊減少約兩成。電腦代理視窗改版：雙方操作（玩家／電腦）與 AI 風格改為下拉選單，按「套用」才生效；視窗內同時顯示雙方即時戰場資訊；雙方都設電腦時顯示「觀戰中」，可一鍵停止觀戰；可收合。新遊戲的工兵選項預設關閉（關閉時大地圖後期資金仍會累積）。</p></div>
         <div class="cl-item"><span class="cl-ver">v74</span><span class="cl-date">2026.10.31</span><p>【工兵基地建設與觀戰設定】新增兵種「工兵」（💰300）：停在己方城市（非首都）可建設 🏭工廠（💰1000，生產與補給地面部隊）、✈️機場（💰1200，生產與補給飛機）或 ⚓港口（💰1000，須臨海）；建設點數 20、每回合扣除工兵 HP，約 2 回合完工，城市被佔領時建設中斷，地圖顯示建設進度。藍發 AI 在資金閒置或生產據點不足時派工兵到安全城市建基地（沒有機場先建機場、需要海軍時建港口、其餘建工廠）：大地圖終局閒置資金由 1–1.7 萬降至約 1,600–1,900，兵力價值提升約 4 成，自由對戰勝率 83.9%（360 場）。新增右下 ⚙️ 戰場設定：遊戲中隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則開關與電腦速度（新增「極快」）；新遊戲也可選擇是否開放工兵。</p></div>
         <div class="cl-item"><span class="cl-ver">v73</span><span class="cl-date">2026.10.31</span><p>【戰場資訊面板與藍發資金運用】新增 📊 戰場資訊面板（右下工具列開關，電腦代理時自動顯示）：雙方部隊數、兵力價值、據點、每回合收入、資金對比長條與估計勝率環圖（依兵力、收入、據點與資金估算），並顯示閒置生產據點；可收合、可移到左上或左下，手機橫向自動縮小。藍發資金運用：空閒生產據點全部用掉，只有局勢穩定時（第 8 回合後、兵力不落後、本土無敵軍）才為下 1–2 回合買得起的高價單位預留資金；資金越多越偏好高價高戰力單位；搶城時工廠與機場優先；油滿血滿的飛機不佔用機場與首都、受損飛機有其他機場時不停首都；沒有理想目標的部隊改為支援前線而非回基地停放；出擊距離太遠時減少空軍、資金閒置時港口可造艦威脅敵方沿海據點；平衡工具對決報告新增終局資金。註：大地圖後期收入常超過生產據點的產能上限，資金仍會累積，面板的「閒置生產」可用來判斷是否還有據點沒用到。</p></div>
         <div class="cl-item"><span class="cl-ver">v72</span><span class="cl-date">2026.10.31</span><p>【藍發風格強化】生產改為「相剋價值」模型：依敵軍實際編成（價值加權）計算每種兵種的期望傷害、承受火力與有效血量，只計算從該生產據點以其移動方式能接戰的敵軍（不在內海量產驅逐艦），不買無攻擊力的運輸與航艦；資金依空閒生產據點平均分配、前線優先，每回合用完，資金閒置時放寬空軍與艦艇上限；奪城部隊依實際移動回合數一城一隊分派且沿用到手為止（高收入、首都優先）；兵力價值領先 1.4 倍且第 6 回合後轉入首都圍攻：主力集結於敵方首都外圍，局部兵力達守軍 1.4 倍時一齊總攻，優先清除首都上的守軍讓步兵進佔；移動目標依兵種相剋加權、掩蔽加成設上限避免停在山林；逼近我方首都的敵方奪城部隊最優先攔截。平衡工具新增 --duel 對決模式（每張地圖換邊、固定亂數可重現、--jobs 平行、--losses 列出敗局）。自由對戰對 A/B/C 三種風格（360 場）：30 回合判定勝率由原版藍發的約 47% 提升至 84%；延長至 80 回合時勝率 90%，其中 233 場以攻陷首都或全殲敵軍決勝。</p></div>
@@ -1235,7 +1252,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v74</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v75</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1497,9 +1514,17 @@ function setupInput() {
   const btnAP = $('#btnAutoPilot');
   if (btnAP) btnAP.onclick = toggleAutoPilot;
   const btnStopAP = $('#btnStopAutoPilot');
-  if (btnStopAP) btnStopAP.onclick = () => stopAutoPilot(true);
-  const btnCycleAP = $('#apPersonaCycle');
-  if (btnCycleAP) btnCycleAP.onclick = cycleAutoPilotPersona;
+  if (btnStopAP) btnStopAP.onclick = () => {
+    if (!G) return;
+    // 觀戰中：藍方改回玩家，下一個藍方回合由玩家指揮
+    if (G.players.every(p => p.ai)) {
+      G.players[0].ai = false; G.autoPilot = false;
+      $('#autoPilotBar').dataset.built = ''; updateAutoPilotUI();
+      return showToast('已停止觀戰：下一個藍方回合由玩家指揮');
+    }
+    if (G.autoPilot) stopAutoPilot(true);
+  };
+  $('#apMin').onclick = () => { SETTINGS.apMin = !SETTINGS.apMin; saveStatsPref(); updateAutoPilotUI(); };
   const btnAlly = $('#btnAllyCtrl');
   if (btnAlly) {
     btnAlly.onclick = () => {

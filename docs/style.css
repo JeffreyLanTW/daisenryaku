@@ -912,3 +912,34 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   #battleStats .bs-row { grid-template-columns: 26px 32px 1fr 32px; margin-top: 2px; }
   #battleStats .bs-donut { width: 24px; height: 24px; }
 }
+
+/* ----- 電腦代理／觀戰視窗：雙方操作與風格選單＋即時戰場資訊 ----- */
+#autoPilotBar.autopilot-banner { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 12px; }
+#autoPilotBar .ap-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#autoPilotBar.min .ap-body { display: none; }
+#autoPilotBar .ap-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+#autoPilotBar .ap-sides { display: flex; flex-direction: column; gap: 5px; }
+#autoPilotBar .ap-side { display: grid; grid-template-columns: 64px 1fr; gap: 4px; align-items: center; border-left: 4px solid var(--c); padding-left: 6px; }
+#autoPilotBar .ap-side-name { grid-row: span 2; font-weight: 700; font-size: 13px; }
+#autoPilotBar .ap-side select { font-size: 12px; padding: 3px 4px; min-width: 0; }
+#autoPilotBar #apApply { align-self: flex-end; }
+#autoPilotBar .ap-stats { font-size: 12px; min-width: 0; }
+#autoPilotBar .ap-stats .bs-row { display: grid; grid-template-columns: 30px 38px 1fr 38px; align-items: center; gap: 4px; margin-top: 3px; }
+#autoPilotBar .ap-stats .bs-head { display: flex; align-items: center; gap: 6px; }
+#autoPilotBar .ap-stats .bs-donut { width: 26px; height: 26px; }
+#autoPilotBar .ap-stats .bs-l { color: var(--muted); }
+#autoPilotBar .ap-stats .bs-n { font-weight: 700; font-variant-numeric: tabular-nums; }
+#autoPilotBar .ap-stats .bs-n.r { text-align: right; }
+#autoPilotBar .ap-stats .bs-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #334155; }
+#autoPilotBar .ap-stats .bs-bar i { display: block; height: 100%; }
+#autoPilotBar .ap-stats .bs-foot { display: flex; justify-content: space-between; font-size: 11px; margin-top: 3px; }
+#autoPilotBar { width: min(680px, calc(100% - 20px)); }
+@media (max-height: 520px) and (orientation: landscape), (max-width: 600px) {
+  #autoPilotBar.autopilot-banner { top: 6px; padding: 5px 8px; gap: 4px; }
+  #autoPilotBar .ap-title { font-size: 13px; }
+  #autoPilotBar .ap-body { gap: 6px; }
+  #autoPilotBar .ap-side { grid-template-columns: 50px 1fr; }
+  #autoPilotBar .ap-side-name { font-size: 12px; }
+  #autoPilotBar .ap-stats .bs-row { grid-template-columns: 26px 32px 1fr 32px; margin-top: 1px; }
+  #autoPilotBar .ap-stats .bs-foot { display: none; }
+}

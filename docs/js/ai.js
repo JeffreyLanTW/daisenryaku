@@ -793,6 +793,14 @@ function lanfaProduce(s) {
   const foeDist = airField && foes.length ? foes.map(e => airField[idxOf(e.x, e.y)]).sort((a, b) => a - b)[Math.floor(foes.length / 2)] : 0;
   const longSortie = foeDist > 14;
   const airCap = Math.max(3, Math.ceil(airBases * (landJam ? 3 : 2))) + Math.min(12, surplus);
+  // 大幅領先（兵力 2 倍）：加速收尾；圍攻敵方首都且步行太遠時用運輸直升機空運步兵
+  const dominant = G.lfPower && G.lfPower[s] >= 2;
+  const siegeCap = G.lfSiege && G.lfSiege[s];
+  let airlift = false;
+  if (siegeCap != null) {
+    const capF = distField(new Map([[siegeCap, 0]]), 'foot');
+    airlift = mine.filter(u => UNITS[u.type].capture).every(u => capF[idxOf(u.x, u.y)] > UNITS[u.type].move * 3);
+  }
   // 兵種評分：對敵軍價值的平均傷害 × 有效血量 ÷ 承受火力 ÷ 價格
   // 可接戰的敵軍：從生產據點依該兵種移動方式能抵達（或抵達相鄰格）的敵軍價值
   const reachCache = new Map();
@@ -833,7 +841,7 @@ function lanfaProduce(s) {
   const quality = (k, site, ignoreCap = false) => {
     const d = UNITS[k], b = d.base, c = CLASSES.indexOf(d.cls);
     if (d.engineer) return wantEngineer() && footField && footField[site] < Infinity ? 1 : 0;
-    if (LANFA_NON_COMBAT.has(b) && !(b === 'lst' && seaGap) && !(b === 'thelico' && seaGap)) return 0;
+    if (LANFA_NON_COMBAT.has(b) && !(b === 'lst' && seaGap) && !(b === 'thelico' && (seaGap || airlift))) return 0;
     let off = 0;
     if (foes.length) { const R = reachable(site, d.mt); for (let k2 = 0; k2 < 4; k2++) off += R[k2] / Etot * d.atk[k2]; }
     else off = (d.atk[0] + d.atk[1]) / 2;
@@ -868,9 +876,11 @@ function lanfaProduce(s) {
         }
       }
     }
-    if (b === 'thelico') q = seaGap && capturers >= 2 && cnt('thelico') < 1 ? 0.015 : 0;
+    if (b === 'thelico') q = (seaGap || airlift) && capturers >= 2 && cnt('thelico') < 1 ? (airlift ? 0.2 : 0.015) : 0;
     if (isIndirect(k) && indirect >= Math.max(2, armySize * 0.3)) q *= 0.35;
     q /= 1 + 0.12 * cnt(b);                    // 保持兵種多樣，避免單一兵種被剋
+    // 大幅領先時：慢速地面部隊從後方據點出發趕不上戰局，改偏好飛機與高機動部隊
+    if (dominant) { if (d.cat === 'air') q *= 1.8; else if (d.cat === 'land' && d.move <= 4 && !d.capture && footField && footField[site] > 12) q *= 0.4; }
     return q;
   };
   const qualityRaw = (k, site) => quality(k, site, true);
