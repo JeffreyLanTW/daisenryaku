@@ -608,9 +608,43 @@ function updateAutoPilotUI() {
       b.classList.toggle('on', on);
     });
     $('#apSides').querySelectorAll('.ap-side').forEach((el, k) => { el.querySelector('.ap-turn').textContent = k === G.cur ? ' ▶' : ''; });
+    renderApTune();
     // 戰場資訊固定在左下獨立面板（由 📊 開關），代理視窗只放操作選項
     $('#apStats').classList.add('hidden');
   }
+}
+// 策略參數滑桿：雙方各六項，拖曳即時生效；切換風格時恢復該風格預設
+function renderApTune() {
+  const box = $('#apTune');
+  if (!box) return;
+  box.classList.toggle('hidden', !SETTINGS.apTune);
+  $('#apTuneBtn').classList.toggle('on', !!SETTINGS.apTune);
+  if (!SETTINGS.apTune) return;
+  const key = G.players.map(p => p.persona + JSON.stringify(p.tune || {})).join('|');
+  if (box.dataset.key === key) return;   // 拖曳中不重建，避免打斷操作
+  box.dataset.key = key;
+  box.innerHTML = [0, 1].map(k => {
+    const per = getPersona(k);
+    return `<div class="ap-tune-side" style="--c:${SIDES[k].color}"><div class="ap-tune-h" style="color:${SIDES[k].light}">${SIDES[k].name}・${per.badge || per.id}
+        <button type="button" class="btn-ap-sub" data-reset="${k}" title="恢復此風格預設">重設</button></div>
+      ${PERSONA_TUNABLE.map(([f, name, lo, hi, step, tip]) => `<label class="ap-tune-row" title="${tip}"><span>${name}</span>
+        <input type="range" min="${lo}" max="${hi}" step="${step}" value="${per[f]}" data-k="${k}" data-f="${f}"><b>${(+per[f]).toFixed(f === 'retreatHp' ? 2 : 1)}</b></label>`).join('')}</div>`;
+  }).join('');
+  box.oninput = e => {
+    const r = e.target.closest('input[type=range]');
+    if (!r) return;
+    const k = +r.dataset.k, f = r.dataset.f;
+    G.players[k].tune = Object.assign({}, G.players[k].tune, { [f]: +r.value });
+    r.nextElementSibling.textContent = (+r.value).toFixed(f === 'retreatHp' ? 2 : 1);
+    box.dataset.key = G.players.map(p => p.persona + JSON.stringify(p.tune || {})).join('|');
+  };
+  box.onclick = e => {
+    const b = e.target.closest('[data-reset]');
+    if (!b) return;
+    G.players[+b.dataset.reset].tune = null;
+    box.dataset.key = ''; renderApTune();
+    showToast(`${SIDES[+b.dataset.reset].name}：策略參數已恢復預設`);
+  };
 }
 // 代理視窗分段按鈕：點選即生效
 function apSegClick(b) {
@@ -619,6 +653,7 @@ function apSegClick(b) {
   if (b.dataset.ap === 'spd') { SETTINGS.aiStep = +v; showToast('電腦速度：' + b.textContent); }
   else if (b.dataset.ap === 'per') {
     G.players[k].persona = v;
+    G.players[k].tune = null;   // 切換風格：參數恢復該風格預設
     showToast(`${SIDES[k].name} AI 風格：${(AI_PERSONAS[v] || {}).badge || v}`);
   } else {
     const wasHuman = !G.players[G.cur].ai;
@@ -1103,7 +1138,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v81</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v82</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1134,6 +1169,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v82</span><span class="cl-date">2026.10.31</span><p>【策略參數與介面精簡】電腦代理／觀戰視窗新增「🎛 參數」：雙方各六項策略參數滑桿（攻擊性、閃避火力、佔領重視、斬首、撤退門檻、地形掩蔽），拖曳即時生效、可重設為風格預設，切換風格時自動恢復預設。取消右側戰況卡片。</p></div>
         <div class="cl-item"><span class="cl-ver">v81</span><span class="cl-date">2026.10.31</span><p>【換回合閃爍修正】換回合時頂部按鈕顯示/隱藏讓地圖區域尺寸改變，觸發重設 canvas 尺寸而清空大地圖與小地圖、留下一格空白畫面。改為只在尺寸真的改變時才重設並立即重繪；頂部列固定單列高度（不換行，放不下的按鈕可左右滑動；iPad 以下把存檔、讀檔、說明收進 ☰），電腦回合時「電腦代理」按鈕只隱藏外觀、保留位置，換回合時地圖與小地圖不再閃爍或白一下。</p></div>
         <div class="cl-item"><span class="cl-ver">v80</span><span class="cl-date">2026.10.31</span><p>【觀戰舒適度】電腦回合的鏡頭改為平滑移動到行動部隊，不再瞬間跳轉（拖曳或縮放地圖時立即取消）；觀戰模式的回合標題改為小型淡入淡出標籤，不再閃過整條彩帶。戰場資訊固定在左下獨立面板（📊 開關），不再嵌入電腦代理視窗。</p></div>
         <div class="cl-item"><span class="cl-ver">v79</span><span class="cl-date">2026.10.31</span><p>【戰場資訊開關修正】📊 按鈕在電腦代理／觀戰時也有效：開啟時戰場資訊嵌入代理視窗、關閉時隱藏；未開代理時顯示獨立面板。戰場資訊預設開啟。</p></div>
@@ -1270,7 +1306,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v81</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v82</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1545,6 +1581,7 @@ function setupInput() {
     }
     if (G.autoPilot) stopAutoPilot(true);
   };
+  $('#apTuneBtn').onclick = () => { SETTINGS.apTune = !SETTINGS.apTune; updateAutoPilotUI(); };
   $('#apMin').onclick = () => { SETTINGS.apMin = !SETTINGS.apMin; saveStatsPref(); updateAutoPilotUI(); };
   const btnAlly = $('#btnAllyCtrl');
   if (btnAlly) {

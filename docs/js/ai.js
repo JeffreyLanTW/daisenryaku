@@ -145,11 +145,28 @@ const AI_PERSONAS = {
   }
 };
 
+// 可由觀戰／代理視窗調整的六項策略參數（覆寫該方 AI 風格的預設值）
+const PERSONA_TUNABLE = [
+  ['attackWeight', '攻擊性', 0.3, 3, 0.05, '接戰與追擊的意願'],
+  ['threatWeight', '閃避火力', 0.1, 2.5, 0.05, '越高越不願進入敵軍射程'],
+  ['captureWeight', '佔領重視', 0.3, 6, 0.1, '派步兵搶佔城市與據點的優先度'],
+  ['decapitation', '斬首', 0.3, 5, 0.1, '直取敵方首都的優先度'],
+  ['retreatHp', '撤退門檻', 0, 0.7, 0.01, '血量低於此比例就撤回維修'],
+  ['coverBonus', '地形掩蔽', 0.2, 3, 0.05, '偏好停在森林、山地等掩蔽地形'],
+];
+const tunedPersona = new WeakMap();
 function getPersona(side) {
   if (!G || !G.players || !G.players[side]) return AI_PERSONAS.B;
-  const p = G.players[side].persona;
-  if (p === 'L' || p === 'LANFA' || p === 'lanfa' || p === '藍發') return AI_PERSONAS.L;
-  return AI_PERSONAS[p] || AI_PERSONAS.B;
+  const pl = G.players[side], p = pl.persona;
+  const base = (p === 'L' || p === 'LANFA' || p === 'lanfa' || p === '藍發') ? AI_PERSONAS.L : AI_PERSONAS[p] || AI_PERSONAS.B;
+  if (!pl.tune || !Object.keys(pl.tune).length) return base;
+  // 有調整參數：合成一份（依參數內容快取，避免每次呼叫重新建立）
+  const key = base.id + JSON.stringify(pl.tune);
+  const hit = tunedPersona.get(pl);
+  if (hit && hit.key === key) return hit.p;
+  const tuned = Object.assign({}, base, pl.tune);
+  tunedPersona.set(pl, { key, p: tuned });
+  return tuned;
 }
 
 function aiGoals(u, baseField) {
@@ -169,7 +186,7 @@ function aiGoals(u, baseField) {
   const persona = getPersona(s);
   const uMax = u.maxHp || d.maxHp || 10;
   // 藍發策略：廉價奪城步兵決死不退 (0%後撤門檻)；高代價主力裝甲/戰機/艦艇受損 (<28% HP) 則後撤修復
-  const effRetreatHp = persona.id === 'L' ? ((d.cost <= 160 || d.capture) ? 0 : 0.28) : (persona.id === 'C' ? Math.max(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp) : Math.min(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp));
+  const effRetreatHp = persona.id === 'L' ? ((d.cost <= 160 || d.capture) ? 0 : persona.retreatHp) : (persona.id === 'C' ? Math.max(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp) : Math.min(doc.retreatHp !== undefined ? doc.retreatHp : 0.3, persona.retreatHp));
   const hurt = effRetreatHp > 0 && u.hp <= uMax * effRetreatHp;
   const rTurns = baseField ? Math.ceil(Math.max(1, baseField[here]) / d.move) : 1;
   const fuelMargin = doc.strictRtb ? 6 : 4;
