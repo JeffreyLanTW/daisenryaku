@@ -266,7 +266,7 @@ const NATIONS = {
       marine: ['陸戰隊', '海軍陸戰隊（AAV7 兩棲突擊車）'], stealth: ['F-117A', 'F-117A 夜鷹匿蹤攻擊機'],
     },
     mods: [['all', { cost: 1.15 }], ['tank', { atk: 1 }], ['fighter', { atk: 1 }], ['attacker', { atk: 1 }], ['heli', { atk: 1 }]],
-    prefer: { fighter: 1.5, attacker: 1.5, heli: 1.3, stealth: 1.3 }, adj: 0.87,
+    prefer: { fighter: 1.5, attacker: 1.5, heli: 1.3, stealth: 1.3 }, adj: 0.85,
   },
   JP: {
     name: '日本', full: '日本自衛隊', army: '自衛隊', code: 'JP', style: 'west', camo: '#58613f',
@@ -334,7 +334,7 @@ const NATIONS = {
     },
     mods: [['soft', { jungle: 15 }], ['inf', { cost: 0.8 }], ['aa', { atk: 1 }], ['sam', { atk: 1 }],
       ['tank', { atk: -1, cost: 0.8 }], ['fighter', { atk: -1, cost: 0.8 }], ['destroyer', { atk: -1, cost: 0.85 }]],
-    prefer: { inf: 1.5, aa: 1.4, sam: 1.3 }, adj: 0.99,
+    prefer: { inf: 1.5, aa: 1.4, sam: 1.3 }, adj: 0.94,
   },
   RU: {
     name: '俄羅斯', full: '俄羅斯（蘇聯）軍', army: '俄軍', code: 'RU', style: 'east', camo: '#53643b',
@@ -425,7 +425,7 @@ const NATIONS = {
       marine: null,
     },
     mods: [['attacker', { atk: 1, move: 1 }], ['fighter', { atk: 1 }], ['heli', { atk: -2, cost: 0.7 }], ['tank', { atk: -1, cost: 0.9 }]],
-    prefer: { attacker: 1.6, fighter: 1.3, destroyer: 1.2 }, adj: 0.97,
+    prefer: { attacker: 1.6, fighter: 1.3, destroyer: 1.2 }, adj: 0.94,
   },
   IL: {
     name: '以色列', full: '以色列國防軍', army: '以軍', code: 'IL', style: 'west', camo: '#8a7c55',
@@ -453,7 +453,7 @@ const NATIONS = {
       laser_aa: ['矽光子防空', '矽光子高能雷射防空車'], nano_swarm: ['遊蕩蜂群', '奈米滯空遊蕩無人蜂群'],
     },
     mods: [['land', { armor: 0.85 }], ['sam', { atk: 2 }], ['all', { cost: 1.15 }]],
-    prefer: { euv_fortress: 1.8, laser_aa: 1.6, wafer_inf: 1.4, nano_swarm: 1.5 }, adj: 1.12,
+    prefer: { euv_fortress: 1.8, laser_aa: 1.6, wafer_inf: 1.4, nano_swarm: 1.5 }, adj: 1.15,
   },
   USCORP: {
     name: '美商國防', full: '美商尖端科技集團', army: '矽谷聯軍', code: 'USCORP', style: 'west', camo: '#1e3d59',
@@ -468,7 +468,7 @@ const NATIONS = {
       wingman_carrier: ['僚機母艦', '次世代無人空戰母艦機'], usv_wolfpack: ['無人作戰艦', 'USV 無人水面攔截狼群'],
     },
     mods: [['air', { move: 1 }], ['rocket', { range: [3, 6] }], ['all', { cost: 1.2 }]],
-    prefer: { anduril_tank: 1.8, palantir_arty: 1.7, wingman_carrier: 1.6, usv_wolfpack: 1.5 }, adj: 0.92,
+    prefer: { anduril_tank: 1.8, palantir_arty: 1.7, wingman_carrier: 1.6, usv_wolfpack: 1.5 }, adj: 0.88,
   },
 };
 const CARRIERS = {
