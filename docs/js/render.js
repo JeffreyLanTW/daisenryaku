@@ -326,6 +326,8 @@ function draw(now) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#0c1117'; ctx.fillRect(0, 0, cvs.width, cvs.height);
   if (!G || !terrainCvs) return;
+  // 工兵建好基地後地形改變：重繪地形底圖
+  if (G.terrainDirty) { G.terrainDirty = false; buildTerrain(); }
   const z = cam.z * dpr;
   ctx.setTransform(z, 0, 0, z, -cam.x * z, -cam.y * z);
   ctx.imageSmoothingQuality = 'high';
@@ -355,6 +357,15 @@ function drawProps() {
     if (c) {
       ctx.fillStyle = '#111'; ctx.fillRect(cx - 15, cy + 19, 30, 5);
       ctx.fillStyle = SIDES[c.side].light; ctx.fillRect(cx - 14, cy + 20, 28 * (1 - c.pts / CAPTURE_POINTS), 3);
+    }
+    // 工兵建設進度：金色進度條與基地圖示
+    const b = G.construct && G.construct[i];
+    if (b) {
+      const B = BASE_TYPES[b.type];
+      ctx.fillStyle = '#111'; ctx.fillRect(cx - 15, cy + 13, 30, 5);
+      ctx.fillStyle = '#e0b54a'; ctx.fillRect(cx - 14, cy + 14, 28 * (1 - b.pts / B.pts), 3);
+      ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🏗️', cx - 18, cy - 16);
     }
   }
 }

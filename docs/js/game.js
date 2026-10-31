@@ -448,6 +448,7 @@ function doCapture(u) {
     return false;
   }
   const prev = G.owner[i];
+  if (G.construct) delete G.construct[i];
   G.owner[i] = u.side;
   if (G.bNation) G.bNation[i] = u.nation || normNat(SIDES[u.side].nation);
   delete G.capture[i];
@@ -486,6 +487,34 @@ function doRepair(u) {
   }
   addLog(`${SIDES[u.side].name}修復${tname}（耐久回升至 ${c.pts}/${CAPTURE_POINTS}）`, u.side);
   return false;
+}
+// ----- 工兵建設基地 -----
+// 可在此建設的基地種類：己方城市（非首都）、沒有佔領進度；港口須臨海
+function buildBaseOptions(u, i = idxOf(u.x, u.y)) {
+  if (!UNITS[u.type].engineer) return [];
+  if (G.terrain[i] !== 'city' || G.owner[i] !== u.side || G.capture[i]) return [];
+  const cur = G.construct && G.construct[i];
+  if (cur && cur.side === u.side) return [cur.type];
+  return Object.keys(BASE_TYPES).filter(k => !BASE_TYPES[k].sea || neighbors(...ixy(i)).some(([nx, ny]) => G.terrain[idxOf(nx, ny)] === 'sea'));
+}
+// 開工時付費；之後每次建設扣除工兵 HP 的點數，歸零即完成。回傳 true = 完工
+function doBuildBase(u, type) {
+  const i = idxOf(u.x, u.y), B = BASE_TYPES[type];
+  G.construct = G.construct || {};
+  let c = G.construct[i];
+  if (!c || c.side !== u.side || c.type !== type) {
+    if (G.funds[u.side] < B.cost) return false;
+    G.funds[u.side] -= B.cost;
+    c = G.construct[i] = { side: u.side, type, pts: B.pts };
+    addLog(`${SIDES[u.side].name}開始在城市建設${B.name}（💰${B.cost}）`, u.side);
+  }
+  c.pts -= u.hp;
+  if (c.pts > 0) { addLog(`${SIDES[u.side].name}${B.name}建設中（剩餘 ${c.pts}）`, u.side); return false; }
+  delete G.construct[i];
+  G.terrain[i] = type;
+  G.terrainDirty = true;
+  addLog(`${SIDES[u.side].name}完成建設${B.name}！`, u.side);
+  return true;
 }
 // 可進化的型號：需達到階級，且停在己方可補給的據點上
 function evoOptions(u) {
@@ -559,6 +588,7 @@ function buildOptions(x, y, side) {
   return Object.keys(UNITS).filter(k => {
     const uDef = UNITS[k];
     if (uDef.side !== side || uDef.tier || !t.build.includes(uDef.cat)) return false;
+    if (uDef.engineer && G.rules && G.rules.engineer === false) return false;
     if (uDef.base === 'train' && (!G.rails || !G.rails.length)) return false;
     if (uDef.nation === bn || (uDef.ally && normNat(uDef.ally) === bn)) return true;
     if ((bn === 'TSMC' || bn === 'USCORP') && uDef.nation === bn) return true;
@@ -688,7 +718,9 @@ function initState(m, opts) {
     nextId: 1, log: [], missionId: opts.missionId || null, result: null, nations: opts.nations || ['TW', 'CN'],
     allies: opts.allies || [], allyAI: !!opts.allyAI,
     bNation: m.bNation ? [...m.bNation] : new Array(m.w * m.h).fill(null),
-    firedEvents: [], pendingDialogs: [],
+    firedEvents: [], pendingDialogs: [], construct: {},
+    // 規則選項：engineer 是否可生產工兵（預設依玩家設定，無設定時開啟）
+    rules: Object.assign({ engineer: typeof SETTINGS === 'undefined' || SETTINGS.engineer !== false }, opts.rules || {}),
     stats: { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 },
     airFuelCrashCount: [0, 0],
   };

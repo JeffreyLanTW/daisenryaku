@@ -226,6 +226,12 @@ function aiGoals(u, baseField) {
       if (goals.size) return { goals, mode: 'deliver' };
     }
   }
+  // 藍發工兵：前往安全的己方城市建設基地（已開工的優先），沒有可建城市就退回首都
+  if (d.engineer && persona.id === 'L') {
+    for (const i of lanfaBuildSites(s)) add(i, G.construct && G.construct[i] && G.construct[i].side === s ? -6 : 0);
+    if (!goals.size) G.terrain.forEach((t, i) => { if (t === 'capital' && G.owner[i] === s) add(i, 0); });
+    if (goals.size) return { goals, mode: 'build' };
+  }
   if (d.capture) {
     for (let i = 0; i < G.owner.length; i++) {
       if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
@@ -411,6 +417,11 @@ async function aiAct(u, token) {
     base += Math.random() * 2;
 
     consider(base, null);
+    if (d.engineer && persona.id === 'L' && G.terrain[i] === 'city') {
+      const opts = buildBaseOptions(u, i), bt = lanfaBaseType(s, i);
+      const going = G.construct && G.construct[i] && G.construct[i].side === s;
+      if (opts.includes(bt) && (going || G.funds[s] >= BASE_TYPES[bt].cost)) consider(base + 3000 + (going ? 500 : 0), { kind: 'build', type: bt });
+    }
     if (d.capture && t.prop && G.owner[i] !== s) {
       let cs = (persona.id === 'L' ? 1400 : 350) + (G.owner[i] >= 0 ? (persona.id === 'L' ? 350 : 120) : (persona.id === 'L' ? 250 : 0)) + (G.terrain[i] === 'capital' ? (3000 * persona.decapitation) : 0);
       const c = G.capture[i];
@@ -460,6 +471,13 @@ async function aiAct(u, token) {
     const took = doCapture(u);
     if (took && typeof sfx === 'function') sfx('capture');
     fxText(cx, cy, took ? '佔領！' : `佔領中 ${G.capture[idxOf(u.x, u.y)].pts}`, SIDES[s].light);
+    await sleep(SETTINGS.aiStep * 2);
+  } else if (act && act.kind === 'build') {
+    const [cx, cy] = tileCenter(u.x, u.y);
+    const done = doBuildBase(u, act.type);
+    if (typeof sfx === 'function') sfx(done ? 'capture' : 'build');
+    const c = G.construct && G.construct[idxOf(u.x, u.y)];
+    fxText(cx, cy, done ? `${BASE_TYPES[act.type].name}完工！` : `建設中 ${c ? c.pts : 0}`, SIDES[s].light);
     await sleep(SETTINGS.aiStep * 2);
   } else if (act && act.kind === 'repair') {
     const [cx, cy] = tileCenter(u.x, u.y);
@@ -583,6 +601,31 @@ function aiProduce(s) {
     for (let k = 0; k < opts.length; k++) { r -= ws[k]; if (r <= 0) { pick = opts[k]; break; } }
     produce(pick, x, y, s);
   }
+}
+
+// ===== 藍發風格：工兵建設基地 =====
+// 適合建基地的城市：己方、非首都、6 格內沒有敵軍
+function lanfaBuildSites(s) {
+  const foes = G.units.filter(e => e.side !== s);
+  const out = [];
+  for (let i = 0; i < G.owner.length; i++) {
+    if (G.terrain[i] !== 'city' || G.owner[i] !== s || G.capture[i]) continue;
+    const [x, y] = ixy(i);
+    if (foes.some(e => hexDist(e.x, e.y, x, y) <= 6)) continue;
+    out.push(i);
+  }
+  return out;
+}
+// 依需要決定基地種類：沒有機場先建機場；需要海軍且臨海時建港口；其餘建工廠（地面部隊最常用）
+function lanfaBaseType(s, i) {
+  const own = t => G.owner.filter((o, k) => o === s && G.terrain[k] === t).length;
+  const coastal = neighbors(...ixy(i)).some(([nx, ny]) => G.terrain[idxOf(nx, ny)] === 'sea');
+  const enemyShip = G.units.some(e => e.side !== s && UNITS[e.type].cls === 'ship');
+  const c = G.construct && G.construct[i];
+  if (c && c.side === s) return c.type;
+  if (!own('airport')) return 'airport';
+  if (coastal && enemyShip && !own('port')) return 'port';
+  return 'factory';
 }
 
 // ===== 藍發風格：奪城分派 =====
@@ -735,8 +778,15 @@ function lanfaProduce(s) {
     coastCache.set(site, n);
     return n;
   };
+  // 工兵：生產據點不足或資金閒置、且有安全城市可建基地時，補 1 支（資金很多時 2 支）
+  const buildSites = lanfaBuildSites(s);
+  let engineers = cnt('engineer');
+  const engineerCap = G.funds[s] >= 6000 ? 2 : 1;
+  const wantEngineer = () => buildSites.length > 0 && engineers < engineerCap && G.turn >= 4
+    && G.funds[s] >= 1300 && (G.funds[s] >= 2500 || sites.length <= 3);
   const quality = (k, site, ignoreCap = false) => {
     const d = UNITS[k], b = d.base, c = CLASSES.indexOf(d.cls);
+    if (d.engineer) return wantEngineer() && footField && footField[site] < Infinity ? 1 : 0;
     if (LANFA_NON_COMBAT.has(b) && !(b === 'lst' && seaGap) && !(b === 'thelico' && seaGap)) return 0;
     let off = 0;
     if (foes.length) { const R = reachable(site, d.mt); for (let k2 = 0; k2 < 4; k2++) off += R[k2] / Etot * d.atk[k2]; }
@@ -829,7 +879,7 @@ function lanfaProduce(s) {
       G.lfSaving[s] = dream;
       continue;
     }
-    if (best) produce(best, x, y, s);
+    if (best) { produce(best, x, y, s); if (UNITS[best].engineer) engineers++; }
   }
 }
 

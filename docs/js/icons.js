@@ -289,6 +289,19 @@ function drawIcon(c, d) {
       break;
     }
 
+    // ===================== 工兵：國家鋼盔＋十字鎬與扳手 =====================
+    case 'engineer': {
+      drawNationalHelmet(-3, 2, 0.88);
+      c.save();
+      c.translate(7, -1);
+      c.rotate(0.5);
+      toonRR(-1.5, -12, 3.5, 22, 1.5, '#8b5a2b', 2);           // 鎬柄
+      toonPoly([[-9, -12], [9, -12], [6, -8.5], [-6, -8.5]], '#9ca3af', 2);  // 鎬頭
+      c.restore();
+      toonCirc(-12, 9, 3.4, '#facc15', 1.6);                    // 工兵黃色標誌
+      break;
+    }
+
     // ===================== 反戰車步兵：國家鋼盔＋肩扛大火箭筒 =====================
     case 'atinf': {
       drawNationalHelmet(-3, 2, 0.88);

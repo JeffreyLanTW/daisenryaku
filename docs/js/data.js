@@ -69,6 +69,8 @@ Object.assign(BASE_UNITS, {
   anduril_tank:    { cls: 'hard', cat: 'land', mt: 'tread', cost: 650,  move: 6, range: [1, 1], atk: [7, 8, 0, 3], maxHp: 8 },
   palantir_arty:   { cls: 'hard', cat: 'land', mt: 'tread', cost: 1200, move: 4, range: [3, 7], atk: [10, 9, 0, 8], maxHp: 14 },
   wingman_carrier: { cls: 'air',  cat: 'air',  mt: 'air',   cost: 2000, move: 8, range: [1, 2], atk: [7, 8, 9, 7], maxHp: 16, fuel: 75, upkeep: 3, carry: { cap: 3, allow: ['air'], deck: true } },
+  // 工兵：可在己方城市建設工廠、機場或港口（見 BASE_TYPES）
+  engineer:        { cls: 'soft', cat: 'land', mt: 'foot',  cost: 300,  move: 3, range: [1, 1], atk: [3, 1, 0, 0], engineer: true },
   usv_wolfpack:    { cls: 'ship', cat: 'sea',  mt: 'sea',   cost: 700,  move: 5, range: [1, 1], atk: [5, 5, 3, 9], maxHp: 8, stealth: true },
 });
 const RAIL_COST = 200;
@@ -93,7 +95,14 @@ const TRANSPORTS = {
   AU: { truck: ['Mack卡車', 'Mack 軍用卡車'], thelico: ['S-70A', 'S-70A 黑鷹'], airlift: ['C-130H', 'C-130H 力士型運輸機'], lst: ['托布魯克號', '托布魯克號重型登陸艦'] },
   IL: { truck: ['M35卡車', 'M35 2.5 噸卡車'], thelico: ['CH-53', 'CH-53 海上種馬'], airlift: ['C-130H', 'C-130H 力士型運輸機'], lst: null },
 };
+// 工兵可建設的基地種類：城市 → 基地。pts 建設點數（每回合扣除工兵 HP），sea 須臨海
+const BASE_TYPES = {
+  factory: { name: '工廠', icon: '🏭', cost: 1000, pts: 20, desc: '生產與補給地面部隊' },
+  airport: { name: '機場', icon: '✈️', cost: 1200, pts: 20, desc: '生產與補給飛機' },
+  port:    { name: '港口', icon: '⚓', cost: 1000, pts: 20, sea: true, desc: '生產艦艇，補給艦艇與地面部隊' },
+};
 const BASE_DESC = {
+  engineer: '戰鬥工兵：在己方城市建設工廠、機場或港口（臨海），約 2 回合完成，增加生產與補給據點',
   inf: '基本步兵，可佔領據點', atinf: '攜帶反戰車武器的步兵，可佔領據點', recon: '高機動偵察車，克制步兵',
   tank: '主力戰車，攻守兼備', arty: '間接攻擊，移動後不可射擊', rocket: '遠程火箭，移動後不可射擊',
   aa: '近距離防空，對步兵也有效', sam: '遠程防空飛彈，移動後不可射擊', heli: '反裝甲攻擊直升機，克制戰車但懼怕防空',
@@ -377,6 +386,7 @@ for (const [nid, tr] of Object.entries(TRANSPORTS)) {
   NATIONS[nid].units.train = ['軍用列車', `軍用列車（${LOCOMOTIVES[nid]}）`];
   if (CARRIERS[nid]) NATIONS[nid].units.carrier = CARRIERS[nid];
 }
+for (const N of Object.values(NATIONS)) N.units.engineer = [`${N.army || ''}工兵`, '戰鬥工兵（基地建設）'];
 const NATION_IDS = Object.keys(NATIONS);
 
 // 進化科技樹：每國每兵種的後繼型號。[節點id, 前一節點(null=基本型), 名稱, 型號, 調整]
