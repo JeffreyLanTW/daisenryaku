@@ -950,3 +950,11 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 
 #autoPilotBar .ap-stats.hidden { display: none; }
 #autoPilotBar .ap-body:has(.ap-stats.hidden) { grid-template-columns: 1fr; }
+
+/* 觀戰模式回合標題：小型、淡入淡出，不滑動不閃彩帶 */
+#banner.soft { top: auto; bottom: 16px; padding: 4px 14px; font-size: 14px; font-weight: 700; letter-spacing: 1px;
+  background: rgba(15, 23, 42, 0.78); border: 1px solid var(--c); border-radius: 8px; text-shadow: none; }
+#banner.soft.show { animation: bannerSoft 1.4s ease forwards; }
+@keyframes bannerSoft { 0% { opacity: 0; } 20%, 75% { opacity: 1; } 100% { opacity: 0; } }
+
+#autoPilotBar { width: min(460px, calc(100% - 20px)); }

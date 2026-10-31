@@ -323,6 +323,7 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
 
 // ----- 每幀繪製 -----
 function draw(now) {
+  stepCamera();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#0c1117'; ctx.fillRect(0, 0, cvs.width, cvs.height);
   if (!G || !terrainCvs) return;
@@ -578,12 +579,27 @@ function centerOn(wx, wy) {
   cam.x = wx - vw / cam.z / 2; cam.y = wy - vh / cam.z / 2;
   clampCam();
 }
+// 電腦回合的鏡頭：平滑移動到目標（不瞬間跳轉，觀戰時眼睛較舒服）；玩家拖曳或縮放時取消
+let camGoal = null;
 function ensureVisible(x, y) {
   const [cx, cy] = tileCenter(x, y), [vw, vh] = viewSize();
-  const sx = (cx - cam.x) * cam.z, sy = (cy - cam.y) * cam.z;
-  if (sx < 60 || sy < 60 || sx > vw - 60 || sy > vh - 60) centerOn(cx, cy);
+  const ref = camGoal || cam;
+  const sx = (cx - ref.x) * cam.z, sy = (cy - ref.y) * cam.z;
+  if (!(sx < 60 || sy < 60 || sx > vw - 60 || sy > vh - 60)) return;
+  if (G && G.players && G.players[G.cur] && G.players[G.cur].ai) {
+    const keep = { x: cam.x, y: cam.y };
+    centerOn(cx, cy);
+    camGoal = { x: cam.x, y: cam.y };
+    cam.x = keep.x; cam.y = keep.y;
+  } else { camGoal = null; centerOn(cx, cy); }
+}
+function stepCamera() {
+  if (!camGoal) return;
+  cam.x += (camGoal.x - cam.x) * 0.16; cam.y += (camGoal.y - cam.y) * 0.16;
+  if (Math.abs(camGoal.x - cam.x) < 0.5 && Math.abs(camGoal.y - cam.y) < 0.5) { cam.x = camGoal.x; cam.y = camGoal.y; camGoal = null; }
 }
 function zoomAt(sx, sy, factor) {
+  camGoal = null;
   const wx = cam.x + sx / cam.z, wy = cam.y + sy / cam.z;
   cam.z = Math.max(0.25, Math.min(2.5, cam.z * factor));
   cam.x = wx - sx / cam.z; cam.y = wy - sy / cam.z;
