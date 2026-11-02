@@ -452,6 +452,235 @@ function drawIcon(c, d) {
       natBadge(-14, 0, 2.2);
       return true;
     }
+    // ===== 擴充兵種的國別造型 =====
+    const water = () => line(-21, 12, 21, 12, 2, '#38bdf8');
+    const truck8 = (wh = [-14, -7, 4, 13]) => { toonRR(-19, 1, 38, 5.5, 2.5, lo, 2.4); toonPoly([[11, 2], [11, -6], [17, -6], [20, -1], [20, 2]], col, 2.5); toonWheels(wh, 7.5, 3.5); };
+    const msl = (x, y, len, ang, w = 4.8) => { c.save(); c.translate(x, y); c.rotate(ang); toonRR(0, -w / 2, len, w, w / 2, '#e5e7eb', 1.8); toonPoly([[len, -w / 2], [len + 4, 0], [len, w / 2]], '#dc2626', 1.6); c.restore(); };
+    if (base === 'ifv') {
+      if (has(/BMP|86式|VTT|薩拉特/)) {                       // BMP：低矮楔形車首、小圓錐砲塔
+        toonPoly([[-18, 4], [-18, -4], [4, -5], [19, 3], [19, 4]], col, 2.6);
+        toonEll(-2, -4.5, 6, 5, 0, col, 2.4, Math.PI, Math.PI * 2);
+        line(2, -7, 18, -7.5, 2.4, ink); toonRR(-3, -12, 7, 2.6, 1.2, acc, 1.6);
+        toonTracks(-17, 3.5, 34, 8, 6);
+      } else if (has(/阿奇扎里特/)) {                          // 阿奇扎里特：戰車車體改裝，無砲塔、後段高起
+        toonPoly([[-18, 4], [-18, -8], [-4, -8], [-2, -4], [18, -2], [19, 4]], col, 2.6);
+        toonCirc(-10, -10, 2.4, ink, 0); line(-10, -10, -2, -11, 2.2, ink);
+        toonTracks(-17, 4, 34, 8.5, 5);
+      } else if (has(/ASLAV|輪型/)) {                          // ASLAV：八輪
+        toonPoly([[-18, 4], [-17, -4], [-11, -8], [10, -8], [18, -1], [18, 4]], col, 2.6);
+        toonRR(-5, -13, 11, 5, 2, col, 2.3); line(5, -10.5, 17, -10.5, 2.4, ink);
+        toonWheels([-13, -5, 4, 12], 7.5, 3.6);
+      } else {                                                   // 西式：高箱型車身，布萊德雷側掛拖式、黃鼠狼頂掛米蘭
+        toonRR(-18, -8, 34, 12, 3, col, 2.6);
+        toonRR(-5, -13, 12, 5.5, 2, col, 2.4); line(6, -10.5, 18, -10.5, 2.6, ink);
+        if (has(/布萊德雷|M2/)) toonRR(-9, -14, 5, 6, 1.4, acc, 1.8);
+        else if (has(/黃鼠狼|AMX-10P|89式/)) toonRR(-3, -17.5, 10, 3, 1.4, acc, 1.6);
+        toonTracks(-17, 3.5, 34, 8, 5);
+      }
+      natBadge(-12, -1, 2.2); return true;
+    }
+    if (base === 'submarine') {
+      const nuke = has(/核動力|洛杉磯|阿庫拉|特拉法加|紅寶石/), teardrop = has(/基洛|辛杜戈什|宋級|柯林斯|海豚|張保皐|206|209/);
+      if (nuke) toonEll(0, 4, 22, 5, 0, '#334155', 2.6); else if (teardrop) toonEll(-1, 4, 17, 6.5, 0, '#334155', 2.6); else toonEll(0, 4, 19, 5.5, 0, '#334155', 2.6);
+      const sx = nuke ? 6 : teardrop ? -2 : 0;
+      toonRR(sx - 5, nuke ? -7 : -6, nuke ? 8 : 10, nuke ? 10 : 9, 3, col, 2.5);
+      if (has(/洛杉磯/)) line(sx - 7, -2, sx + 5, -2, 2.4, ink);              // 指揮塔水平舵
+      if (has(/阿庫拉/)) toonEll(-21, -3, 3, 2, 0, '#334155', 2);            // 垂直尾翼上的拖曳聲納艙
+      if (has(/羅密歐/)) toonRR(-12, -1, 4, 3, 1, lo, 1.4);
+      line(sx, -7, sx, -13, 2.4, ink);
+      toonPoly([[nuke ? -21 : -17, 2], [nuke ? -25 : -21, -3], [nuke ? -25 : -21, 7]], '#334155', 2);
+      water(); natBadge(sx - 1, -2, 2.1); return true;
+    }
+    if (base === 'frigate') {
+      toonPoly([[-19, 0], [14, 0], [20, -3], [15, 9], [-16, 9]], col, 2.6);
+      if (has(/拉法葉|康定|23型|荷西黎剎|安扎克|056|薩爾5|德爾畢拉/)) {   // 匿蹤：一體斜面上層結構
+        toonPoly([[-12, 0], [-9, -10], [5, -10], [9, 0]], col, 2.5);
+        toonPoly([[-3, -10], [1, -10], [0, -16], [-2, -16]], lo, 1.8);
+        line(11, -2, 18, -4, 3, ink);
+      } else if (has(/派里|成功|阿德萊德/)) {                     // 派里級：單一方塊上層＋高桅＋前甲板單臂飛彈架
+        toonRR(-10, -9, 15, 9, 1.5, col, 2.5);
+        line(-2, -9, -2, -17, 2.6, ink); line(-5, -14, 1, -14, 2.2, ink);
+        line(11, -1, 15, -6, 2.4, ink);
+      } else if (has(/克里瓦克|江衛|索霍|BPS|戈達瓦里|塔里克|不來梅|蔚山|阿武隈|拉胡/)) {   // 前甲板大型發射箱
+        toonRR(6, -5, 9, 5, 1.2, lo, 2);
+        toonPoly([[-9, 0], [-7, -8], [3, -8], [5, 0]], col, 2.4);
+        line(-2, -8, -2, -15, 2.6, ink);
+      } else return false;
+      water(); natBadge(-13, 4.5, 2.1); return true;
+    }
+    if (base === 'cruiser') {
+      toonPoly([[-21, 0], [16, 0], [22, -3], [17, 9], [-18, 9]], col, 2.6);
+      if (has(/光榮級/)) {                                          // 光榮級：兩舷成排的巨大反艦飛彈筒
+        for (let k = 0; k < 4; k++) toonRR(-4 + k * 4.2, -5, 3.6, 5, 1, lo, 1.6);
+        toonPoly([[-16, 0], [-14, -10], [-6, -10], [-5, 0]], col, 2.4);
+        line(-10, -10, -10, -17, 2.6, ink);
+      } else if (has(/055|南昌/)) {                                 // 055：匿蹤船身＋大型一體化桅杆
+        toonPoly([[-14, 0], [-11, -9], [3, -9], [6, 0]], col, 2.4);
+        toonPoly([[-6, -9], [0, -9], [-1, -17], [-5, -17]], col, 2.2);
+        line(12, -2, 20, -4, 3, ink);
+      } else {                                                      // 神盾巡洋艦：前後雙上層結構＋八角雷達
+        toonPoly([[-14, 0], [-12, -9], [-3, -9], [-1, 0]], col, 2.4);
+        toonPoly([[3, 0], [5, -8], [11, -8], [12, 0]], col, 2.4);
+        toonPoly([[-10, -8], [-6, -8], [-5, -5], [-9, -5]], acc, 1.8);
+        line(-8, -9, -8, -15, 2.6, ink);
+        line(14, -2, 21, -4, 3.2, ink); line(-16, -2, -21, -4, 3.2, ink);
+      }
+      water(); natBadge(-15, 4.5, 2.2); return true;
+    }
+    if (base === 'lhd' && has(/旭海|塔拉克|賈拉什瓦|HQ-571|南浦|羅戈夫|大隅/)) {   // 船塢登陸艦：前段上層結構、後段塢艙與吊桿
+      toonPoly([[-21, 0], [17, 0], [22, -3], [18, 9], [-19, 9]], col, 2.6);
+      toonRR(4, -10, 12, 10, 1.5, col, 2.4);
+      line(9, -10, 9, -16, 2.4, ink);
+      line(-6, -1, -12, -12, 2.4, ink); line(-12, -12, -16, -6, 1.8, ink);   // 吊桿
+      toonRR(-19, 2, 7, 5, 1, '#1f2937', 1.8);
+      water(); natBadge(-15, 4.5, 2.1); return true;
+    }
+    if (base === 'lhd' && has(/坎培拉/)) {                          // 坎培拉級：滑躍甲板
+      toonPoly([[-21, -1], [14, -1], [21, -6], [19, 9], [-19, 9]], col, 2.6);
+      toonRR(2, -12, 8, 8, 2, col, 2.4); water(); natBadge(-15, 4.5, 2.1); return true;
+    }
+    if (base === 'uav' && has(/CL-289|不死鳥|紅隼|蜜蜂|FFOS|白頭山|VT-|中光/)) {   // 戰術小型無人機：三角翼／短翼
+      toonPoly([[16, 0], [-2, -9], [-8, -9], [-6, 0], [-8, 9], [-2, 9]], col, 2.4);
+      toonRR(-14, -2, 30, 4, 2, col, 2.2);
+      toonCirc(-15, 0, 3, lo, 1.6);
+      natBadge(-4, 6, 2); return true;
+    }
+    if (base === 'mpa' && has(/大西洋|S-2T|DHC-6|C-208|西風|獵迷/)) {
+      toonRR(-17, -3, 34, 6, 3, col, 2.5);
+      toonPoly([[4, -3], [1, -17], [-4, -17], [-4, -3]], col, 2.3); toonPoly([[4, 3], [1, 17], [-4, 17], [-4, 3]], col, 2.3);
+      if (has(/獵迷|西風/)) { for (const y of [-4, 4]) toonRR(-8, y - 1.5, 7, 3, 1.4, lo, 1.6); }              // 噴射
+      else if (has(/C-208/)) toonEll(18, 0, 1.4, 4, 0, '#64748b', 1.2);                                      // 單螺旋槳
+      else for (const y of [-8, 8]) toonEll(4, y, 1.4, 3.4, 0, '#64748b', 1.2);                               // 雙螺旋槳
+      toonPoly([[-14, -3], [-17, -8], [-19, -8], [-17, -3]], col, 2);
+      natBadge(-3, 11, 2); return true;
+    }
+    if (base === 'scoutheli' && has(/Ka-50|小羚羊|500MD|MD 520|OH-1|直-11|Bo 105|雲雀|獵豹|Mi-2/)) {
+      const coax = has(/Ka-50/);
+      line(-17, -12, 17, -12, 3.6, ink); line(-15, -12, 15, -12, 1.6, acc);
+      if (coax) { line(-16, -15, 16, -15, 3.6, ink); line(-14, -15, 14, -15, 1.6, acc); }
+      line(2, coax ? -15 : -12, 2, -6, 3, ink);
+      toonPoly([[-17, -1], [-3, -3], [-3, 2], [-16, 1]], col, 2.3);
+      if (has(/小羚羊/)) { toonCirc(-17, -1, 4, col, 2); toonCirc(-17, -1, 1.6, ink, 0); }                     // 涵道尾槳
+      if (has(/500MD|MD 520/)) { toonEll(4, 1, 8.5, 7.5, 0, col, 2.5); toonEll(7, -1, 4.5, 4, 0.2, acc, 2); }   // 蛋形
+      else if (has(/OH-1|Ka-50/)) { toonPoly([[-5, -3.5], [-5, 3.5], [12, 3], [17, 1], [10, -3], [2, -5]], col, 2.5); toonPoly([[2, -5], [8, -6.5], [13, -2], [9, -2.5]], acc, 2); }
+      else { toonEll(4, 0, 9.5, 6.5, 0, col, 2.5); toonEll(8, -1, 4.5, 3.8, 0.2, acc, 2); }
+      line(-5, 9, 11, 9, 2.6, ink);
+      natBadge(-10, -0.5, 2); return true;
+    }
+    if (base === 'tankdest') {
+      if (has(/悍馬/)) {                                         // 悍馬拖式：吉普車＋車頂發射器
+        toonPoly([[-17, 4], [-17, -3], [-6, -4], [-3, -8], [8, -8], [11, -3], [18, -2], [18, 4]], col, 2.6);
+        toonRR(-4, -13, 12, 4, 1.5, lo, 2);
+        toonWheels([-10, 11], 7, 4.6);
+      } else if (has(/M901|M113|打擊者|K242|NAMICA|Maaz/)) {     // 履帶車＋錘頭式飛彈發射器
+        toonRR(-18, -6, 34, 10, 3, col, 2.6);
+        line(-2, -6, -2, -12, 2.6, ink); toonRR(-8, -16, 14, 5, 1.6, lo, 2);
+        toonTracks(-17, 3.5, 34, 8, 5);
+      } else if (has(/美洲豹|89式|2S25/)) {                      // 低矮戰鬥室＋長砲／飛彈
+        toonPoly([[-18, 4], [-18, -4], [-8, -8], [8, -8], [18, -2], [18, 4]], col, 2.6);
+        line(8, -5, 21, -5, 3.2, ink);
+        toonTracks(-17, 4, 34, 8, 5);
+      } else return false;
+      natBadge(-12, 0, 2.2); return true;
+    }
+    if (base === 'lighttank') {
+      if (has(/PT-|62式/)) {                                     // 兩棲輕戰車：船形車首
+        toonPoly([[-17, 4], [-17, -2], [12, -2], [19, 3], [17, 4]], col, 2.5);
+        toonEll(-2, -2, 8, 6, 0, col, 2.5, Math.PI, Math.PI * 2);
+        line(4, -4.5, 18, -4.5, 2.6, ink);
+        toonTracks(-15, 4, 30, 8, 5);
+      } else if (has(/16式/)) {                                  // 機動戰鬥車：八輪＋戰車砲塔
+        toonPoly([[-18, 4], [-17, -3], [16, -3], [19, 2], [18, 4]], col, 2.6);
+        toonRR(-8, -10, 14, 7, 2, col, 2.5); line(6, -6.5, 21, -6.5, 3, ink);
+        toonWheels([-13, -5, 4, 12], 7.5, 3.4);
+      } else if (has(/鼬鼠/)) {                                  // 鼬鼠：極小型空降車
+        toonRR(-12, -4, 22, 8, 2.5, col, 2.5); toonRR(-3, -8, 6, 4, 1.4, lo, 1.8); line(3, -6, 13, -6, 2.2, ink);
+        toonTracks(-11, 3, 21, 7, 3);
+      } else {                                                  // 擺動式砲塔輕戰車（AMX-13／M41／謝里丹）
+        toonRR(-15, -1, 29, 6.5, 3, col, 2.5);
+        toonPoly([[-9, -1], [-8, -8], [3, -9], [6, -1]], col, 2.5);
+        line(5, -5, 21, -5, 3, ink);
+        toonTracks(-14, 4, 28, 8, 4);
+      }
+      natBadge(-10, 1, 2.1); return true;
+    }
+    if (base === 'tbm') {
+      if (has(/ATACMS/)) {                                       // ATACMS：M270 履帶＋方形發射箱
+        toonRR(-18, -2, 35, 7, 3, col, 2.6); toonPoly([[8, -2], [8, -10], [14, -10], [18, -4], [18, -2]], col, 2.5);
+        c.save(); c.translate(-6, -3); c.rotate(-0.35); toonRR(-11, -10, 20, 10, 2, col, 2.5); c.restore();
+        toonTracks(-17, 4, 34, 8.5, 4);
+      } else if (has(/圓點/)) {                                  // 圓點：六輪兩棲車＋短飛彈
+        toonPoly([[-18, 4], [-17, -3], [12, -3], [18, 2], [18, 4]], col, 2.5); msl(-12, -3, 18, -0.75);
+        toonWheels([-11, 0, 11], 7.5, 3.8);
+      } else if (has(/冥王星/)) {                                // 冥王星：戰車底盤＋單枚飛彈
+        toonRR(-17, -2, 34, 7, 3, col, 2.6); msl(-14, -3, 24, -0.5);
+        toonTracks(-17, 4, 34, 8.5, 5);
+      } else if (has(/雄昇|天戟/)) {                             // 箱型發射筒卡車
+        truck8([-13, -6, 13]);
+        c.save(); c.translate(-13, -1); c.rotate(-0.5); toonRR(0, -8, 22, 8, 2, col, 2.4); line(0, -4, 22, -4, 1.8, ink); c.restore();
+      } else return false;
+      natBadge(-12, -1, 2.1); return true;
+    }
+    if (base === 'coastal' && has(/堡壘|蠶式|HY-2/)) {
+      if (has(/堡壘/)) { truck8(); c.save(); c.translate(-13, 1); c.rotate(-1.2); toonRR(0, -6, 18, 5, 2, col, 2.2); toonRR(0, -1, 18, 5, 2, col, 2.2); c.restore(); }
+      else { toonRR(-13, 3, 26, 4, 1.5, lo, 2); line(-13, 7, -18, 11, 2.6, ink); line(13, 7, 18, 11, 2.6, ink); msl(-15, 1, 26, -0.45, 6); }
+      water(); natBadge(-14, 0, 2.1); return true;
+    }
+    if (base === 'spsam' && has(/復仇者|鐵穹|NASAMS|SPYDER|陸射劍|奧薩|箭-10/)) {
+      if (has(/復仇者/)) {                                       // 悍馬＋雙聯刺針飛彈莢艙
+        toonPoly([[-17, 4], [-17, -3], [-6, -4], [-3, -8], [8, -8], [11, -3], [18, -2], [18, 4]], col, 2.6);
+        for (const y of [-15, -11]) toonRR(-12, y, 10, 3.4, 1.4, '#e5e7eb', 1.6);
+        toonWheels([-10, 11], 7, 4.6);
+      } else if (has(/鐵穹|NASAMS|SPYDER|陸射劍/)) {             // 拖車式箱型發射器
+        toonRR(-15, 2, 28, 4, 1.5, lo, 2);
+        c.save(); c.translate(-12, 1); c.rotate(-0.85); toonRR(0, -9, 18, 9, 2, col, 2.4); line(0, -4.5, 18, -4.5, 1.8, ink); c.restore();
+        toonWheels([-2, 7], 8.5, 3.4);
+      } else {                                                   // 輪型車＋雷達＋飛彈
+        toonPoly([[-18, 4], [-17, -3], [12, -3], [18, 2], [18, 4]], col, 2.5);
+        for (const y of [-8, -4]) msl(-10, y, 14, -0.4, 3.2);
+        toonEll(4, -9, 4, 2, 0, acc, 1.8);
+        toonWheels(has(/奧薩/) ? [-11, 0, 11] : [-10, 10], 7.5, 4);
+      }
+      natBadge(-12, 0, 2.1); return true;
+    }
+    if (base === 'apc' && has(/BTR|OT-62|VAB|狐式/)) {             // 輪型運兵車：BTR／OT-62 八輪、VAB／狐式六輪
+      const w8 = has(/BTR|OT-62/);
+      toonPoly([[-18, 4], [-17, -5], [-12, -8], [10, -8], [18, -1], [18, 4]], col, 2.6);
+      toonRR(0, -12, 6, 4, 1.4, lo, 1.8); line(5, -10, 13, -11, 2.2, ink);
+      toonWheels(w8 ? [-13, -5, 4, 12] : [-11, 0, 11], 7.5, w8 ? 3.5 : 4.2);
+      natBadge(-11, -2, 2.1); return true;
+    }
+    if (base === 'hovercraft' && has(/野牛/)) {                   // 野牛級：三具大風扇
+      toonRR(-20, 2, 40, 8, 4, '#1f2937', 2.6);
+      toonPoly([[-19, 3], [-18, -4], [16, -4], [20, 3]], col, 2.5);
+      for (const x of [-15, -8, -1]) { toonCirc(x, -9, 4, lo, 2.2); toonCirc(x, -9, 1.4, acc, 1.1); }
+      toonRR(8, -10, 8, 6, 2, acc, 2);
+      water(); natBadge(-15, 5, 2.1); return true;
+    }
+    if (base === 'hovercraft' && has(/L-CAT/)) {                  // 雙體登陸艇
+      toonPoly([[-19, 0], [16, 0], [20, -3], [17, 8], [-17, 8]], col, 2.6);
+      toonRR(6, -8, 9, 8, 1.5, col, 2.3);
+      water(); natBadge(-13, 4, 2.1); return true;
+    }
+    if (base === 'multirole' && has(/大黃蜂|F\/A-18/)) {           // 大黃蜂：前緣延伸翼＋外傾雙垂尾
+      const pts = [[20, 0], [10, -2], [3, -3], [-1, -13], [-6, -13], [-7, -3.5], [-12, -3.5], [-15, -9], [-18, -9], [-17, 0]];
+      toonPoly([...pts, ...pts.slice(1, -1).reverse().map(([x, y]) => [x, -y])], col, 2.6);
+      for (const sgn of [-1, 1]) { line(-9, sgn * 3.5, -13, sgn * 7.5, 3, ink); line(-9, sgn * 3.5, -13, sgn * 7.5, 1.6, acc); }
+      toonEll(8, 0, 5.5, 2.4, 0, acc, 2.1); natBadge(-3, 9, 2.2); return true;
+    }
+    if (base === 'multirole' && has(/海獵鷹|GR7|鷹式|幻象 F1|幻象F1/)) {   // 肩翼後掠（獵鷹／鷹式／幻象 F1）
+      const pts = [[19, 0], [9, -2.4], [3, -3], [-4, -12], [-8, -12], [-6, -3], [-12, -3], [-15, -8], [-18, -8], [-17, 0]];
+      toonPoly([...pts, ...pts.slice(1, -1).reverse().map(([x, y]) => [x, -y])], col, 2.6);
+      if (has(/獵鷹|GR7/)) for (const y of [-3.6, 3.6]) toonRR(-2, y - 1.6, 7, 3.2, 1.5, lo, 1.6);   // 推力向量噴口
+      line(-9, 0, -17, 0, 3, ink);
+      toonEll(8, 0, 5, 2.3, 0, acc, 2); natBadge(-3, 8.5, 2.1); return true;
+    }
+    if (base === 'specops') {                                     // 特種部隊：國別鋼盔＋夜視鏡
+      drawNationalHelmet(-3, 2, 0.95);
+      toonCirc(4, -1, 2.6, '#22c55e', 1.6); toonCirc(9, -1, 2.6, '#22c55e', 1.6);
+      line(10, 6, 20, 2, 2.6, ink);
+      return true;
+    }
     if (base === 'rocket' && has(/M270|LRM|MLRS/)) {   // M270：履帶車＋大方形發射箱
       toonRR(-18, -2, 35, 7, 3, col, 2.6);
       toonPoly([[8, -2], [8, -10], [14, -10], [18, -4], [18, -2]], col, 2.5);

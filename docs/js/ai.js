@@ -169,6 +169,12 @@ function getPersona(side) {
   return tuned;
 }
 
+// 終局掃蕩：敵軍只剩少數（≤4 或不到我方 15%）時，所有打得到的部隊全力追殲最後的單位
+function huntMode(s) {
+  if (!G || G.missionId) return false;
+  const foes = G.units.filter(e => e.side !== s).length, mine = G.units.filter(e => e.side === s).length;
+  return foes > 0 && mine >= 6 && (foes <= 4 || foes <= mine * 0.15);
+}
 function aiGoals(u, baseField) {
   const d = UNITS[u.type], s = u.side, goals = new Map();
   const add = (i, off) => { if (!goals.has(i) || goals.get(i) > off) goals.set(i, off); };
@@ -280,6 +286,17 @@ function aiGoals(u, baseField) {
     const tgt = persona.id === 'L' && G.lfAssign instanceof Map && G.lfAssign.get(u.id);
     if (tgt !== undefined && tgt !== null && G.owner[tgt] !== s) add(tgt, -45);
   }
+  const hunt = huntMode(s);
+  if (hunt && d.capture) {
+    // 掃蕩：步兵直取敵方首都（攻陷首都即獲勝，不必追到最後一艘潛艦）
+    G.terrain.forEach((t, i) => { if (t === 'capital' && G.owner[i] >= 0 && G.owner[i] !== s) add(i, -40); });
+    if (goals.size) return { goals, mode: 'attack' };
+  }
+  if (hunt && !d.capture && !d.carry) {
+    // 掃蕩：只追殲剩餘敵軍（不受圍攻、相剋與威脅過濾限制）
+    for (const e of G.units) if (e.side !== s && canHit(u.type, e)) add(idxOf(e.x, e.y), e.hp <= 4 ? -16 : -12);
+    if (goals.size) return { goals, mode: 'attack' };
+  }
   for (const e of G.units) if (e.side !== s && canHit(u.type, e)) {
     // A 攻擊型：以全殲敵軍部隊為最高目標 (殲滅優先)；藍發：集火殘血致死與奪城敵軍
     let foePri = e.vip ? -6 : d.capture ? 4 : (persona.id === 'A' ? -6 : persona.id === 'B' ? -2 : 0);
@@ -373,6 +390,7 @@ async function aiAct(u, token) {
     }
   }
   const enemies = G.units.filter(e => e.side !== s);
+  const huntNow = huntMode(s);
   // 局部兵力比（價值）：以格為中心 5 格內我方 ÷ 敵方
   const lv = e => UNITS[e.type].cost * e.hp / (e.maxHp || UNITS[e.type].maxHp || 10);
   const friends = G.units.filter(e => e.side === s && e !== u);
@@ -431,6 +449,7 @@ async function aiAct(u, token) {
     base += missionHoldBonus(u, i);
     const thrW = mode === 'retreat' || mode === 'vip' || d.carry ? 2.6 : isIndirect(u.type) ? 2.2 : u.hp <= 5 ? 1.2 : 0.5;
     let thrP = persona.id === 'L' && G.lfAssault && G.lfAssault[s] && mode === 'attack' ? persona.assaultThreat : persona.threatWeight;
+    if (huntNow && mode === 'attack') thrP = Math.min(thrP, 0.2);
     // 藍發：此格周圍 5 格內我方兵力已達敵軍 localRatio 倍時，不再過度閃避火力（主動交戰）
     if (persona.id === 'L' && mode === 'attack' && thrP > persona.localThreat && localEdge(x, y) >= persona.localRatio) thrP = persona.localThreat;
     base -= threatAt(u, x, y, enemies) * d.cost / 100 * thrW * thrP / (mode === 'attack' || mode === 'deliver' ? ag : 1);
@@ -634,8 +653,18 @@ function aiProduce(s) {
       cruiser: enemyAir > 2 || enemyShip > 1 ? 0.5 : 0.15, patrol: 0.3, lhd: cnt('lhd') < 1 && needSea && capturers >= 2 ? 0.8 : 0,
     };
     // 海軍總量上限：避免在內陸戰場大量造艦
+    // （上限：比敵艦多 1 艘、最多 6 艘、且不超過總兵力 1/5，避免雙方互相刺激的造艦競賽）
     const navyNow = mine.filter(u => UNITS[u.type].cat === 'sea' && !UNITS[u.type].carry).length;
-    if (navyNow >= 2 + enemyShip * 1.5) for (const b of ['destroyer', 'submarine', 'frigate', 'corvette', 'cruiser', 'patrol', 'usv_wolfpack']) w[b] = 0;
+    if (navyNow >= Math.min(enemyShip + 1, 6, Math.max(2, mine.length * 0.2))) for (const b of ['destroyer', 'submarine', 'frigate', 'corvette', 'cruiser', 'patrol', 'usv_wolfpack']) w[b] = 0;
+    if (cnt('submarine') >= 2) w.submarine = 0;
+    if (cnt('coastal') >= 2) w.coastal = 0;
+    // 掃蕩：剩餘敵軍是潛艦／飛機／艦艇時，優先生產打得到它們的部隊
+    if (huntMode(s)) {
+      const left = foes.map(e => UNITS[e.type]);
+      if (left.some(e => e.sub)) { w.frigate = Math.max(w.frigate || 0, 3); w.destroyer = Math.max(w.destroyer || 0, 2); w.mpa = airFull ? 0 : 3; }
+      if (left.some(e => e.cat === 'air')) { w.fighter = airFull ? 0 : 3; w.aa = 2.5; w.spsam = 2.5; w.manpads = 2; }
+      if (left.some(e => e.cat === 'sea' && !e.sub)) { w.attacker = airFull ? 0 : 3; w.coastal = 2; w.corvette = 2; }
+    }
     let opts = buildOptions(x, y, s).filter(k => UNITS[k].cost <= f && w[UNITS[k].base] > 0);
     // C 保守型：硬性保障陸空比 >= 10:1，若產出該空軍會導致 Land : Air < 10:1，嚴格剔除
     if (persona.id === 'C') {
@@ -787,6 +816,8 @@ function lanfaProduce(s) {
   const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => u.side !== s);
   const cnt = b => mine.filter(u => UNITS[u.type].base === b).length;
   const E = lanfaArmy(foes), Etot = E.reduce((a, b) => a + b, 0) || 1;
+  // 潛艦只有反潛部隊打得到：另外計算，評分時只算給具反潛能力的兵種
+  const subVal = foes.filter(e => UNITS[e.type].sub).reduce((t, e) => t + UNITS[e.type].cost * e.hp / (e.maxHp || UNITS[e.type].maxHp || 10), 0);
   // 敵軍對各類別的火力（價值加權的平均攻擊力）
   const T = [0, 0, 0, 0];
   for (const e of foes) {
@@ -878,7 +909,12 @@ function lanfaProduce(s) {
     if (d.engineer) return wantEngineer() && footField && footField[site] < Infinity ? 1 : 0;
     if (LANFA_NON_COMBAT.has(b) && !(b === 'lst' && seaGap) && !(b === 'thelico' && (seaGap || airlift))) return 0;
     let off = 0;
-    if (foes.length) { const R = reachable(site, d.mt); for (let k2 = 0; k2 < 4; k2++) off += R[k2] / Etot * d.atk[k2]; }
+    if (foes.length) {
+      const R = reachable(site, d.mt);
+      for (let k2 = 0; k2 < 4; k2++) off += (k2 === 3 && !d.asw ? Math.max(0, R[k2] - subVal) : R[k2]) / Etot * d.atk[k2];
+      // 掃蕩：能打到剩餘敵軍的兵種大幅加分
+      if (huntMode(s) && foes.some(e => canHit(k, e))) off *= 2.5;
+    }
     else off = (d.atk[0] + d.atk[1]) / 2;
     if (isIndirect(k)) off *= 1.35;          // 間接射擊不吃反擊
     if (d.stealth) off *= 1.15;
