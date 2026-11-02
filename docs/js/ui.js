@@ -1138,7 +1138,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v85</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v86</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1169,6 +1169,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v86</span><span class="cl-date">2026.11.02</span><p>【藍發生產不設上限】取消藍發大幅領先時的後方生產限制與空軍數量上限：每個空閒生產據點每回合都生產；資金越多越偏好高價高戰力單位（每個據點每回合只能出一隊，買貴的才能把錢轉成戰力）；有機場時首都不生產飛機、飛機只在燃料告急時降落首都，讓首都保持可生產地面部隊。中大地圖（關閉工兵）決定性勝利 107→113、大地圖決勝提早約 2–6 回合、終局資金減少約三成。</p></div>
         <div class="cl-item"><span class="cl-ver">v85</span><span class="cl-date">2026.11.02</span><p>【新兵種國別造型與終局掃蕩】新兵種圖示依真實型號區分：步兵戰車（BMP 低矮楔形、布萊德雷側掛拖式、黃鼠狼頂掛米蘭、ASLAV 八輪、阿奇扎里特無砲塔）、潛艦（核動力長艇身、阿庫拉尾艙、基洛水滴形）、巡防艦（匿蹤斜面、派里級高桅、蘇式發射箱）、巡洋艦（提康德羅加、光榮級飛彈筒、055）、兩棲艦（平甲板、滑躍、船塢登陸艦）、多用途戰機（大黃蜂、獵鷹、幻象 F1）、無人機、反潛機、偵察直升機（Ka-50 共軸、小羚羊涵道、500MD 蛋形）、反戰車車、輕戰車、彈道飛彈、岸置飛彈、短程防空、運兵車、氣墊艇（野牛三風扇）；特種部隊改用國別鋼盔。AI 終局掃蕩：敵軍只剩少數時所有打得到的部隊全力追殲、步兵直取敵方首都，並優先生產打得到剩餘敵軍（潛艦、飛機、艦艇）的兵種；藍發評分時潛艦只算給反潛兵種；A／B／C 造艦上限改為固定（避免雙方造艦競賽）。藍發 80 回合勝率 99.2%、決定性勝利 118／120。</p></div>
         <div class="cl-item"><span class="cl-ver">v84</span><span class="cl-date">2026.10.31</span><p>【兵種擴充後的國家平衡】依 18 國循環賽調整價格倍率：印度、台積電、菲律賓上調；越南、美國、澳洲、美商國防下調。勝率分布由 13–74% 收斂至約 34–63%（每國 68 場，誤差約 ±6%）。</p></div>
         <div class="cl-item"><span class="cl-ver">v83</span><span class="cl-date">2026.10.31</span><p>【兵種擴充一倍、海軍大幅增加】新增 22 種兵種，各國兵種數至少為原本兩倍（例：台灣 19→41、美國 22→44、菲律賓 17→36），海軍由 2–3 種增為 5–10 種。陸軍：步兵戰車、反戰車車（射程 2）、輕戰車、迫擊砲班、狙擊組、特種部隊、戰術彈道飛彈（射程 4–8）、單兵防空、岸置反艦飛彈、短程防空飛彈車、裝甲運兵車、氣墊登陸艇（可上岸）。空軍：多用途戰機、無人機、反潛巡邏機、偵察直升機。海軍：潛艦（只能被驅逐艦、巡防艦、巡洋艦、直升機、反潛機攻擊，攻擊時不受反擊）、巡防艦、飛彈快艇／護衛艦、巡洋艦、巡邏艇、兩棲突擊艦。各國依真實裝備命名（如台灣海龍級潛艦、康定級、美國洛杉磯級、提康德羅加級、俄羅斯阿庫拉級、光榮級），A／B／C／藍發四種 AI 都會依戰況生產。圖示依真實型號區分造型：戰車 8 種砲塔（M1 扁長、豹2／90式方箱、挑戰者斜面、梅卡瓦後置、新舊 T 系半球、M48／M60 鑄造圓頂、輕戰車）、戰機 8 種平面形（F-15、側衛、F-16、幻象／鴨翼三角翼、MiG-21／F-5、F-4、可變翼、匿蹤）、直升機 5 種（阿帕契、眼鏡蛇、雌鹿、Ka-52 共軸、輕型）、驅逐艦 4 種（神盾、蘇式、二戰式、史普魯恩斯）、偵察車履帶／四輪／六輪／八輪、防空飛彈垂直／單軌／霍克三聯／箱型、M270 履帶火箭；所有車輛、飛機、艦艇加上國籍標誌。</p></div>
@@ -1309,7 +1310,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v85</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v86</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

@@ -481,7 +481,8 @@ async function aiAct(u, token) {
         else if (u.fuel < d.fuel * 0.7 || u.hp < 8) base += 220;
         else base -= 200;
         // 藍發：首都同時是地面部隊生產據點，有其他機場時飛機不停首都；補滿就離開，別把機場當停機坪
-        if (persona.id === 'L' && G.terrain[i] === 'capital' && [...ownBases(s, 'air', u)].some(([bi]) => G.terrain[bi] !== 'capital' && bi !== i)) base -= mode === 'retreat' ? 1500 : 900;
+        // 藍發：首都同時是地面部隊生產據點，飛機只有燃料告急時才降落首都
+        if (persona.id === 'L' && G.terrain[i] === 'capital' && G.owner.some((o, k) => o === s && G.terrain[k] === 'airport') && u.fuel - v.cost >= d.upkeep * 3) base -= mode === 'retreat' ? 1500 : 900;
       }
     }
     base += Math.random() * 2;
@@ -985,9 +986,11 @@ function lanfaProduce(s) {
   }
   sites.sort((a, b) => (footField ? footField[a] - footField[b] : 0));
   const income = incomeOf(s);
+  const ownAirport = G.owner.some((o, k) => o === s && G.terrain[k] === 'airport');
   // 錢的使用規則：空閒生產據點全部用掉；唯一例外是「為下 1–2 回合買得起的高價單位存錢」
   // 資金越多越偏好高價高戰力單位（把錢轉成戰力），資金少時才平均分配
-  const rich = Math.min(1, Math.max(0, (G.funds[s] - 3000) / 9000));
+  // 生產據點每回合只能出一隊：錢越多越要買高價高戰力單位，才能把資金轉成戰力
+  const rich = Math.min(1, Math.max(0, (G.funds[s] - 1500) / 5000));
   let reserve = 0;
   // 只有局勢穩定時才存錢：第 8 回合後、兵力不落後、本土附近沒有敵軍
   const myVal = mine.reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
@@ -1000,6 +1003,8 @@ function lanfaProduce(s) {
     for (const k of buildOptions(x, y, s)) {
       const c = UNITS[k].cost;
       let q = quality(k, i);
+      // 有機場時首都不生產飛機：飛機回航補給會停在首都，佔住地面部隊的生產
+      if (q > 0 && UNITS[k].cat === 'air' && G.terrain[i] === 'capital' && ownAirport) q = 0;
       // 大幅領先時停止後方生產：地面部隊只在前線附近的據點生產（避免後方產出的部隊長途行軍塞路屯兵）
       if (q > 0 && rearStop && UNITS[k].cat === 'land' && !UNITS[k].engineer) {
         const fd = frontField ? frontField[i] : 0;
@@ -1010,16 +1015,16 @@ function lanfaProduce(s) {
       if (q <= 0 && UNITS[k].cat === 'air' && f >= 3000 && !LANFA_NON_COMBAT.has(UNITS[k].base) && (!AI_PERSONAS.L.prodCap || (!longSortie && myAir < airCap + 4))) q = qualityRaw(k, i);
       if (q <= 0) continue;
       const fit = c <= share ? Math.pow(c / share, 0.35) : Math.pow(share / c, 1.3);
-      const v = q * Math.pow(c, 0.9 + 0.35 * rich) * fit * (0.92 + Math.random() * 0.16);
+      const v = q * Math.pow(c, 0.9 + 0.6 * rich) * Math.pow(fit, 1 - 0.7 * rich) * (0.92 + Math.random() * 0.16);
       if (c > f) {
         // 存錢目標：下 1–2 回合收入就買得起、而且明顯比現在買得起的更好
-        const full = q * Math.pow(c, 0.9 + 0.35 * rich);
+        const full = q * Math.pow(c, 0.9 + 0.6 * rich);
         if (c <= f + income * 2 && full > dreamV) { dreamV = full; dream = k; }
         continue;
       }
       if (v > bestV) { bestV = v; best = k; }
     }
-    const bestFull = best ? quality(best, i) * Math.pow(UNITS[best].cost, 0.9 + 0.35 * rich) : 0;
+    const bestFull = best ? quality(best, i) * Math.pow(UNITS[best].cost, 0.9 + 0.6 * rich) : 0;
     if (canSave && dream && !reserve && dreamV > bestFull * 1.6) {
       // 這個據點保留給高價單位：只預留「下回合收入補不足」的金額，其他據點照常生產
       reserve = Math.max(0, UNITS[dream].cost - income);
