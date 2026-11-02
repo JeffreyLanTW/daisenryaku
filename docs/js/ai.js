@@ -140,6 +140,8 @@ const AI_PERSONAS = {
     pressTurn: 4, pressRatio: 1.15, pressLead: 1200, assaultRatio: 1.1, assaultThreat: 0.15, stageTurns: 3, stageRatio: 0.9, localRatio: 1.1, localThreat: 0.25, funnel: true,
     // congestion：己方地面部隊佔用／擁擠格的額外路徑成本（讓後方部隊繞路，不擠在狹窄入口）
     congestion: 1.5,
+    // prodCap：大幅領先時是否限制後方生產與空軍數量（false＝每個空閒據點每回合都生產）
+    prodCap: false,
     retreatHp: 0.28, repairWeight: 1.8, mergeThreshold: 0.40,
     prodWeights: {}
   }
@@ -956,8 +958,8 @@ function lanfaProduce(s) {
   };
   const qualityRaw = (k, site) => quality(k, site, true);
   // 前線距離：到敵方部隊與敵方據點的陸路距離
-  const rearStop = G.lfPower && G.lfPower[s] >= 2 && mine.length >= 40;
-  const crush = G.lfPower && G.lfPower[s] >= 4 && mine.length >= 80;
+  const rearStop = AI_PERSONAS.L.prodCap && G.lfPower && G.lfPower[s] >= 2 && mine.length >= 40;
+  const crush = AI_PERSONAS.L.prodCap && G.lfPower && G.lfPower[s] >= 4 && mine.length >= 80;
   let frontField = null;
   if (rearStop) {
     const fg = new Map();
@@ -1004,7 +1006,8 @@ function lanfaProduce(s) {
         if (fd > frontMin + 10 || (crush && !UNITS[k].capture && fd > frontMin + 4)) q = 0;
       }
       // 資金閒置時機場一定要能生產：放寬空軍上限
-      if (q <= 0 && UNITS[k].cat === 'air' && f >= 3000 && !longSortie && !LANFA_NON_COMBAT.has(UNITS[k].base) && myAir < airCap + 4) q = qualityRaw(k, i);
+      // 資金充足時機場一定生產（不設空軍上限）
+      if (q <= 0 && UNITS[k].cat === 'air' && f >= 3000 && !LANFA_NON_COMBAT.has(UNITS[k].base) && (!AI_PERSONAS.L.prodCap || (!longSortie && myAir < airCap + 4))) q = qualityRaw(k, i);
       if (q <= 0) continue;
       const fit = c <= share ? Math.pow(c / share, 0.35) : Math.pow(share / c, 1.3);
       const v = q * Math.pow(c, 0.9 + 0.35 * rich) * fit * (0.92 + Math.random() * 0.16);
