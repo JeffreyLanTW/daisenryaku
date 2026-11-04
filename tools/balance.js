@@ -517,11 +517,11 @@ if (args.includes('--duel')) {
     }
     console.log(`總計 ${pa} 勝率 ${(tw / tn * 100).toFixed(1)}%（${tw}/${tn}），決定性勝利 ${tdec}`);
     if (args.includes('--losses')) {
-      console.log('\n落敗場次（對手 尺寸 地圖種子 我方邊 國家 結果 據點 兵力 資金）：');
+      console.log(args.includes('--undecided') ? '\n落敗與未分勝負場次（對手 尺寸 地圖種子 我方邊 國家 結果 據點 兵力 資金）：' : '\n落敗場次（對手 尺寸 地圖種子 我方邊 國家 結果 據點 兵力 資金）：');
       list.forEach((j, k) => {
         const r = done[k], me = j.aSide;
-        if (r.winner === me) return;
-        console.log(`  ${j.pb} ${j.sz} seed${j.seed} side${me} ${j.nations.join('v')} T${r.turn} ${r.decisive ? r.reason : '評分'}  據點 ${r.props[me]}:${r.props[1 - me]}  兵力 ${r.val[me]}:${r.val[1 - me]}  資金 ${r.funds[me]}:${r.funds[1 - me]}`);
+        if (r.winner === me && !(args.includes('--undecided') && !r.decisive)) return;
+        console.log(`  ${r.winner === me ? '評分勝' : '敗'} ${j.pb} ${j.sz} seed${j.seed} side${me} ${j.nations.join('v')} T${r.turn} ${r.decisive ? r.reason : '評分'}  據點 ${r.props[me]}:${r.props[1 - me]}  兵力 ${r.val[me]}:${r.val[1 - me]}  資金 ${r.funds[me]}:${r.funds[1 - me]}`);
       });
     }
   }
