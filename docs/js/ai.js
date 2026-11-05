@@ -140,6 +140,8 @@ const AI_PERSONAS = {
     pressTurn: 4, pressRatio: 1.15, pressLead: 1200, assaultRatio: 1.1, assaultThreat: 0.15, stageTurns: 3, stageRatio: 0.9, localRatio: 1.1, localThreat: 0.25, funnel: true,
     // congestion：己方地面部隊佔用／擁擠格的額外路徑成本（讓後方部隊繞路，不擠在狹窄入口）
     congestion: 1.5,
+    // fillAll：一般評分都不合適的工廠／機場也強制生產（港口不強制造艦）
+    fillAll: true,
     // prodCap：大幅領先時是否限制後方生產與空軍數量（false＝每個空閒據點每回合都生產）
     prodCap: false,
     retreatHp: 0.28, repairWeight: 1.8, mergeThreshold: 0.40,
@@ -1033,10 +1035,10 @@ function lanfaProduce(s) {
       continue;
     }
     // 有多少空閒生產據點就生產多少隊：一般評分都不合適時，放寬上限挑一個最好的單位，不讓據點閒置
-    if (!best) {
+    if (!best && AI_PERSONAS.L.fillAll) {
       for (const k of buildOptions(x, y, s)) {
         const c = UNITS[k].cost;
-        if (c > f || LANFA_NON_COMBAT.has(UNITS[k].base) || UNITS[k].engineer) continue;
+        if (c > f || LANFA_NON_COMBAT.has(UNITS[k].base) || UNITS[k].engineer || UNITS[k].cat === 'sea') continue;   // 不強制造艦（無用的艦艇只會浪費資金）
         const q = qualityRaw(k, i);
         if (q <= 0) continue;
         const v = q * Math.pow(c, 0.9 + 0.6 * rich) * (0.92 + Math.random() * 0.16);

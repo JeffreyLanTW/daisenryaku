@@ -997,3 +997,6 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 #autoPilotBar .ap-speed .ap-seg button.on { background: #eab308; }
 #autoPilotBar .ap-speed.ap-eng .ap-seg button.on { background: #22c55e; }
 #autoPilotBar .ap-sides { gap: 6px; }
+
+/* 代理視窗：各方選取中的按鈕使用該方顏色（藍方藍、紅方紅） */
+#autoPilotBar .ap-side .ap-seg button.on { background: var(--c); color: #fff; }
