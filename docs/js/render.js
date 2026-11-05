@@ -607,7 +607,8 @@ function zoomAt(sx, sy, factor) {
 }
 function fitView() {
   const [ww, wh] = worldSize(), [vw, vh] = viewSize();
-  cam.z = Math.max(0.25, Math.min(1.2, Math.min(vw / ww, vh / wh) * 1.05));
+  // 開局縮小一號（多一圈邊界，整張地圖與周圍一覽無遺）
+  cam.z = Math.max(0.25, Math.min(1.2, Math.min(vw / ww, vh / wh) * 1.05) / 1.2);
 }
 
 // ----- 小地圖 -----

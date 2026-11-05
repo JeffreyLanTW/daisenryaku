@@ -709,7 +709,8 @@ function initState(m, opts) {
   const rawPlayers = opts.players || [{ ai: false }, { ai: true }];
   const players = rawPlayers.map(p => ({
     ai: !!p.ai,
-    persona: p.persona || 'B'
+    // 玩家方預設藍發（電腦代理時使用），電腦方預設綜合型
+    persona: p.persona || (p.ai ? 'B' : 'L')
   }));
   G = {
     w: m.w, h: m.h, seed: opts.seed,

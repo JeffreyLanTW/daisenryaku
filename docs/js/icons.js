@@ -72,6 +72,28 @@ function nationColor(nid, side) {
   return c;
 }
 
+// 各國專屬配件組合（地面車輛／飛機／艦艇／步兵），組合互不相同，確保同兵種在各國外形一定不同
+const NAT_FEATURES = {
+  TW: { land: ['antenna'], air: ['tipmsl'], sea: ['ensign'], inf: ['antenna'] },
+  CN: { land: ['antenna2'], air: ['probe'], sea: ['dome'], inf: ['pack'] },
+  US: { land: ['antenna', 'basket'], air: ['tanks'], sea: ['dome', 'mast2'], inf: ['goggles'] },
+  JP: { land: ['smoke'], air: ['pods'], sea: ['ensign', 'jack'], inf: ['net', 'pack'] },
+  KR: { land: ['dozer'], air: ['tipmsl', 'tanks'], sea: ['mast2'], inf: ['goggles', 'pack'] },
+  KP: { land: ['flag'], air: ['stinger'], sea: ['ensign', 'mast2'], inf: ['plume'] },
+  RU: { land: ['snorkel', 'antenna'], air: ['tipmsl', 'stinger'], sea: ['dome', 'crane'], inf: ['antenna', 'pack'] },
+  VN: { land: ['log'], air: ['tanks', 'stinger'], sea: ['crane'], inf: ['net'] },
+  PH: { land: ['spare'], air: ['tipmsl', 'pods'], sea: ['boat'], inf: ['brim'] },
+  IN: { land: ['tarp', 'antenna'], air: ['probe', 'tanks'], sea: ['jack', 'boat'], inf: ['antenna', 'goggles'] },
+  PK: { land: ['sandbag'], air: ['dorsal'], sea: ['jack'], inf: ['brim', 'pack'] },
+  GB: { land: ['cage'], air: ['pods', 'tanks'], sea: ['ensign', 'boat'], inf: ['net', 'antenna'] },
+  FR: { land: ['pennant'], air: ['probe', 'tipmsl'], sea: ['ensign', 'dome'], inf: ['plume', 'pack'] },
+  DE: { land: ['box', 'antenna'], air: ['dorsal', 'tipmsl'], sea: ['mast2', 'boat'], inf: ['net', 'goggles'] },
+  AU: { land: ['bullbar'], air: ['probe', 'pods'], sea: ['jack', 'mast2'], inf: ['brim', 'antenna'] },
+  IL: { land: ['chain', 'basket'], air: ['dorsal', 'tanks'], sea: ['crane', 'boat'], inf: ['goggles', 'net', 'pack'] },
+  TSMC: { land: ['antenna2', 'box'], air: ['probe', 'stinger'], sea: ['dome', 'boat'], inf: ['goggles', 'brim'] },
+  USCORP: { land: ['basket', 'smoke'], air: ['pods', 'stinger'], sea: ['dome', 'jack'], inf: ['antenna', 'brim'] },
+};
+
 // 繪製可愛 Q 版 (SD Chibi) 軍事部隊圖示
 // 中心 0,0，範圍約 -21..21 x -15..15，朝右，邊框無棋子包邊
 function drawIcon(c, d) {
@@ -1333,6 +1355,62 @@ function drawIcon(c, d) {
     }
   }
 
+  // ===== 國別裝備細節：同一兵種在不同國家一定有不同外形（每國一組獨特的配件組合） =====
+  const INF_BASES = ['inf', 'atinf', 'mortar', 'sniper', 'specops', 'manpads', 'engineer', 'wafer_inf', 'marine'];
+  const nf = (NAT_FEATURES[nat] || NAT_FEATURES.TW);
+  const dark = lo;
+  if (INF_BASES.includes(base)) {
+    const f = nf.inf;
+    if (f.includes('antenna')) { line(-12, -4, -15, -17, 1.8, ink); toonCirc(-15, -17, 1.3, ink, 0); }          // 無線電天線
+    if (f.includes('goggles')) toonRR(-9, -13, 10, 3, 1.4, '#94a3b8', 1.4);                                     // 鋼盔風鏡
+    if (f.includes('net')) for (const [x, y] of [[-10, -12], [-5, -14], [0, -13], [4, -11]]) toonCirc(x, y, 1.6, '#4d7c0f', 0.9); // 偽裝網
+    if (f.includes('pack')) toonRR(-19, -3, 6, 9, 2, dark, 1.6);                                                // 背包
+    if (f.includes('brim')) toonEll(-3, -6, 15, 2.6, 0, dark, 1.6);                                            // 帽簷
+    if (f.includes('plume')) toonPoly([[-1, -15], [3, -21], [5, -15]], '#dc2626', 1.4);                        // 帽飾
+  } else if (['heli', 'thelico', 'scoutheli'].includes(base)) {
+    // 直升機（側視）：配件畫在機身外
+    const f = nf.air;
+    if (f.includes('probe')) line(14, 2, 22, 0, 2, ink);                                                          // 機鼻探管
+    if (f.includes('tipmsl')) { line(-6, 7, 6, 7, 2.2, ink); toonRR(-6, 7, 5, 2.4, 1, acc, 1); }                  // 短翼飛彈架
+    if (f.includes('tanks')) toonEll(1, 11.5, 4.4, 1.6, 0, dark, 1.2);                                           // 外掛油箱
+    if (f.includes('pods')) toonRR(-23, -6, 4, 4, 1, '#94a3b8', 1);                                             // 尾部電戰莢艙
+    if (f.includes('stinger')) line(-19, 1, -24, 3, 2.2, ink);                                                   // 尾橇
+    if (f.includes('dorsal')) toonCirc(2, -18, 2.2, '#94a3b8', 1.2);                                            // 旋翼頂瞄準球
+  } else if (d.cat === 'air') {
+    const f = nf.air;
+    if (f.includes('probe')) line(16, -4, 23, -6, 2, ink);                                                       // 空中加油管
+    if (f.includes('tipmsl')) { line(-6, -16, 2, -16, 2, ink); line(-6, 16, 2, 16, 2, ink); }                    // 翼尖飛彈
+    if (f.includes('tanks')) { toonEll(-3, -19, 4.2, 1.6, 0, dark, 1.2); toonEll(-3, 19, 4.2, 1.6, 0, dark, 1.2); }   // 外側副油箱
+    if (f.includes('pods')) { toonRR(-9, -14, 4, 3, 1, '#94a3b8', 1); toonRR(-9, 11, 4, 3, 1, '#94a3b8', 1); }  // 電戰莢艙
+    if (f.includes('stinger')) line(-17, 0, -23, 0, 2.4, ink);                                                   // 尾錐
+    if (f.includes('dorsal')) { toonPoly([[13, -3], [9, -9], [7, -9], [8, -3]], dark, 1.2); toonPoly([[13, 3], [9, 9], [7, 9], [8, 3]], dark, 1.2); }   // 前翼小鴨翼
+  } else if (d.cat === 'sea') {
+    const f = nf.sea;
+    if (f.includes('dome')) { line(-2, -12, -2, -18, 1.4, ink); toonCirc(-2, -20, 2.4, '#e5e7eb', 1.2); }     // 桅頂雷達罩
+    if (f.includes('mast2')) { line(-12, -1, -12, -17, 1.8, ink); line(-15, -14, -9, -14, 1.4, ink); }        // 後桅
+    if (f.includes('ensign')) toonPoly([[-19, -1], [-19, -7], [-14, -5.5], [-19, -4]], acc, 1.1);             // 艦尾國旗
+    if (f.includes('jack')) line(17, -3, 17, -9, 1.6, ink);                                                     // 艦首旗桿
+    if (f.includes('crane')) { line(-16, -1, -20, -13, 1.6, ink); line(-20, -13, -23, -9, 1.4, ink); }        // 艦尾吊桿
+    if (f.includes('boat')) { line(10, -3, 12, -11, 1.4, ink); toonEll(13, -12, 3.4, 1.4, 0, '#f97316', 1); }   // 吊艇架與救生艇
+  } else {
+    const f = nf.land;
+    if (f.includes('antenna')) line(-14, -6, -16, -19, 1.6, ink);                                               // 鞭狀天線
+    if (f.includes('antenna2')) { line(-14, -6, -16, -17, 1.4, ink); line(-10, -7, -11, -16, 1.4, ink); }     // 雙天線
+    if (f.includes('basket')) toonRR(-23, -6, 5, 6, 1, dark, 1.4);                                              // 後置籃架
+    if (f.includes('smoke')) for (const y of [-11, -8]) toonRR(8, y, 4, 2.2, 1, ink, 0.8);                      // 煙幕彈發射器
+    if (f.includes('dozer')) toonPoly([[18, 1], [23, 1], [23, 9], [19, 10]], dark, 1.5);                        // 推土鏟
+    if (f.includes('flag')) { line(-13, -6, -13, -20, 1.4, ink); toonPoly([[-13, -20], [-6, -18], [-13, -15.5]], '#dc2626', 1); }
+    if (f.includes('snorkel')) toonRR(-18, -17, 2.6, 13, 1.2, dark, 1.2);                                      // 潛渡呼吸管
+    if (f.includes('log')) toonRR(-17, -12, 16, 3, 1.5, '#92400e', 1.2);                                        // 自救圓木
+    if (f.includes('spare')) toonCirc(-21, -1, 3.6, ink, 1.2);                                                  // 備胎
+    if (f.includes('tarp')) toonEll(-19, -12, 4.2, 2.6, 0, '#a3a380', 1.2);                                     // 後方帆布捲
+    if (f.includes('sandbag')) for (const x of [10, 14]) toonEll(x, -9, 2.4, 1.6, 0, '#d6c38b', 1);            // 沙包
+    if (f.includes('cage')) for (const x of [-20, -17]) line(x, -6, x, 4, 1.4, ink);                           // 柵欄裝甲
+    if (f.includes('pennant')) { line(-12, -6, -12, -18, 1.3, ink); toonPoly([[-12, -18], [-4, -16.5], [-12, -15]], '#2563eb', 1); }
+    if (f.includes('box')) toonRR(-22, -5, 5, 5, 1, '#78716c', 1.2);                                           // 行李箱
+    if (f.includes('bullbar')) { line(19, -2, 22, 0, 1.6, ink); line(22, 0, 22, 7, 1.6, ink); }                 // 防撞桿
+    if (f.includes('chain')) for (let k = 0; k < 4; k++) toonCirc(-10 + k * 3, 6, 1.1, ink, 0);              // 鐵鍊
+  }
   // 其餘車輛、飛機、艦艇也加上國籍標誌（步兵類已有國別鋼盔）
   if (!variantDrawn && !['inf', 'atinf', 'mortar', 'sniper', 'specops', 'manpads', 'engineer', 'wafer_inf', 'marine'].includes(base)) {
     const cat = d.cat;

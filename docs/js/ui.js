@@ -7,7 +7,7 @@ const UIS = {
   sel: null, reach: null, attackSet: null, path: null, hover: null,
   origin: null, targets: null, inspect: null, inspectSet: null, lastReachHover: null,
 };
-const SETTINGS = { aiStep: 110, labels: true };
+const SETTINGS = { aiStep: 10, labels: true };   // 電腦速度預設極快
 try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETTINGS.labels = l === '1'; } catch (e) { /* 忽略 */ }
 // 戰場資訊面板：stats 平常是否開啟、statsPos 位置（bl 左下 / tl 左上）、statsMin 收合
 SETTINGS.stats = true; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false; SETTINGS.engineer = false; SETTINGS.apMin = false;
@@ -597,14 +597,16 @@ function updateAutoPilotUI() {
           <span class="ap-side-name" style="color:${SIDES[k].light}">${SIDES[k].name}<i class="ap-turn"></i></span>
           ${seg(`data-ap="ctl" data-k="${k}"`, [['h', '玩家'], ['ai', '電腦']])}
           ${seg(`data-ap="per" data-k="${k}"`, per)}
-        </div>`).join('') + `<div class="ap-speed"><span>速度</span>${seg('data-ap="spd"', [['200', '慢'], ['110', '普通'], ['45', '快'], ['10', '極快']])}</div>`;
+        </div>`).join('') + `<div class="ap-speed"><span>速度</span>${seg('data-ap="spd"', [['200', '慢'], ['110', '普通'], ['45', '快'], ['10', '極快']])}</div>`
+        + `<div class="ap-speed ap-eng"><span>工兵</span>${seg('data-ap="eng"', [['1', '開啟（可建基地）', '工兵可把己方城市建設為工廠、機場或港口'], ['0', '關閉', '不能生產工兵']])}</div>`;
       $('#apSides').onclick = e => { const b = e.target.closest('button[data-ap]'); if (b) apSegClick(b); };
     }
     // 依目前狀態標示選取
     $('#apSides').querySelectorAll('button[data-ap]').forEach(b => {
       const k = +b.dataset.k, v = b.dataset.v;
       const on = b.dataset.ap === 'ctl' ? (G.players[k].ai ? 'ai' : 'h') === v
-        : b.dataset.ap === 'per' ? (G.players[k].persona || 'B') === v : String(SETTINGS.aiStep) === v;
+        : b.dataset.ap === 'per' ? (G.players[k].persona || 'B') === v
+        : b.dataset.ap === 'eng' ? (G.rules && G.rules.engineer === false ? '0' : '1') === v : String(SETTINGS.aiStep) === v;
       b.classList.toggle('on', on);
     });
     $('#apSides').querySelectorAll('.ap-side').forEach((el, k) => { el.querySelector('.ap-turn').textContent = k === G.cur ? ' ▶' : ''; });
@@ -651,6 +653,12 @@ function apSegClick(b) {
   if (!G) return;
   const k = +b.dataset.k, v = b.dataset.v;
   if (b.dataset.ap === 'spd') { SETTINGS.aiStep = +v; showToast('電腦速度：' + b.textContent); }
+  else if (b.dataset.ap === 'eng') {
+    G.rules = Object.assign({}, G.rules, { engineer: v === '1' });
+    SETTINGS.engineer = G.rules.engineer;
+    try { localStorage.setItem('daisenryaku_engineer2', v); } catch (e) { /* 忽略 */ }
+    showToast(G.rules.engineer ? '工兵：開啟（可建設工廠、機場、港口）' : '工兵：關閉');
+  }
   else if (b.dataset.ap === 'per') {
     G.players[k].persona = v;
     G.players[k].tune = null;   // 切換風格：參數恢復該風格預設
@@ -1007,10 +1015,10 @@ function openNewGame() {
       <label>地圖種子<span class="inline"><input id="ngSeed" type="number" value="${Math.floor(Math.random() * 99999)}"><button id="ngRand" type="button">🎲</button></span></label>
       <label><span><span class="dot" style="background:${SIDES[0].color}"></span>藍方（先攻）</span><select id="ngN0">${nationOptions(nat[0])}</select></label>
       <label>操作<select id="ngP0"><option value="h">玩家</option><option value="ai" ${p[0].ai ? 'selected' : ''}>電腦</option></select></label>
-      <label>AI 風格<select id="ngPersona0">${personaOptions(p[0].persona)}</select></label>
+      <label>AI 風格<select id="ngPersona0">${personaOptions(p[0].persona || (p[0].ai ? 'B' : 'L'))}</select></label>
       <label><span><span class="dot" style="background:${SIDES[1].color}"></span>紅方</span><select id="ngN1">${nationOptions(nat[1])}</select></label>
       <label>操作<select id="ngP1"><option value="h">玩家</option><option value="ai" ${p[1].ai ? 'selected' : ''}>電腦</option></select></label>
-      <label>AI 風格<select id="ngPersona1">${personaOptions(p[1].persona)}</select></label>
+      <label>AI 風格<select id="ngPersona1">${personaOptions(p[1].persona || (p[1].ai ? 'B' : 'L'))}</select></label>
       <label>電腦速度<select id="ngSpeed"><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option><option value="10">極快</option></select></label>
       <label>工兵（基地建設）<select id="ngEng"><option value="1">開啟</option><option value="0" ${SETTINGS.engineer === false ? 'selected' : ''}>關閉</option></select></label>
     </div>

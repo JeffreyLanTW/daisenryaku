@@ -268,7 +268,7 @@ function startMission(id) {
 }
 // 建立任務遊戲狀態（不含畫面）；aiBoth 用於自動平衡測試
 // inherit：{ units: [{base, node, xp}], funds } 由上一場繼承（只在同國家時部署）
-function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = false, enemyPersona = 'B', playerPersona = 'B') {
+function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = false, enemyPersona = 'B', playerPersona = 'L') {
   const M = MISSIONS[id], P = CAMPAIGNS[campOf(M)].player;
   const m = parseMission(M, flags, P);
   const funds = typeof M.funds === 'function' ? M.funds(flags) : [...M.funds];

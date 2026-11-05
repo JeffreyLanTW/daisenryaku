@@ -939,13 +939,13 @@ function lanfaProduce(s) {
       else if (!enemyShip && !seaGap) q *= 0.25;
       else if (cnt(b) > enemyShip + 1) q *= 0.3;
       const navy = mine.filter(u => UNITS[u.type].cat === 'sea' && !UNITS[u.type].carry).length;
-      if (b !== 'lst' && !seaGap && navy >= enemyShip + 2 + Math.min(4, Math.floor(surplus / 3))) return 0;
+      if (b !== 'lst' && !seaGap && navy >= enemyShip + 2 + Math.min(4, Math.floor(surplus / 3))) { if (!ignoreCap) return 0; q *= 0.3; }
       // 海上可接戰的敵軍價值太少（例如內海、湖泊）就不造艦；資金大量閒置時門檻放寬
       if (b !== 'lst' && foes.length) {
         const R = reachable(site, 'sea');
         if (R.reduce((a, v) => a + v, 0) < Etot * (surplus >= 3 ? 0.05 : 0.2)) {
           // 資金閒置時，能從海上威脅敵方沿海據點也值得造艦（港口不閒置）
-          if (!(surplus >= 2 && coastalTargets(site) > 0)) return 0;
+          if (!(surplus >= 2 && coastalTargets(site) > 0) && !ignoreCap) return 0;
           q *= 0.5;
         }
       }
@@ -981,7 +981,7 @@ function lanfaProduce(s) {
     if (t.heal.includes('air') && thirsty.some(u => {
       const dd = hexDist(u.x, u.y, x, y), ud = UNITS[u.type];
       return dd <= ud.move * 2 && (u.fuel <= dd + ud.upkeep * 4 + 4 || u.hp <= 6);
-    }) && G.terrain[i] !== 'capital') continue;
+    }) && G.terrain[i] !== 'capital') continue;   // 保留給缺油回航的飛機（佔用會讓飛機燃料耗盡墜毀）
     sites.push(i);
   }
   sites.sort((a, b) => (footField ? footField[a] - footField[b] : 0));
@@ -995,7 +995,7 @@ function lanfaProduce(s) {
   // 只有局勢穩定時才存錢：第 8 回合後、兵力不落後、本土附近沒有敵軍
   const myVal = mine.reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
   const home = G.caps && G.caps[s] >= 0 ? ixy(G.caps[s]) : null;
-  const canSave = G.turn >= 8 && myVal >= Etot && !(home && foes.some(e => hexDist(e.x, e.y, home[0], home[1]) <= 6));
+  const canSave = G.funds[s] < 4000 && G.turn >= 8 && myVal >= Etot && !(home && foes.some(e => hexDist(e.x, e.y, home[0], home[1]) <= 6));
   for (let n = 0; n < sites.length; n++) {
     const i = sites[n], [x, y] = ixy(i), f = G.funds[s] - reserve;
     const share = f / (sites.length - n);
@@ -1031,6 +1031,17 @@ function lanfaProduce(s) {
       G.lfSaving = G.lfSaving || [null, null];
       G.lfSaving[s] = dream;
       continue;
+    }
+    // 有多少空閒生產據點就生產多少隊：一般評分都不合適時，放寬上限挑一個最好的單位，不讓據點閒置
+    if (!best) {
+      for (const k of buildOptions(x, y, s)) {
+        const c = UNITS[k].cost;
+        if (c > f || LANFA_NON_COMBAT.has(UNITS[k].base) || UNITS[k].engineer) continue;
+        const q = qualityRaw(k, i);
+        if (q <= 0) continue;
+        const v = q * Math.pow(c, 0.9 + 0.6 * rich) * (0.92 + Math.random() * 0.16);
+        if (v > bestV) { bestV = v; best = k; }
+      }
     }
     if (best) { produce(best, x, y, s); if (UNITS[best].engineer) engineers++; }
   }
