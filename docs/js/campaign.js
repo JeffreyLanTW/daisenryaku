@@ -293,7 +293,7 @@ function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = false,
     G.funds[P] += inherit.funds || 0;
     for (const e of inherit.units || []) {
       const key = e.node ? `${e.base}_${P}_${e.node}` : `${e.base}_${P}`;
-      if (UNITS[key]) G.reserve.push(makeUnit(key, P, -1, -1, { xp: e.xp, vet: true }));
+      if (UNITS[key]) G.reserve.push(makeUnit(key, P, -1, -1, Object.assign({ xp: e.xp, vet: true }, e.perks ? { perks: e.perks } : null)));
     }
     if (aiBoth) autoDeploy();
   }
@@ -518,7 +518,7 @@ function chooseCarry(br) {
     box.querySelector('#carryGo').onclick = () => {
       const ids = new Set(boxes.filter(b => b.checked).map(b => +b.value));
       CAMP.roster = CAMP.roster || {};
-      CAMP.roster[nid] = list.filter(u => ids.has(u.id)).map(u => ({ base: UNITS[u.type].base, node: UNITS[u.type].node || null, xp: u.xp || 0 }));
+      CAMP.roster[nid] = list.filter(u => ids.has(u.id)).map(u => ({ base: UNITS[u.type].base, node: UNITS[u.type].node || null, xp: u.xp || 0, perks: u.perks || null }));
       CAMP.carryFunds = carryFunds;
       applyBranch(br);
     };

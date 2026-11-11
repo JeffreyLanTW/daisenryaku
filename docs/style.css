@@ -1013,3 +1013,23 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   .geo-loc { flex-direction: column; align-items: stretch; }
   .geo-loc svg { max-width: 100%; }
 }
+
+/* ----- 部隊卡片：圖示、階級卡、專長 ----- */
+.uhead .uicon { width: 46px; height: 34px; flex: none; border-radius: 8px; background: linear-gradient(#22303d, #16202a); border: 1px solid var(--c); display: grid; place-items: center; overflow: hidden; }
+.uhead .uicon img { width: 44px; height: 33px; display: block; }
+.tele-item em { color: #facc15; font-style: normal; margin-left: 2px; font-size: 11px; }
+.rank-card { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #131c24; border: 1px solid #243444; }
+.rank-card.r1 { border-color: #5b7fa6; } .rank-card.r2 { border-color: #b08d3c; } .rank-card.r3 { border-color: #e0b54a; box-shadow: 0 0 0 1px rgba(224,181,74,.25) inset; }
+.rank-top { display: flex; align-items: center; gap: 8px; }
+.rank-pips { display: inline-flex; gap: 3px; }
+.rank-pips i { width: 9px; height: 9px; transform: rotate(45deg); border: 1.5px solid #64748b; border-radius: 1px; }
+.rank-pips i.on { background: #e0b54a; border-color: #e0b54a; }
+.rank-name { font-size: 14px; color: #fff; }
+.rank-bonus { margin-left: auto; font-size: 11px; color: var(--muted); }
+.rank-card .xpbar { margin: 6px 0 4px; height: 6px; border-radius: 3px; background: #0b1218; overflow: hidden; }
+.rank-card .xpbar i { display: block; height: 100%; background: linear-gradient(90deg, #5b7fa6, #9cc0f5); }
+.rank-card.r2 .xpbar i, .rank-card.r3 .xpbar i { background: linear-gradient(90deg, #b08d3c, #f3d27a); }
+.rank-foot { font-size: 11px; color: var(--muted); }
+.perk-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.perk-chip { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: #1f2d3a; border: 1px solid #3a4f63; color: #dfe6ee; }
+.perk-hint { margin-top: 6px; font-size: 12px; color: #facc15; }

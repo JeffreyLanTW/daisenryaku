@@ -85,7 +85,8 @@ function addLog(text, side = -1) {
 function computeReach(u) {
   const d = UNITS[u.type], W = G.w;
   const occ = occGrid();
-  const maxMove = d.fuel !== undefined ? Math.min(d.move, u.fuel) : d.move;
+  const mv = d.move + perkLv(u, 'mobile');
+  const maxMove = d.fuel !== undefined ? Math.min(mv, u.fuel) : mv;
   let zoc = null;
   if (d.cat !== 'air') {
     zoc = new Uint8Array(W * G.h);
@@ -300,7 +301,19 @@ function unitAura(u) {
       if (ab === 'euv_fortress' || ab === 'palantir_arty') atkMod *= 0.95; // 敵方電磁干擾
     }
   }
-  return { atkMod, defMod, hasAura: atkMod !== 1.0 || defMod !== 1.0 };
+  const hasAura = atkMod !== 1.0 || defMod !== 1.0;
+  // 專長：火力專精（主動攻擊）、裝甲強化（承受傷害）
+  atkMod *= 1 + 0.10 * perkLv(u, 'fire');
+  defMod *= 1 - 0.12 * perkLv(u, 'guard');
+  return { atkMod, defMod, hasAura };
+}
+// 選擇專長（有未分配點數且未達上限）
+function canPerk(u, k) { return !noRank(u) && perkPts(u) > 0 && perkLv(u, k) < PERK_MAX; }
+function takePerk(u, k) {
+  if (!canPerk(u, k)) return false;
+  u.perks = Object.assign({}, u.perks, { [k]: perkLv(u, k) + 1 });
+  addLog(`${SIDES[u.side].name}${UNITS[u.type].name} 習得專長「${PERKS[k].name}」`, u.side);
+  return true;
 }
 // 未取整的期望傷害；防守方站在 (dx,dy)
 function baseDamage(attType, attHp, def, dx, dy, attRank = 0) {
@@ -674,6 +687,7 @@ function startTurn() {
       }
     }
     const uMax = u.maxHp || d.maxHp || 10;
+    if (!onBase && perkLv(u, 'medic') && u.hp < uMax) u.hp = Math.min(uMax, u.hp + perkLv(u, 'medic'));   // 專長：野戰維修
     if (onBase && u.hp < uMax) {
       const per = Math.ceil(d.cost / uMax);
       let h = Math.min(2, uMax - u.hp);

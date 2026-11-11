@@ -607,8 +607,20 @@ const RANKS = [
   { name: '精銳', xp: 280, atk: 1.12, evade: 0.08 },
   { name: '王牌', xp: 500, atk: 1.18, evade: 0.12 },
 ];
+// 專長：每升一階獲得 1 點，可自選（同一專長最多 2 級）。專長隨部隊帶到下一章
+const PERKS = {
+  fire:   { name: '火力專精', icon: '🎯', desc: '主動攻擊傷害 +10%' },
+  guard:  { name: '裝甲強化', icon: '🛡️', desc: '承受傷害 −12%' },
+  mobile: { name: '機動強化', icon: '⚡', desc: '移動力 +1' },
+  medic:  { name: '野戰維修', icon: '🔧', desc: '每回合自動修復 1 HP（不需回據點）' },
+};
+const PERK_MAX = 2;
+const perkLv = (u, k) => (u.perks && u.perks[k]) || 0;
+const perkSpent = u => Object.values(u.perks || {}).reduce((a, b) => a + b, 0);
 // 此部隊所屬國家沒有經驗系統
 const noRank = u => { const d = UNITS[u.type]; return !!(d && NATIONS[d.nation] && NATIONS[d.nation].noRank); };
+// 尚未分配的專長點數＝階級 − 已選專長
+const perkPts = u => Math.max(0, rankOf(u) - perkSpent(u));
 const rankOf = u => { if (noRank(u)) return 0; let r = 0; for (let k = 1; k < RANKS.length; k++) if ((u.xp || 0) >= RANKS[k].xp) r = k; return r; };
 
 // 國家簡碼標準化對照表（支援 ROC, PLA, USA, JPN, KOR, PRK, PHL, VNM, RUS, TSMC, USCORP）

@@ -354,6 +354,15 @@ function showMenu(u) {
       finishUnit(u);
     }, 'cap');
   }
+  // 專長：有未分配點數時可選（不消耗行動）
+  if (perkPts(u) > 0) for (const k of Object.keys(PERKS)) {
+    if (!canPerk(u, k)) continue;
+    add(`🎖 專長：${PERKS[k].icon} ${PERKS[k].name}${perkLv(u, k) ? ' Ⅱ' : ''} <small>${PERKS[k].desc}</small>`, () => {
+      takePerk(u, k); sfx('capture');
+      const [cx, cy] = tileCenter(u.x, u.y); fxText(cx, cy, `習得 ${PERKS[k].name}`, '#ffd34d');
+      refreshPanel(); showMenu(u);
+    }, 'cap');
+  }
   if (canCapture(u)) {
     const p = capturePointsLeft(u);
     add(`🚩 佔領 <small>${p}→${Math.max(0, p - u.hp)}</small>`, () => doCaptureAction(u), 'cap');
@@ -473,10 +482,17 @@ function xpHTML(u) {
   if (noRank(u)) return `<div class="desc">${NATIONS[UNITS[u.type].nation].army}無升級與進化（以量取勝）</div>`;
   const r = rankOf(u), R = RANKS[r], nx = RANKS[r + 1], xp = u.xp || 0;
   const pct = nx ? Math.round((xp - R.xp) / (nx.xp - R.xp) * 100) : 100;
-  return `<div class="xprow"><span class="rankbadge r${r}">${r ? '★'.repeat(r) + ' ' : ''}${R.name}</span>
+  const pts = perkPts(u);
+  const chips = Object.keys(PERKS).filter(k => perkLv(u, k)).map(k =>
+    `<span class="perk-chip" title="${PERKS[k].desc}">${PERKS[k].icon} ${PERKS[k].name}${perkLv(u, k) > 1 ? ' Ⅱ' : ''}</span>`).join('');
+  return `<div class="rank-card r${r}">
+      <div class="rank-top"><span class="rank-pips">${[1, 2, 3].map(k => `<i class="${k <= r ? 'on' : ''}"></i>`).join('')}</span>
+        <b class="rank-name">${R.name}</b><span class="rank-bonus">攻擊 +${Math.round((R.atk - 1) * 100)}%・迴避 ${Math.round(R.evade * 100)}%</span></div>
       <div class="xpbar r${r}"><i style="width:${pct}%"></i></div>
-      <span class="xpnum">${nx ? `${xp}/${nx.xp}` : `${xp}・滿階`}</span></div>
-    <div class="stats"><span>攻擊 +${Math.round((R.atk - 1) * 100)}%</span><span>迴避 ${Math.round(R.evade * 100)}%</span></div>`;
+      <div class="rank-foot"><span>${nx ? `經驗 ${xp} / ${nx.xp}　下一階：${nx.name}` : `經驗 ${xp}・最高階`}</span></div>
+      ${chips ? `<div class="perk-row">${chips}</div>` : ''}
+      ${pts ? `<div class="perk-hint">🎖 有 ${pts} 點專長可選（選取部隊後在行動選單選擇）</div>` : ''}
+    </div>`;
 }
 
 function unitHTML(u) {
@@ -493,8 +509,9 @@ function unitHTML(u) {
   const hasEscort = (d.base === 'carrier' || d.base === 'wingman_carrier') && typeof carrierEscort === 'function' && !!carrierEscort(u);
   const rng = d.range[0] === d.range[1] ? d.range[0] : `${d.range[0]}-${d.range[1]}`;
 
+  const iconUrl = typeof unitIconDataURL === 'function' ? unitIconDataURL(d) : '';
   return `<div class="uhead">
-      <span class="dot" style="background:${ncol}"></span>
+      ${iconUrl ? `<span class="uicon" style="--c:${ncol}"><img src="${iconUrl}" alt=""></span>` : `<span class="dot" style="background:${ncol}"></span>`}
       <b class="uname">${d.name}</b>
       <span class="fac-pill" style="border-color:${ncol};color:${ncol}">${flag} ${natName}</span>
       <span class="tag">${CLASS_NAME[d.cls]}</span>
@@ -510,7 +527,7 @@ function unitHTML(u) {
       </div>
     </div>
     <div class="unit-telemetry-grid">
-      <div class="tele-item"><small>移動</small><b>${d.move}</b></div>
+      <div class="tele-item"><small>移動</small><b>${d.move + perkLv(u, 'mobile')}${perkLv(u, 'mobile') ? '<em>↑</em>' : ''}</b></div>
       <div class="tele-item"><small>射程</small><b>${rng}</b></div>
       <div class="tele-item"><small>兵種</small><b>${{ land: '陸軍', air: '空軍', sea: '海軍' }[d.cat] || d.cat}</b></div>
       <div class="tele-item"><small>承傷</small><b>${d.armor ? `×${d.armor.toFixed(2)}` : '1.00'}</b></div>
@@ -1146,7 +1163,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v88</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v89</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1171,12 +1188,14 @@ function openHelp() {
       <li>相鄰的直接攻擊會遭到反擊；<b>自走砲、火箭、防空飛彈</b>為間接攻擊，不會被反擊，但移動後不能射擊。</li>
       <li><b>陸戰隊</b>可以渡海（海上移動消耗 2）並登陸佔領，但在海上沒有地形掩護。</li>
       <li>地面部隊進入敵方地面部隊相鄰格會被<b>控制區</b>攔下，飛機不受影響。</li>
+      <li><b>升級與專長</b>：部隊作戰累積經驗，升為老兵、精銳、王牌（攻擊與迴避提升）。每升一階得 1 點專長，在行動選單自選：🎯 火力專精（主動攻擊 +10%）、🛡️ 裝甲強化（承傷 −12%）、⚡ 機動強化（移動 +1）、🔧 野戰維修（每回合自動修復 1 HP）；同一專長最多 2 級，劇情中隨部隊帶到下一章。電腦會自動分配。</li>
       <li><b>工兵建設基地</b>：工兵停在己方城市（非首都）可花費資金建設 🏭工廠（💰1000，生產與補給地面部隊）、✈️機場（💰1200，生產與補給飛機）或 ⚓港口（💰1000，須臨海，生產艦艇）；建設點數 20，每回合扣除工兵 HP，約 2 回合完工。城市被敵軍佔領時建設中斷。</li>
       <li><b>佔領與持久防禦</b>：步兵類部隊每回合扣除等同 HP 的佔領耐久（總計 20），受損時防禦減免亦隨之降低；部隊離開或陣亡後耐久<b>持續保留</b>，原陣營可派步兵執行「🛠️ 修復據點」恢復。</li></ul>
     <h4>國家與四大 AI 戰術風格</h4><p>16 個陣營各有專屬 AI 作戰教條、專屬色系與偏好。新遊戲與戰役可自選四大 AI 戰術風格：<b>A 攻擊型</b>（極限殲敵直取斬首）、<b>B 綜合型</b>（步步為營首都推進）、<b>C 保守型</b>（要塞扼守殘血後撤合流）與 <b>L 藍發風格</b>（依敵軍編成與可接戰範圍計算相剋價值生產、資金每回合分配用完、奪城一城一隊、兵力佔優集結圍攻敵方首都、本土防衛與致死集火）。頂部列可隨時切換「友軍手動指揮」與「友軍 AI 協同」。</p>
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v89</span><span class="cl-date">2026.11.11</span><p>【升級系統重製與部隊卡片】每升一階（老兵、精銳、王牌）獲得 1 點專長，可在行動選單自選：火力專精、裝甲強化、機動強化、野戰維修，同一專長最多 2 級，劇情中隨部隊帶到下一章；電腦依兵種自動分配。部隊卡片加上兵種圖示、階級菱形與經驗條、專長標籤，有未分配專長時提示。</p></div>
         <div class="cl-item"><span class="cl-ver">v88</span><span class="cl-date">2026.11.11</span><p>【新劇情「昇龍 2031・六個時刻」】故事走向沿用乾卦六個階段，改用現代口吻：按兵不動（花蓮）、走出山區（嘉南平原）、日夜不休（台中海岸）、跳或不跳（台灣海峽）、制空（台灣與先島群島）、見好就收（海峽全域），四種結局。地圖依真實經緯度繪製並逐章變大（22×14 → 26×16 → 30×19 → 36×22 → 44×27 → 54×33），地圖上標示真實地名；任務簡報附世界地圖定位圖。對話改用人物頭像（九位角色）。</p></div>
         <div class="cl-item"><span class="cl-ver">v87</span><span class="cl-date">2026.11.05</span><p>【各國專屬造型、預設值與代理視窗】同一兵種在不同國家一定有不同外形：除了依型號的造型，再加上各國專屬配件組合（地面車輛：台灣鞭狀天線、中共雙天線、美國後置籃架、日本煙幕彈發射器、韓國推土鏟、北韓旗桿、俄國潛渡呼吸管、越南自救圓木、菲律賓備胎、印度帆布捲、巴基斯坦沙包、英國柵欄裝甲、法國三角旗、德國行李箱、澳洲防撞桿、以色列鐵鍊；飛機、直升機、艦艇、步兵也各有專屬配件），逐一比對外形確認各國皆不相同。藍發：一般評分都不合適的工廠與機場也會生產（港口不強制造艦，實測強制造艦會讓勝率由 98% 掉到 87%）。玩家方 AI 風格預設藍發、電腦速度預設極快、開局地圖縮小一號。電腦代理視窗每列不同底色（雙方、速度、工兵），各方選取中的按鈕使用該方顏色，並新增工兵開關。</p></div>
         <div class="cl-item"><span class="cl-ver">v86</span><span class="cl-date">2026.11.02</span><p>【藍發生產不設上限】取消藍發大幅領先時的後方生產限制與空軍數量上限：每個空閒生產據點每回合都生產；資金越多越偏好高價高戰力單位（每個據點每回合只能出一隊，買貴的才能把錢轉成戰力）；有機場時首都不生產飛機、飛機只在燃料告急時降落首都，讓首都保持可生產地面部隊。中大地圖（關閉工兵）決定性勝利 107→113、大地圖決勝提早約 2–6 回合、終局資金減少約三成。</p></div>
@@ -1320,7 +1339,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v88</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v89</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

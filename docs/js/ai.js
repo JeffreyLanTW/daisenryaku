@@ -365,6 +365,13 @@ async function aiAct(u, token) {
     markDone(u);
     return;
   }
+  // 電腦自動分配專長：間接火力與飛機先火力，前線部隊先裝甲，步兵先維修
+  while (perkPts(u) > 0) {
+    const dd = UNITS[u.type];
+    const order = isIndirect(u.type) || dd.cat === 'air' ? ['fire', 'mobile', 'guard', 'medic'] : dd.capture ? ['medic', 'guard', 'mobile', 'fire'] : ['guard', 'fire', 'medic', 'mobile'];
+    const k = order.find(x => canPerk(u, x));
+    if (!k || !takePerk(u, k)) break;
+  }
   const d = UNITS[u.type], s = u.side, W = G.w;
   if (d.carry && !d.carry.deck) aiUnload(u);
   const reach = computeReach(u);
