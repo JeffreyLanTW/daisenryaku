@@ -1163,7 +1163,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v89</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v90</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1195,6 +1195,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v90</span><span class="cl-date">2026.11.11</span><p>【介面視覺整理】介面上的表情符號全部改為單色線條圖示（跟隨文字顏色、高解析度下清晰）；統一配色為深灰加單一金色強調、統一按鈕圓角與字級、數字等寬對齊；主選單改為圖示加說明的列表；高解析度螢幕（Retina／iPad）的地形底圖提高到 3 倍。</p></div>
         <div class="cl-item"><span class="cl-ver">v89</span><span class="cl-date">2026.11.11</span><p>【升級系統重製與部隊卡片】每升一階（老兵、精銳、王牌）獲得 1 點專長，可在行動選單自選：火力專精、裝甲強化、機動強化、野戰維修，同一專長最多 2 級，劇情中隨部隊帶到下一章；電腦依兵種自動分配。部隊卡片加上兵種圖示、階級菱形與經驗條、專長標籤，有未分配專長時提示。</p></div>
         <div class="cl-item"><span class="cl-ver">v88</span><span class="cl-date">2026.11.11</span><p>【新劇情「昇龍 2031・六個時刻」】故事走向沿用乾卦六個階段，改用現代口吻：按兵不動（花蓮）、走出山區（嘉南平原）、日夜不休（台中海岸）、跳或不跳（台灣海峽）、制空（台灣與先島群島）、見好就收（海峽全域），四種結局。地圖依真實經緯度繪製並逐章變大（22×14 → 26×16 → 30×19 → 36×22 → 44×27 → 54×33），地圖上標示真實地名；任務簡報附世界地圖定位圖。對話改用人物頭像（九位角色）。</p></div>
         <div class="cl-item"><span class="cl-ver">v87</span><span class="cl-date">2026.11.05</span><p>【各國專屬造型、預設值與代理視窗】同一兵種在不同國家一定有不同外形：除了依型號的造型，再加上各國專屬配件組合（地面車輛：台灣鞭狀天線、中共雙天線、美國後置籃架、日本煙幕彈發射器、韓國推土鏟、北韓旗桿、俄國潛渡呼吸管、越南自救圓木、菲律賓備胎、印度帆布捲、巴基斯坦沙包、英國柵欄裝甲、法國三角旗、德國行李箱、澳洲防撞桿、以色列鐵鍊；飛機、直升機、艦艇、步兵也各有專屬配件），逐一比對外形確認各國皆不相同。藍發：一般評分都不合適的工廠與機場也會生產（港口不強制造艦，實測強制造艦會讓勝率由 98% 掉到 87%）。玩家方 AI 風格預設藍發、電腦速度預設極快、開局地圖縮小一號。電腦代理視窗每列不同底色（雙方、速度、工兵），各方選取中的按鈕使用該方顏色，並新增工兵開關。</p></div>
@@ -1339,10 +1340,10 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v89</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v90</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
-    <button class="big" id="mmTest" style="border-color:#38bdf8;background:linear-gradient(#1e3a5f,#152538)">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
+    <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
     <button class="big" id="mmHelp">❓ 作戰說明</button></div>`, box => {
     box.querySelector('#mmCamp').onclick = () => openCampaignMenu();

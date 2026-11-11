@@ -56,7 +56,8 @@ const TCOLOR = {
 
 function buildTerrain() {
   const [ww, wh] = worldSize();
-  TS = Math.max(0.8, Math.min(2, Math.sqrt(14e6 / (ww * wh))));
+  // 高解析度螢幕（Retina／iPad）小地圖用 3 倍底圖，放大後地形仍清晰
+  TS = Math.max(0.8, Math.min((window.devicePixelRatio || 1) >= 2 ? 3 : 2, Math.sqrt(14e6 / (ww * wh))));
   terrainCvs = document.createElement('canvas');
   terrainCvs.width = Math.ceil(ww * TS); terrainCvs.height = Math.ceil(wh * TS);
   const c = terrainCvs.getContext('2d');

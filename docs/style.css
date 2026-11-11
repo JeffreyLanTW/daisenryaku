@@ -1033,3 +1033,43 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 .perk-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .perk-chip { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: #1f2d3a; border: 1px solid #3a4f63; color: #dfe6ee; }
 .perk-hint { margin-top: 6px; font-size: 12px; color: #facc15; }
+
+/* ===== v90 視覺整理：單一強調色、線條圖示、一致的字級與間距 ===== */
+:root { --bg: #0d1116; --panel: #141a21; --card: #1a222b; --line: #283340; --text: #e3e8ee; --muted: #8794a3; --gold: #d9a441; }
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body { font-family: "SF Pro TC", -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; font-feature-settings: "tnum" 1, "palt" 1; letter-spacing: .01em; }
+.ui-ico-wrap { display: inline-flex; vertical-align: -0.16em; margin: 0 .22em 0 .05em; }
+.ui-ico { width: 1.05em; height: 1.05em; display: block; }
+button { border-radius: 8px; border: 1px solid var(--line); background: #1b242e; transition: background .12s, border-color .12s, transform .06s; }
+button:hover:not(:disabled) { background: #232e3a; border-color: #3a4a5c; }
+button:active:not(:disabled) { transform: translateY(1px); }
+button.primary { background: var(--gold); border-color: #e6b656; color: #1b1405; }
+button.primary:hover:not(:disabled) { background: #e3b04d; }
+button:focus-visible { outline: 2px solid #7fb4ff; outline-offset: 2px; }
+#topbar { background: #121820; border-bottom: 1px solid var(--line); }
+.brand { letter-spacing: .22em; text-shadow: none; font-weight: 800; }
+.pill { background: #19212a; border-color: var(--line); }
+#mapWrap { background: radial-gradient(120% 90% at 50% 40%, #131b24 0%, #0a0e13 70%); }
+#panel { background: var(--panel); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: none; }
+.card h3 { letter-spacing: .08em; font-size: 13px; text-transform: none; color: var(--gold); }
+#modal { background: rgba(6, 9, 13, .72); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+#modalBox { background: #151c24; border: 1px solid #2c3948; border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+#modalBox h2 { letter-spacing: .06em; }
+.mainmenu .logo { font-size: 46px; letter-spacing: .32em; text-indent: .32em; text-shadow: none; font-weight: 800; }
+.mainmenu .tagline { letter-spacing: .2em; font-size: 12px; }
+.mainmenu button.big { font-size: 16px; padding: 13px 14px; flex-direction: row; justify-content: flex-start; gap: 10px; text-align: left; }
+.mainmenu button.big small { margin-left: auto; font-size: 12px; opacity: .7; }
+.mainmenu button.big .ui-ico { width: 20px; height: 20px; }
+.btn-autopilot { background: #1b242e !important; border-color: #3a4a5c !important; color: var(--text) !important; box-shadow: none !important; text-shadow: none !important; }
+.btn-autopilot.active { background: #7a2a2a !important; border-color: #b04040 !important; }
+#zoomCtl button { border-radius: 9px; background: rgba(20, 27, 35, .9); display: grid; place-items: center; }
+#zoomCtl button .ui-ico-wrap { margin: 0; }
+#zoomCtl button .ui-ico { width: 18px; height: 18px; }
+#zoomCtl #zMusic.on, #zoomCtl #zStats.on, #zoomCtl #zLabel.on { background: var(--gold); border-color: var(--gold); color: #1b1405; }
+.dialog .dname { letter-spacing: .04em; }
+.dialog .dtext { line-height: 1.75; font-size: 16px; }
+.mtitle h2 { letter-spacing: .12em; }
+.autopilot-banner { border: 1px solid #3a4a5c !important; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.5) !important; }
+.btn-ap-stop { box-shadow: none !important; text-shadow: none !important; }
+#battleStats { border-radius: 12px; }
