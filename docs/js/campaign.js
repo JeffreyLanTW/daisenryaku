@@ -241,6 +241,7 @@ function startMission(id) {
   saveCamp();
   playDialog(M.briefing(CAMP.flags), `${M.chapter}・${M.title}`).then(() => {
     openModal(`<div class="mtitle"><div class="chap">${M.chapter}</div><h2>${M.title}</h2><div class="sub">📍 ${M.place}</div></div>
+      ${M.geo && typeof geoLocatorSVG === 'function' ? `<div class="geo-loc">${geoLocatorSVG(M.geo, { width: 300, label: M.place })}<div class="geo-cap">🌏 ${M.geoRegion || M.place}<small>地圖 ${M.map[0].length}×${M.map.length} 格，依真實經緯度繪製</small></div></div>` : ''}
       <ul class="obj big">${winOf(M, CAMP.flags).map(o => `<li>🎯 ${o.text}</li>`).join('')}
       ${(M.bonus || []).map(b => `<li class="bonus">⭐ ${b.text}</li>`).join('')}
       ${(M.lose || []).map(c => `<li class="lose">✖ ${c.text}</li>`).join('')}
@@ -281,6 +282,7 @@ function setupMission(id, flags, aiBoth = false, inherit = null, allyAI = false,
     nations: M.nations || CAMPAIGNS[campOf(M)].nations, allies: alliesOf(M), allyAI
   });
   G.hq = m.hq;
+  G.placeNames = M.placeNames || null;
   G.pside = P;
   G.campFlags = Object.assign({}, flags);
   if (M.horde) addHorde(M.horde, P);
@@ -608,7 +610,7 @@ function playDialog(lines, heading) {
     const render = () => {
       const [who, text] = lines[k], S = SPEAKERS[who] || SPEAKERS['旁白'];
       openModal(`${heading ? `<div class="dhead">${heading}</div>` : ''}
-        <div class="dialog"><div class="portrait" style="--c:${S.color}">${S.icon}</div>
+        <div class="dialog">${S.portrait && typeof portraitSVG === 'function' && portraitSVG(S.portrait, 112) ? `<div class="portrait photo" style="--c:${S.color}">${portraitSVG(S.portrait, 112)}</div>` : `<div class="portrait" style="--c:${S.color}">${S.icon}</div>`}
         <div class="dbody"><div class="dname">${who}${S.title ? `<small>${S.title}</small>` : ''}</div><div class="dtext">${text}</div></div></div>
         <div class="row"><button id="dlSkip" class="muted">略過</button><button class="primary" id="dlNext">${k < lines.length - 1 ? '下一句 ▸' : '確定'}</button></div>`, box => {
         box.querySelector('#dlNext').onclick = () => { k++; if (k >= lines.length) { closeModal(); resolve(); } else render(); };

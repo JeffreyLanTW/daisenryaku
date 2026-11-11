@@ -45,6 +45,8 @@ python3 -m http.server 8765 --directory docs
 | `research/daisenryaku/` | 大戰略系列參考資料（FC／世嘉主機版數值、經典地圖、來源索引） |
 | `docs/js/audio.js` | 背景音樂與音效（Web Audio 合成） |
 | `docs/js/saves.js` | 存檔系統 |
+| `js/campaign_sky.js` | 劇情「昇龍 2031」（由 `tools/skygen.js` 產生，勿手改） |
+| `js/portraits.js`、`js/geo.js` | 對話人物頭像、世界地圖定位圖 |
 | `tools/balance.js` | 劇情地圖檢查與 AI 自動對戰平衡測試 |
 | `tools/mapgen.js`、`tools/maps.js`、`tools/mapsync.js` | 大地圖產生器：以經緯度海岸線、山脈、道路與據點畫出地圖字串，`mapsync` 寫回 `docs/js/campaign_fs.js` 標記 `// mapgen:<名稱>` 的地圖 |
 | `docs/js/icons.js` | 部隊圖示：型號造型對照、各國迷彩與國籍標誌 |

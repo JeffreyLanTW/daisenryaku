@@ -1000,3 +1000,16 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
 
 /* 代理視窗：各方選取中的按鈕使用該方顏色（藍方藍、紅方紅） */
 #autoPilotBar .ap-side .ap-seg button.on { background: var(--c); color: #fff; }
+
+/* ----- 劇情：人物頭像與世界地圖定位 ----- */
+.portrait.photo { width: 112px; height: 112px; padding: 0; overflow: hidden; border-radius: 14px; border: 2px solid var(--c); background: #0f141a; box-shadow: 0 6px 18px rgba(0,0,0,.45); font-size: 0; flex: none; }
+.portrait.photo svg { display: block; width: 100%; height: 100%; }
+.geo-loc { display: flex; gap: 14px; align-items: center; margin: 10px 0 6px; padding: 10px; background: #0f141a; border: 1px solid var(--line); border-radius: 10px; }
+.geo-loc svg { flex: none; border-radius: 6px; max-width: 58%; height: auto; }
+.geo-cap { font-size: 14px; line-height: 1.5; }
+.geo-cap small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+@media (max-width: 600px), (max-height: 520px) and (orientation: landscape) {
+  .portrait.photo { width: 72px; height: 72px; border-radius: 10px; }
+  .geo-loc { flex-direction: column; align-items: stretch; }
+  .geo-loc svg { max-width: 100%; }
+}

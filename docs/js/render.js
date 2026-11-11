@@ -334,6 +334,7 @@ function draw(now) {
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(terrainCvs, 0, 0, terrainCvs.width / TS, terrainCvs.height / TS);
   drawProps();
+  drawPlaceNames();
   // 夜間：地形與據點蒙上一層夜色，部隊仍清楚可見
   if (isNight()) { ctx.fillStyle = 'rgba(8,16,48,0.38)'; ctx.fillRect(0, 0, terrainCvs.width / TS, terrainCvs.height / TS); }
   drawMissionMarks(now, false);
@@ -344,6 +345,18 @@ function draw(now) {
   drawFX(now);
 }
 
+// 劇情地圖的真實地名（縮得太小時不顯示）
+function drawPlaceNames() {
+  if (!G.placeNames || cam.z < 0.42) return;
+  ctx.font = '600 11px -apple-system, "PingFang TC", "Noto Sans TC", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const [x, y, name] of G.placeNames) {
+    const [cx, cy] = tileCenter(x, y), w = ctx.measureText(name).width + 8;
+    roundRect(ctx, cx - w / 2, cy + 18, w, 14, 4);
+    ctx.fillStyle = 'rgba(12,17,23,0.72)'; ctx.fill();
+    ctx.fillStyle = '#e8edf3'; ctx.fillText(name, cx, cy + 25.5);
+  }
+}
 function drawProps() {
   for (let i = 0; i < G.terrain.length; i++) {
     if (!TERRAIN[G.terrain[i]].prop) continue;
