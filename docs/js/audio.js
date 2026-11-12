@@ -9,6 +9,10 @@ const AUDIO = {
   music: null,
   musicConnected: false,
   sfx: null,
+  sfxWet: null,     // 帶殘響的音效輸入（乾聲＋共用短殘響，最終仍經 sfxBus）
+  reverb: null,     // 共用 ConvolverNode（只建立一次）
+  duck: null,       // BGM 閃避增益（爆炸時短暫壓低音樂）
+  out: null,        // 最末級輸出節點（軟削波安全網）
   noiseWhite: null,
   noisePink: null,
   on: { music: true, sfx: true, track: 0 },
@@ -28,10 +32,13 @@ const AUDIO = {
 
 // 增益常數（iPad Mini 小喇叭調校：保留多聲部疊加餘裕，避免削波失真）
 const MASTER_GAIN = 0.80;
-const MUSIC_GAIN = 0.36;
-const SFX_GAIN = 0.58;
+const MUSIC_GAIN = 0.27;
+const SFX_GAIN = 0.68;
 const VOICE_GAIN = 0.72;
 const MAX_VOICES = 40;
+const REVERB_WET = 0.24;      // 殘響濕聲比例（低量，只為消除合成音的乾澀感）
+const DUCK_LEVEL = 0.708;     // 閃避深度 -3dB
+const DUCK_RELEASE_TC = 0.1;  // 恢復時間常數（約 300ms 回到 95%）
 
 try {
   const saved = JSON.parse(localStorage.getItem('daisenryaku_audio'));
@@ -95,6 +102,55 @@ function createNoiseBuffers(ctx) {
     pData[i] = PINK_TABLE[i % PINK_LEN];
   }
   return { white: wBuf, pink: pBuf };
+}
+
+// 軟削波曲線（奇數點數，使輸入 0 精確對應輸出 0）：|x|≤0.8 線性，之上 tanh 平滑逼近 0.98
+function makeSoftClipCurve() {
+  const n = 4097;
+  const curve = new Float32Array(n);
+  const knee = 0.8, room = 0.18;
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    const a = Math.abs(x);
+    const y = a <= knee ? a : knee + room * Math.tanh((a - knee) / room);
+    curve[i] = x < 0 ? -y : y;
+  }
+  return curve;
+}
+
+// 演算法殘響脈衝：8ms 預延遲 + 去相關立體聲噪音，指數衰減（seconds 內衰減 60dB），
+// 並以隨時間下降的單極低通讓尾音逐漸變暗（模擬空氣吸收），聽感自然不金屬
+function createReverbImpulse(ctx, seconds) {
+  const sr = ctx.sampleRate || 48000;
+  const len = Math.max(1, Math.floor(sr * seconds));
+  const pre = Math.floor(sr * 0.008);
+  const buf = ctx.createBuffer(2, len, sr);
+  const k60 = 6.9 / seconds;
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let y = 0;
+    for (let i = pre; i < len; i++) {
+      const tt = (i - pre) / sr;
+      const fc = 7000 * Math.exp(-tt * 2.2) + 700;
+      const a = 1 - Math.exp(-2 * Math.PI * fc / sr);
+      y += a * ((Math.random() * 2 - 1) - y);
+      const fadeIn = Math.min(1, tt / 0.004);
+      d[i] = y * Math.exp(-tt * k60) * fadeIn;
+    }
+  }
+  return buf;
+}
+
+// BGM 閃避：快速（約 10ms）壓低至 -3dB，維持 hold 秒後以約 300ms 恢復
+function duckMusic(t, hold = 0.06) {
+  const d = AUDIO.duck;
+  if (!d) return;
+  try {
+    const g = d.gain;
+    g.cancelScheduledValues(t);
+    g.setTargetAtTime(DUCK_LEVEL, t, 0.004);
+    g.setTargetAtTime(1, t + 0.02 + hold, DUCK_RELEASE_TC);
+  } catch (e) { /* 忽略 */ }
 }
 
 const audioAllOff = () => !AUDIO.on.music && !AUDIO.on.sfx;
@@ -193,8 +249,22 @@ function audioInit() {
 
   const master = c.createGain();
   master.gain.value = MASTER_GAIN;
-  master.connect(c.destination);
   AUDIO.master = master;
+
+  // 最末級軟削波安全網（無狀態 WaveShaper）：±0.8 內完全線性透明，之上以 tanh 曲線
+  // 平滑逼近 0.98，保證輸出絕不超過 ±1.0。master 增益歸零時輸出仍為純 0（靜音邏輯不變）。
+  let out = master;
+  try {
+    const clip = c.createWaveShaper();
+    clip.curve = makeSoftClipCurve();
+    clip.oversample = 'none';
+    master.connect(clip);
+    clip.connect(c.destination);
+    out = clip;
+  } catch (e) {
+    master.connect(c.destination);
+  }
+  AUDIO.out = out;
 
   // 最終磚牆限幅器：多聲部同時爆發時鎖住峰值，杜絕 iPad 喇叭削波破音
   const limiter = c.createDynamicsCompressor();
@@ -217,14 +287,21 @@ function audioInit() {
   rumble.Q.value = 0.6;
   rumble.connect(soften);
 
+  // 匯流排黏合壓縮：慢起音（保留音效瞬態）、溫和比例，將音樂與音效黏合成同一空間
   const comp = c.createDynamicsCompressor();
-  comp.threshold.value = -12;
-  comp.knee.value = 12;
-  comp.ratio.value = 3;
-  comp.attack.value = 0.005;
-  comp.release.value = 0.18;
+  comp.threshold.value = -16;
+  comp.knee.value = 10;
+  comp.ratio.value = 2.5;
+  comp.attack.value = 0.012;
+  comp.release.value = 0.22;
   comp.connect(rumble);
   AUDIO.comp = comp;
+
+  // BGM 閃避增益：爆炸／砲擊時快速壓低約 3dB、約 300ms 恢復（不影響 musicBus 的連線／靜音邏輯）
+  const duck = c.createGain();
+  duck.gain.value = 1;
+  duck.connect(comp);
+  AUDIO.duck = duck;
 
   // BGM 中高頻挖空濾波器（2.1kHz -4.5dB），讓戰術音效清晰浮現
   const bgmDip = c.createBiquadFilter();
@@ -232,7 +309,7 @@ function audioInit() {
   bgmDip.frequency.value = 2100;
   bgmDip.Q.value = 0.9;
   bgmDip.gain.value = -4.5;
-  bgmDip.connect(comp);
+  bgmDip.connect(duck);
   AUDIO.bgmFilter = bgmDip;
 
   const musicBus = c.createGain();
@@ -247,6 +324,28 @@ function audioInit() {
   sfxBus.gain.value = AUDIO.on.sfx ? SFX_GAIN : 0;
   sfxBus.connect(comp);
   AUDIO.sfx = sfxBus;
+
+  // 共用短殘響（只建立一次）：sfxWet → sfxBus（乾聲）＋ sfxWet → 高通 → Convolver → 濕聲增益 → sfxBus。
+  // 濕聲同樣經過 sfxBus，音效關閉（增益 0）時殘響輸入與輸出一併靜音。
+  const sfxWet = c.createGain();
+  sfxWet.gain.value = 1;
+  sfxWet.connect(sfxBus);
+  AUDIO.sfxWet = sfxWet;
+  try {
+    const verbHp = c.createBiquadFilter();
+    verbHp.type = 'highpass';
+    verbHp.frequency.value = 220;
+    verbHp.Q.value = 0.6;
+    const verb = c.createConvolver();
+    verb.buffer = createReverbImpulse(c, 1.15);
+    const verbRet = c.createGain();
+    verbRet.gain.value = REVERB_WET;
+    sfxWet.connect(verbHp);
+    verbHp.connect(verb);
+    verb.connect(verbRet);
+    verbRet.connect(sfxBus);
+    AUDIO.reverb = verb;
+  } catch (e) { /* 不支援時僅保留乾聲 */ }
 
   const bufs = createNoiseBuffers(c);
   AUDIO.noiseWhite = bufs.white;
@@ -355,9 +454,9 @@ function trackVoice(src, nodes) {
   };
 }
 
-function env(g, t, attack, peak, decay, end = 0.0001) {
-  // 柔化起音（最短 4ms）並統一降低單聲部增益，避免多聲部疊加削波
-  const a = Math.max(0.004, attack);
+function env(g, t, attack, peak, decay, end = 0.0001, minAttack = 0.004) {
+  // 柔化起音（預設最短 4ms；瞬態層可明確要求 1.5ms）並統一降低單聲部增益，避免多聲部疊加削波
+  const a = Math.max(Math.max(0.0015, minAttack), attack);
   const d = Math.max(0.01, decay);
   const p = Math.max(0.0002, peak * VOICE_GAIN);
   g.gain.setValueAtTime(0.0001, t);
@@ -367,7 +466,7 @@ function env(g, t, attack, peak, decay, end = 0.0001) {
 
 function noiseHit(dest, t, {
   dur = 0.25, peak = 0.5, type = 'lowpass', freq = 1000, q = 0.8,
-  toFreq = 0, attack = 0.004, pink = true,
+  toFreq = 0, attack = 0.004, pink = true, minAttack = 0.004,
 } = {}) {
   const c = AUDIO.ctx;
   const b = pink ? AUDIO.noisePink : AUDIO.noiseWhite;
@@ -382,7 +481,7 @@ function noiseHit(dest, t, {
   if (toFreq > 0) {
     f.frequency.exponentialRampToValueAtTime(Math.max(30, toFreq), t + attack + dur);
   }
-  env(g, t, attack, peak, dur);
+  env(g, t, attack, peak, dur, 0.0001, minAttack);
   src.connect(f);
   f.connect(g);
   g.connect(dest);
@@ -440,102 +539,132 @@ function sfx(name, opt = {}) {
   if (name !== 'click') AUDIO.lastActionAt = now;
 
   const t = c.currentTime + 0.008;
-  const D = AUDIO.sfx;
+  const D = AUDIO.sfx;            // 乾聲（UI 介面音）
+  const W = AUDIO.sfxWet || D;    // 乾聲＋共用短殘響（戰場音效）
+
+  // 分層積木：瞬態「喀」（高通白噪音極短脈衝）
+  const crack = (tk, peak, freq = 2600, dur = 0.008) =>
+    noiseHit(W, tk, { dur, peak, type: 'highpass', freq, q: 0.7, attack: 0.0015, minAttack: 0.0015, pink: false });
+  // 爆炸後的碎裂噼啪尾音（少量隨機極短高頻顆粒）
+  const crackle = (t0, span, count, peak) => {
+    for (let k = 0; k < count; k++) {
+      const tk = t0 + Math.random() * span;
+      noiseHit(W, tk, {
+        dur: 0.012 + Math.random() * 0.02, peak: peak * (0.6 + Math.random() * 0.4),
+        type: 'bandpass', freq: 2200 + Math.random() * 2600, q: 1.1, attack: 0.001, pink: false,
+      });
+    }
+  };
 
   switch (name) {
     case 'click':
-      tone(D, t, { freq: 620, to: 260, dur: 0.022, peak: 0.09, type: 'triangle', attack: 0.002 });
-      noiseHit(D, t, { dur: 0.012, peak: 0.05, type: 'bandpass', freq: 1800, q: 1.5, pink: false });
+      // 極短、極輕、限頻的「嗒」聲（帶通噪音，無音高，不是嗶聲）
+      noiseHit(D, t, { dur: 0.010, peak: 0.16, type: 'bandpass', freq: 3200, q: 2.4, attack: 0.001, pink: false });
       break;
     case 'gun':
       for (let k = 0; k < 3; k++) {
-        const tk = t + k * 0.072;
-        tone(D, tk, { freq: 195, to: 58, dur: 0.045, peak: 0.30, type: 'triangle', attack: 0.002 });
-        noiseHit(D, tk, { dur: 0.052, peak: 0.34, type: 'bandpass', freq: 1450, toFreq: 520, q: 1.1 });
+        const tk = t + k * 0.072 + (Math.random() - 0.5) * 0.006;
+        crack(tk, 0.40, 2800);
+        noiseHit(W, tk, { dur: 0.065, peak: 0.62, type: 'bandpass', freq: 1250, toFreq: 450, q: 0.9, attack: 0.002, pink: false });
+        tone(W, tk, { freq: 170, to: 62, dur: 0.045, peak: 0.36, type: 'sine', attack: 0.002 });
       }
       break;
     case 'mg':
       for (let k = 0; k < 5; k++) {
-        const tk = t + k * 0.048;
-        tone(D, tk, { freq: 230, to: 65, dur: 0.035, peak: 0.26, type: 'triangle', attack: 0.002 });
-        noiseHit(D, tk, { dur: 0.038, peak: 0.28, type: 'bandpass', freq: 1200, toFreq: 450, q: 1.2 });
+        const tk = t + k * 0.05 + (Math.random() - 0.5) * 0.005;
+        crack(tk, 0.32, 3000, 0.006);
+        noiseHit(W, tk, { dur: 0.045, peak: 0.58, type: 'bandpass', freq: 1000, toFreq: 380, q: 0.9, attack: 0.002, pink: false });
       }
       break;
     case 'cannon':
-      tone(D, t, { freq: 135, to: 28, dur: 0.32, peak: 0.58, type: 'sine', attack: 0.003 });
-      noiseHit(D, t, { dur: 0.26, peak: 0.60, type: 'lowpass', freq: 1500, toFreq: 160, q: 0.9, attack: 0.003 });
-      noiseHit(D, t + 0.03, { dur: 0.38, peak: 0.36, type: 'lowpass', freq: 340, toFreq: 75, q: 0.7, attack: 0.015 });
+      duckMusic(t, 0.05);
+      crack(t, 0.55, 2000, 0.012);
+      tone(W, t, { freq: 110, to: 38, dur: 0.36, peak: 0.80, type: 'sine', attack: 0.003 });
+      tone(W, t, { freq: 190, to: 70, dur: 0.16, peak: 0.32, type: 'triangle', attack: 0.003, cutoff: 420 });
+      noiseHit(W, t, { dur: 0.30, peak: 0.78, type: 'lowpass', freq: 2400, toFreq: 160, q: 0.8, attack: 0.003 });
+      noiseHit(W, t + 0.04, { dur: 0.50, peak: 0.34, type: 'lowpass', freq: 420, toFreq: 80, q: 0.7, attack: 0.02 });
       break;
     case 'missile':
-      tone(D, t, { freq: 210, to: 72, dur: 0.06, peak: 0.26, type: 'sine', attack: 0.003 });
-      noiseHit(D, t + 0.015, { dur: 0.44, peak: 0.36, type: 'bandpass', freq: 440, toFreq: 1300, q: 1.3, attack: 0.045 });
-      tone(D, t + 0.03, { freq: 520, to: 880, dur: 0.28, peak: 0.05, type: 'sine', attack: 0.04 });
+      // 點火瞬態 + 低頻推力 + 上升濾波噪音呼嘯
+      crack(t, 0.30, 1800, 0.014);
+      tone(W, t, { freq: 150, to: 60, dur: 0.09, peak: 0.34, type: 'sine', attack: 0.003 });
+      noiseHit(W, t + 0.01, { dur: 0.42, peak: 0.62, type: 'bandpass', freq: 320, toFreq: 2400, q: 1.4, attack: 0.10 });
+      noiseHit(W, t + 0.03, { dur: 0.34, peak: 0.22, type: 'highpass', freq: 1800, toFreq: 4200, q: 0.7, attack: 0.12, pink: false });
       break;
     case 'jet':
-      noiseHit(D, t, { dur: 0.42, peak: 0.22, type: 'bandpass', freq: 320, toFreq: 660, q: 1.4, attack: 0.10 });
-      tone(D, t, { freq: 115, to: 155, dur: 0.38, peak: 0.09, type: 'triangle', attack: 0.09, cutoff: 380 });
+      noiseHit(W, t, { dur: 0.42, peak: 0.34, type: 'bandpass', freq: 320, toFreq: 900, q: 1.2, attack: 0.12 });
+      noiseHit(W, t + 0.05, { dur: 0.32, peak: 0.12, type: 'highpass', freq: 2500, toFreq: 4500, q: 0.7, attack: 0.12, pink: false });
+      tone(W, t, { freq: 115, to: 155, dur: 0.38, peak: 0.12, type: 'triangle', attack: 0.10, cutoff: 380 });
       break;
     case 'explode':
+      duckMusic(t, opt.big ? 0.22 : 0.08);
       if (opt.big) {
-        tone(D, t, { freq: 96, to: 22, dur: 0.52, peak: 0.68, type: 'sine', attack: 0.003 });
-        noiseHit(D, t, { dur: 0.58, peak: 0.65, type: 'lowpass', freq: 1150, toFreq: 85, q: 0.85, attack: 0.004 });
-        tone(D, t + 0.13, { freq: 74, to: 20, dur: 0.46, peak: 0.45, type: 'triangle', attack: 0.005, cutoff: 220 });
-        noiseHit(D, t + 0.13, { dur: 0.60, peak: 0.48, type: 'lowpass', freq: 580, toFreq: 60, q: 0.75, attack: 0.01 });
+        tone(W, t, { freq: 90, to: 32, dur: 0.62, peak: 0.90, type: 'sine', attack: 0.003 });
+        tone(W, t, { freq: 160, to: 50, dur: 0.30, peak: 0.34, type: 'triangle', attack: 0.003, cutoff: 360 });
+        noiseHit(W, t, { dur: 0.62, peak: 0.90, type: 'lowpass', freq: 3200, toFreq: 90, q: 0.8, attack: 0.003 });
+        noiseHit(W, t + 0.12, { dur: 0.70, peak: 0.42, type: 'lowpass', freq: 650, toFreq: 60, q: 0.7, attack: 0.02 });
+        crackle(t + 0.08, 0.55, 5, 0.26);
       } else {
-        tone(D, t, { freq: 112, to: 30, dur: 0.28, peak: 0.50, type: 'sine', attack: 0.003 });
-        noiseHit(D, t, { dur: 0.34, peak: 0.50, type: 'lowpass', freq: 920, toFreq: 115, q: 0.8, attack: 0.004 });
+        tone(W, t, { freq: 90, to: 35, dur: 0.38, peak: 0.80, type: 'sine', attack: 0.003 });
+        tone(W, t, { freq: 150, to: 55, dur: 0.18, peak: 0.28, type: 'triangle', attack: 0.003, cutoff: 360 });
+        noiseHit(W, t, { dur: 0.40, peak: 0.80, type: 'lowpass', freq: 2600, toFreq: 110, q: 0.8, attack: 0.003 });
+        crackle(t + 0.06, 0.35, 3, 0.22);
       }
       break;
     case 'engine':
       for (let k = 0; k < 3; k++) {
         const tk = t + k * 0.085;
-        tone(D, tk, { freq: 56 + k * 5, to: 48 + k * 4, dur: 0.09, peak: 0.18, type: 'triangle', attack: 0.008, cutoff: 240 });
-        noiseHit(D, tk, { dur: 0.08, peak: 0.14, type: 'lowpass', freq: 260, q: 0.8, attack: 0.008 });
+        tone(W, tk, { freq: 56 + k * 5, to: 48 + k * 4, dur: 0.09, peak: 0.26, type: 'triangle', attack: 0.008, cutoff: 260 });
+        noiseHit(W, tk, { dur: 0.08, peak: 0.24, type: 'lowpass', freq: 300, q: 0.8, attack: 0.008 });
       }
       break;
     case 'foot':
       for (let k = 0; k < 3; k++) {
-        const tk = t + k * 0.105;
-        tone(D, tk, { freq: 95, to: 44, dur: 0.04, peak: 0.16, type: 'sine', attack: 0.003 });
-        noiseHit(D, tk, { dur: 0.045, peak: 0.20, type: 'lowpass', freq: 340, toFreq: 140, q: 0.7, attack: 0.003 });
+        const tk = t + k * 0.105 + (Math.random() - 0.5) * 0.01;
+        tone(W, tk, { freq: 95, to: 44, dur: 0.04, peak: 0.20, type: 'sine', attack: 0.003 });
+        noiseHit(W, tk, { dur: 0.05, peak: 0.30, type: 'lowpass', freq: 520, toFreq: 160, q: 0.7, attack: 0.003 });
       }
       break;
     case 'wave':
-      noiseHit(D, t, { dur: 0.42, peak: 0.22, type: 'lowpass', freq: 440, toFreq: 170, q: 0.9, attack: 0.07 });
-      noiseHit(D, t + 0.08, { dur: 0.28, peak: 0.12, type: 'bandpass', freq: 620, toFreq: 240, q: 1.1, attack: 0.05 });
+      noiseHit(W, t, { dur: 0.46, peak: 0.34, type: 'lowpass', freq: 520, toFreq: 170, q: 0.8, attack: 0.09 });
+      noiseHit(W, t + 0.08, { dur: 0.30, peak: 0.16, type: 'bandpass', freq: 1400, toFreq: 500, q: 0.9, attack: 0.06, pink: false });
       break;
     case 'capture':
-      [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => {
-        const tk = t + k * 0.085;
-        const d = k === 3 ? 0.26 : 0.15;
-        tone(D, tk, { freq: f, dur: d, peak: 0.18, type: 'triangle', attack: 0.005, cutoff: 2400 });
-        tone(D, tk, { freq: f * 0.5, dur: d, peak: 0.08, type: 'sine', attack: 0.005 });
+      // 柔和起音的三音上行動機（E5–G5–C6），三角波經低通＋低八度正弦墊底
+      [659.25, 783.99, 1046.5].forEach((f, k) => {
+        const tk = t + k * 0.09;
+        const d = k === 2 ? 0.36 : 0.15;
+        tone(W, tk, { freq: f, dur: d, peak: 0.26, type: 'triangle', attack: 0.012, cutoff: 2200 });
+        tone(W, tk, { freq: f * 0.5, dur: d, peak: 0.12, type: 'sine', attack: 0.012 });
       });
       break;
     case 'build':
-      noiseHit(D, t, { dur: 0.025, peak: 0.14, type: 'bandpass', freq: 1100, toFreq: 380, q: 1.2 });
-      tone(D, t, { freq: 392.0, dur: 0.10, peak: 0.18, type: 'triangle', attack: 0.004, cutoff: 1800 });
-      tone(D, t + 0.085, { freq: 587.33, dur: 0.15, peak: 0.20, type: 'triangle', attack: 0.004, cutoff: 2000 });
+      noiseHit(W, t, { dur: 0.03, peak: 0.20, type: 'bandpass', freq: 1300, toFreq: 420, q: 1.4, attack: 0.002 });
+      tone(W, t, { freq: 392.0, dur: 0.11, peak: 0.24, type: 'triangle', attack: 0.010, cutoff: 1800 });
+      tone(W, t + 0.085, { freq: 587.33, dur: 0.22, peak: 0.26, type: 'triangle', attack: 0.010, cutoff: 2000 });
+      tone(W, t + 0.085, { freq: 293.66, dur: 0.22, peak: 0.10, type: 'sine', attack: 0.010 });
       break;
     case 'turn':
-      tone(D, t, { freq: 440.0, dur: 0.14, peak: 0.15, type: 'triangle', attack: 0.006, cutoff: 1800 });
-      tone(D, t + 0.10, { freq: 659.25, dur: 0.22, peak: 0.17, type: 'triangle', attack: 0.006, cutoff: 2000 });
-      tone(D, t + 0.10, { freq: 329.63, dur: 0.22, peak: 0.08, type: 'sine', attack: 0.006 });
+      // 柔和低音漸強（G3＋D4 五度，慢起音）＋粉紅噪音氣息
+      tone(W, t, { freq: 196.0, dur: 0.34, peak: 0.26, type: 'triangle', attack: 0.16, cutoff: 900 });
+      tone(W, t + 0.04, { freq: 293.66, dur: 0.30, peak: 0.16, type: 'triangle', attack: 0.14, cutoff: 1100 });
+      tone(W, t, { freq: 98.0, dur: 0.32, peak: 0.16, type: 'sine', attack: 0.16 });
+      noiseHit(W, t, { dur: 0.22, peak: 0.08, type: 'lowpass', freq: 300, toFreq: 1000, q: 0.7, attack: 0.18 });
       break;
     case 'win':
       [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, k) => {
         const tk = t + k * 0.11;
-        const d = k === 4 ? 0.45 : 0.18;
-        tone(D, tk, { freq: f, dur: d, peak: 0.18, type: 'triangle', attack: 0.006, cutoff: 2400 });
-        tone(D, tk, { freq: f * 0.5, dur: d, peak: 0.10, type: 'sine', attack: 0.006 });
+        const d = k === 4 ? 0.50 : 0.18;
+        tone(W, tk, { freq: f, dur: d, peak: 0.22, type: 'triangle', attack: 0.012, cutoff: 2400 });
+        tone(W, tk, { freq: f * 0.5, dur: d, peak: 0.12, type: 'sine', attack: 0.012 });
       });
       break;
     case 'lose':
       [440.0, 392.0, 349.23, 293.66].forEach((f, k) => {
         const tk = t + k * 0.20;
-        const d = k === 3 ? 0.48 : 0.22;
-        tone(D, tk, { freq: f, dur: d, peak: 0.16, type: 'triangle', attack: 0.01, cutoff: 1400 });
-        tone(D, tk, { freq: f * 0.5, dur: d, peak: 0.10, type: 'sine', attack: 0.01 });
+        const d = k === 3 ? 0.52 : 0.22;
+        tone(W, tk, { freq: f, dur: d, peak: 0.20, type: 'triangle', attack: 0.02, cutoff: 1400 });
+        tone(W, tk, { freq: f * 0.5, dur: d, peak: 0.12, type: 'sine', attack: 0.02 });
       });
       break;
   }
@@ -675,7 +804,14 @@ function writeBrassNote(L, R, sr, i0, i1, freq, peak, pan = -0.1) {
   const gainL = peak * Math.min(1, 1 - pan);
   const gainR = peak * Math.min(1, 1 + pan);
   const dt = freq / sr;
-  let phase = 0;
+  // 合奏加倍聲部：微失諧（+5 cents）並反向聲像，產生自然立體寬度與合奏感
+  const dt2 = dt * 1.0029;
+  const gain2L = peak * 0.22 * Math.min(1, 1 + pan * 4);
+  const gain2R = peak * 0.22 * Math.min(1, 1 - pan * 4);
+  // 動態亮度：起音時泛音最亮，約 120ms 內收斂至較暗的持續音色（真實銅管特性，持續段不刺耳）
+  const brightStep = Math.exp(-1 / (sr * 0.12));
+  let bright = 1.0;
+  let phase = 0, phase2 = 0.25;
 
   for (let k = 0; k < len; k++) {
     let envVal;
@@ -689,17 +825,21 @@ function writeBrassNote(L, R, sr, i0, i1, freq, peak, pan = -0.1) {
       decay *= decayStep;
       envVal = decay;
     }
-    // 柔和銅管泛音（降低 3、4 次泛音，消除小喇叭上的刺耳鼻音）
+    bright *= brightStep;
+    const b = 0.45 + 0.55 * bright;
+    // 柔和銅管泛音（3、4 次泛音隨亮度包絡收斂，消除小喇叭上的刺耳鼻音）
     const sig = (
-      0.66 * fastSin(phase) +
-      0.24 * fastSin(phase * 2) +
-      0.08 * fastSin(phase * 3) +
-      0.02 * fastSin(phase * 4)
+      0.68 * fastSin(phase) +
+      0.24 * b * fastSin(phase * 2) +
+      0.07 * b * b * fastSin(phase * 3) +
+      0.015 * b * b * fastSin(phase * 4)
     ) * envVal;
+    const sig2 = (0.80 * fastSin(phase2) + 0.15 * b * fastSin(phase2 * 2)) * envVal;
     const idx = i0 + k;
-    L[idx] += sig * gainL;
-    R[idx] += sig * gainR;
+    L[idx] += sig * gainL + sig2 * gain2L;
+    R[idx] += sig * gainR + sig2 * gain2R;
     phase += dt;
+    phase2 += dt2;
   }
 }
 
@@ -716,8 +856,13 @@ function writeChordPad(L, R, sr, i0, i1, chordMidi, peak) {
   const n0 = chordMidi[0] < 55 ? chordMidi[0] + 12 : chordMidi[0];
   const n1 = chordMidi[1] < 55 ? chordMidi[1] + 12 : chordMidi[1];
   const n2 = chordMidi[2] < 55 ? chordMidi[2] + 12 : chordMidi[2];
+  // 左右聲道各自微失諧（±0.5 cent）的弦樂合奏：去相關產生立體寬度，單聲道相加時僅輕微慢速拍頻
+  const dL = 0.9997, dR = 1.0003;
   const dt0 = midi(n0) / sr, dt1 = midi(n1) / sr, dt2 = midi(n2) / sr;
+  const l0 = dt0 * dL, l1 = dt1 * dL, l2 = dt2 * dL;
+  const r0 = dt0 * dR, r1 = dt1 * dR, r2 = dt2 * dR;
   let p0 = 0, p1 = 0, p2 = 0;
+  let q0 = 0, q1 = 0, q2 = 0;
 
   for (let k = 0; k < len; k++) {
     let envVal;
@@ -731,13 +876,19 @@ function writeChordPad(L, R, sr, i0, i1, chordMidi, peak) {
       envVal = 1.0;
     }
     const a = envVal * peak;
-    const s0 = (0.74 * fastSin(p0) + 0.16 * fastSin(p0 * 2)) * a;
-    const s1 = (0.74 * fastSin(p1) + 0.16 * fastSin(p1 * 2)) * a;
-    const s2 = (0.74 * fastSin(p2) + 0.16 * fastSin(p2 * 2)) * a;
+    // 二次泛音左右共用（省運算），僅基音各自微失諧
+    const h0 = 0.13 * fastSin(p0 * 2), h1 = 0.13 * fastSin(p1 * 2), h2 = 0.13 * fastSin(p2 * 2);
+    const sL0 = (0.76 * fastSin(p0) + h0) * a;
+    const sL1 = (0.76 * fastSin(p1) + h1) * a;
+    const sL2 = (0.76 * fastSin(p2) + h2) * a;
+    const sR0 = (0.76 * fastSin(q0) + h0) * a;
+    const sR1 = (0.76 * fastSin(q1) + h1) * a;
+    const sR2 = (0.76 * fastSin(q2) + h2) * a;
     const idx = i0 + k;
-    L[idx] += s0 * 1.15 + s1 + s2 * 0.85;
-    R[idx] += s0 * 0.85 + s1 + s2 * 1.15;
-    p0 += dt0; p1 += dt1; p2 += dt2;
+    L[idx] += sL0 * 1.15 + sL1 + sL2 * 0.85;
+    R[idx] += sR0 * 0.85 + sR1 + sR2 * 1.15;
+    p0 += l0; p1 += l1; p2 += l2;
+    q0 += r0; q1 += r1; q2 += r2;
   }
 }
 
@@ -780,16 +931,18 @@ function writeDrumHit(L, R, sr, i0, maxIdx, kind, stepSeed) {
   if (kind === 'kick') {
     const dur = Math.min(Math.floor(sr * 0.15), maxIdx - i0);
     const invDur = 1 / Math.max(1, dur);
-    const atk = Math.max(1, Math.floor(sr * 0.002));
-    const fDecay = Math.exp(-28 / sr);
+    // 起音 3.5ms smoothstep（原 2ms 線性）＋較慢的音高掃頻：減少「喀」聲，保留低頻衝擊
+    const atk = Math.max(1, Math.floor(sr * 0.0035));
+    const fDecay = Math.exp(-24 / sr);
     const eDecay = Math.exp(-18 / sr);
     // 基頻由 36Hz 提高至 48Hz：iPad Mini 喇叭無法重現極低頻，硬推只會失真
-    let fSweep = 62, envExp = 1.0, phase = 0;
+    let fSweep = 56, envExp = 1.0, phase = 0;
     for (let k = 0; k < dur; k++) {
       phase += (48 + fSweep) / sr;
       fSweep *= fDecay;
       envExp *= eDecay;
-      const a = k < atk ? k / atk : 1;
+      let a = 1;
+      if (k < atk) { const u = k / atk; a = u * u * (3 - 2 * u); }
       const v = fastSin(phase) * envExp * a * (1 - k * invDur) * 0.30;
       L[i0 + k] += v;
       R[i0 + k] += v;
@@ -801,13 +954,18 @@ function writeDrumHit(L, R, sr, i0, maxIdx, kind, stepSeed) {
     const fDecay = Math.exp(-35 / sr);
     const eDecay = Math.exp(-24 / sr);
     let fSweep = 80, envExp = 1.0, phase = 0;
+    // 軍鼓響弦噪音先經單極低通（約 4.5kHz），起音 2.5ms，去除刺耳的數位「喀」聲
+    const nA = 1 - Math.exp(-2 * Math.PI * 4500 / sr);
+    const sAtk = Math.max(1, Math.floor(sr * 0.0025));
+    let nY = 0;
     for (let k = 0; k < dur; k++) {
       phase += (85 + fSweep) / sr;
       fSweep *= fDecay;
       envExp *= eDecay;
-      const a = k < 48 ? k / 48 : 1;
+      const a = k < sAtk ? k / sAtk : 1;
       const envVal = envExp * a * (1 - k * invDur);
-      const v = (fastSin(phase) * 0.14 + PINK_TABLE[pOff + k] * 0.20) * envVal;
+      nY += nA * (PINK_TABLE[pOff + k] - nY);
+      const v = (fastSin(phase) * 0.14 + nY * 0.22) * envVal;
       L[i0 + k] += v * 0.95;
       R[i0 + k] += v * 1.05;
     }
@@ -815,10 +973,13 @@ function writeDrumHit(L, R, sr, i0, maxIdx, kind, stepSeed) {
     const dur = Math.min(Math.floor(sr * 0.030), maxIdx - i0);
     const invDur = 1 / Math.max(1, dur);
     const pOff = (stepSeed * 1597) % (PINK_LEN - dur - 2);
+    // 銅鈸起音 1.5ms 淡入並略降音量，避免每拍一個尖銳脈衝
+    const hAtk = Math.max(1, Math.floor(sr * 0.0015));
     for (let k = 0; k < dur; k++) {
       const u = 1 - k * invDur;
+      const fi = k < hAtk ? k / hAtk : 1;
       const hp = PINK_TABLE[pOff + k + 1] - PINK_TABLE[pOff + k];
-      const v = hp * u * u * 0.040;
+      const v = hp * u * u * fi * 0.034;
       L[i0 + k] += v * 1.05;
       R[i0 + k] += v * 0.95;
     }
@@ -910,18 +1071,33 @@ function getTrackBufferSync(trackIdx) {
     if (cfg.hat && cfg.hat[pos]) writeDrumHit(L, R, sr, i0, loopSamples, 'hat', s);
   }
 
-  // 5. 單極低通（約 5.5kHz）柔化整體高頻，兩次掃描使濾波狀態於迴圈首尾一致（無縫接合）
-  const lpA = 1 - Math.exp(-2 * Math.PI * 5500 / sr);
+  // 5. 雙極（兩級單極串接，約 6.2kHz）柔和低通去除整體刺耳高頻，預先掃描迴圈尾端使濾波狀態於首尾一致（無縫接合）
+  const lpA = 1 - Math.exp(-2 * Math.PI * 6200 / sr);
   for (const ch of [L, R]) {
-    let y = 0;
-    for (let i = loopSamples - 2048; i < loopSamples; i++) y += lpA * (ch[i] - y);
+    let y1 = 0, y2 = 0;
+    for (let i = loopSamples - 2048; i < loopSamples; i++) { y1 += lpA * (ch[i] - y1); y2 += lpA * (y1 - y2); }
     for (let i = 0; i < loopSamples; i++) {
-      y += lpA * (ch[i] - y);
-      ch[i] = y;
+      y1 += lpA * (ch[i] - y1);
+      y2 += lpA * (y1 - y2);
+      ch[i] = y2;
     }
   }
 
-  // 6. 響度校準（預留多聲部餘裕）與首尾零交越平滑
+  // 5b. 交叉早期反射（13ms／17ms 互饋對側聲道，環狀索引保持迴圈無縫）：增加空間感與立體寬度
+  {
+    const cL = Float32Array.from(L);
+    const cR = Float32Array.from(R);
+    const d1 = Math.floor(sr * 0.013), d2 = Math.floor(sr * 0.017);
+    const x = 0.10;
+    for (let i = 0; i < loopSamples; i++) {
+      let jR = i - d1; if (jR < 0) jR += loopSamples;
+      let jL = i - d2; if (jL < 0) jL += loopSamples;
+      L[i] = cL[i] + cR[jR] * x;
+      R[i] = cR[i] + cL[jL] * x;
+    }
+  }
+
+  // 6. 響度校準（全曲目統一 RMS 目標，預留多聲部餘裕）與首尾零交越平滑
   let sumSq = 0;
   for (let i = 0; i < loopSamples; i += 4) {
     sumSq += L[i] * L[i] + R[i] * R[i];
@@ -929,15 +1105,21 @@ function getTrackBufferSync(trackIdx) {
   const rms = Math.sqrt(sumSq / ((loopSamples / 4) * 2)) || 0.001;
   const gain = Math.min(2.0, 0.12 / rms);
   const fadeSamples = Math.min(96, Math.floor(sr * 0.002));
+  // 有界軟削波：|u|≤0.7 完全線性，之上 tanh 平滑逼近 0.98，保證任何樣本絕不超過 ±1.0
+  const KNEE = 0.7, ROOM = 0.28;
+  const shape = u => {
+    const a = u < 0 ? -u : u;
+    if (a <= KNEE) return u;
+    const y = KNEE + ROOM * Math.tanh((a - KNEE) / ROOM);
+    return u < 0 ? -y : y;
+  };
 
   for (let i = 0; i < loopSamples; i++) {
     let g = gain;
     if (i < fadeSamples) g *= i / fadeSamples;
     else if (i >= loopSamples - fadeSamples) g *= (loopSamples - 1 - i) / fadeSamples;
-    const uL = L[i] * g;
-    const uR = R[i] * g;
-    L[i] = uL / (1 + Math.abs(uL) * 0.35);
-    R[i] = uR / (1 + Math.abs(uR) * 0.35);
+    L[i] = shape(L[i] * g);
+    R[i] = shape(R[i] * g);
   }
 
   AUDIO.bgmCache[trackIdx] = buf;
