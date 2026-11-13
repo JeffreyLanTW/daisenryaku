@@ -990,12 +990,14 @@ button.danger { background: #7a2a2a; border-color: #b04040; }
   #autoPilotBar .ap-tune-row { grid-template-columns: 48px 1fr 30px; font-size: 11px; }
 }
 
-/* 代理視窗：每列不同底色（藍方、紅方、速度、工兵） */
+/* 代理視窗：每列不同底色（藍方、紅方、速度、鏡頭、工兵） */
 #autoPilotBar .ap-side { background: color-mix(in srgb, var(--c) 18%, transparent); border-radius: 6px; padding: 4px 6px 4px 8px; }
 #autoPilotBar .ap-speed { background: rgba(234, 179, 8, 0.14); border-left: 4px solid #eab308; border-radius: 6px; padding: 4px 6px 4px 8px; color: #fde68a; }
 #autoPilotBar .ap-speed.ap-eng { background: rgba(34, 197, 94, 0.14); border-left-color: #22c55e; color: #bbf7d0; }
 #autoPilotBar .ap-speed .ap-seg button.on { background: #eab308; }
 #autoPilotBar .ap-speed.ap-eng .ap-seg button.on { background: #22c55e; }
+#autoPilotBar .ap-speed.ap-cam { background: rgba(167, 139, 250, 0.14); border-left-color: #a78bfa; color: #ddd6fe; }
+#autoPilotBar .ap-speed.ap-cam .ap-seg button.on { background: #8b5cf6; }
 #autoPilotBar .ap-sides { gap: 6px; }
 
 /* 代理視窗：各方選取中的按鈕使用該方顏色（藍方藍、紅方紅） */
