@@ -25,7 +25,8 @@ const MODEL_SCALE = 1.35;
 const pool = new Map();   // 部隊 id → { mesh, rotors, sprite, model, yaw, goal, px, py }
 const elev = { v: 55 * Math.PI / 180 };
 // 鏡頭水平旋轉角（弧度）：0 = 從南往北看；增加時畫面內容順時針轉
-const view = { yaw: 0, goal: 0 };
+const view = { yaw: 0, goal: 0, tilt: 0, tiltGoal: 0 };   // tilt：俯角的調整量（度），正值更俯視、負值更平視
+const TILT_MIN = 22, TILT_MAX = 88;
 const V = new THREE.Vector3(), V2 = new THREE.Vector3(), Q = new THREE.Quaternion(), M = new THREE.Matrix4(), S = new THREE.Vector3(), C = new THREE.Color();
 const YAXIS = new THREE.Vector3(0, 1, 0);
 
@@ -402,7 +403,11 @@ function updateCamera() {
   const dist = (vh / 2) / Math.tan(FOV * Math.PI / 360) / cam.z;
   // 拉遠時較俯視（看全局），拉近時較平視（看立體感）
   const t = Math.max(0, Math.min(1, (Math.log(cam.z) - Math.log(0.3)) / (Math.log(1.8) - Math.log(0.3))));
-  elev.v = (64 - 20 * t) * Math.PI / 180;
+  if (view.tilt !== view.tiltGoal) { view.tilt += (view.tiltGoal - view.tilt) * 0.2; if (Math.abs(view.tiltGoal - view.tilt) < 0.05) view.tilt = view.tiltGoal; }
+  const baseDeg = 64 - 20 * t;
+  elev.v = Math.max(TILT_MIN, Math.min(TILT_MAX, baseDeg + view.tilt)) * Math.PI / 180;
+  // 超出範圍的調整量不累積（避免按到底後要按很多次才回來）
+  view.tiltGoal = Math.max(TILT_MIN - baseDeg, Math.min(TILT_MAX - baseDeg, view.tiltGoal));
   // 旋轉按鈕：平滑轉到目標角度
   if (view.yaw !== view.goal) { view.yaw += (view.goal - view.yaw) * 0.2; if (Math.abs(view.goal - view.yaw) < 1e-3) view.yaw = view.goal; }
   const hd = dist * Math.cos(elev.v);
@@ -567,6 +572,10 @@ const API = {
   // 旋轉：rotate 平滑轉到新角度（按鈕、鍵盤），rotateBy 立即轉（拖曳、雙指旋轉）
   rotate(d) { view.goal += d; },
   rotateBy(d) { view.yaw += d; view.goal = view.yaw; },
+  // 傾斜：tilt 平滑（按鈕、鍵盤），tiltBy 立即（拖曳、雙指上下）；單位為度
+  tilt(d) { view.tiltGoal += d; },
+  tiltBy(d) { view.tilt += d; view.tiltGoal = view.tilt; },
+  resetTilt() { view.tiltGoal = 0; },
   resetYaw() { const full = Math.PI * 2; view.goal = Math.round(view.yaw / full) * full; },
   get yaw() { return view.yaw; },
   sync: updateCamera,
