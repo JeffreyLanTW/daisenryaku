@@ -708,13 +708,15 @@ function stepCamera() {
   cam.x += (camGoal.x - cam.x) * 0.16; cam.y += (camGoal.y - cam.y) * 0.16;
   if (Math.abs(camGoal.x - cam.x) < 0.5 && Math.abs(camGoal.y - cam.y) < 0.5) { cam.x = camGoal.x; cam.y = camGoal.y; camGoal = null; }
 }
+// 最大放大倍率：3D 可貼近看模型；2D 地形是預先畫好的底圖，放太大會模糊
+const ZOOM_MAX_3D = 6, ZOOM_MAX_2D = 4;
 function zoomAt(sx, sy, factor) {
   camGoal = null;
   if (in3D) {
     // 3D：以游標下的地面點為中心縮放
     const [vw, vh] = viewSize(), a = R3D.pick(sx, sy);
     const cx = cam.x + vw / cam.z / 2, cy = cam.y + vh / cam.z / 2;
-    cam.z = Math.max(0.25, Math.min(2.5, cam.z * factor));
+    cam.z = Math.max(0.25, Math.min(ZOOM_MAX_3D, cam.z * factor));
     cam.x = cx - vw / cam.z / 2; cam.y = cy - vh / cam.z / 2;
     R3D.sync();
     const b = R3D.pick(sx, sy);
@@ -723,7 +725,7 @@ function zoomAt(sx, sy, factor) {
     return;
   }
   const wx = cam.x + sx / cam.z, wy = cam.y + sy / cam.z;
-  cam.z = Math.max(0.25, Math.min(2.5, cam.z * factor));
+  cam.z = Math.max(0.25, Math.min(ZOOM_MAX_2D, cam.z * factor));
   cam.x = wx - sx / cam.z; cam.y = wy - sy / cam.z;
   clampCam();
 }

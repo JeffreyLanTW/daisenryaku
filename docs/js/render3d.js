@@ -3,7 +3,7 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=103';
+import { unitModel } from './models3d.js?v=104';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -525,6 +525,9 @@ function syncUnits(list) {
     if (e.mesh.material !== mat) { e.mesh.material = mat; for (const r of e.rotors) r.material = mat; }
     for (const r of e.rotors) r.rotation.y = now / 45;
     e.sprite.material = unitMaterial(key, u.type, u.side, o);
+    // 資訊牌放大到 1.6 倍後就不再變大，拉近看模型時不會被字擋住
+    const ls = 0.94 * Math.min(1, 1.6 / cam.z);
+    e.sprite.scale.set(SPR_W * ls, SPR_H * ls, 1);
     // 資訊牌錨在地面（飛機在機身高度）：兵種名落在模型下方，生命值在右上
     e.sprite.position.set(ax, air ? y - 4 : gy + 2, ay);
     blob.add(ax, gy + 0.7, ay, air ? 15 : 21, 1, air ? 7 : 11, '#000', e.yaw, air ? 0.2 : 0.3);

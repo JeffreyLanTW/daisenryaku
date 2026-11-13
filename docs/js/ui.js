@@ -1179,7 +1179,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v103</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v104</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1211,6 +1211,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v104</span><span class="cl-date">2026.11.13</span><p>【3D 模型更精緻】戰車有傾斜車體、托輪與主動輪、砲盾、抽煙器、車長機槍、天線、煙幕彈與置物籃，各國特徵加強（豹 2 箭形附加裝甲、俄印反應裝甲、梅卡瓦鐵鍊簾、16 式輪型等）；飛機有收尖機身、進氣道、座艙罩、噴嘴、翼下掛載與翼尖飛彈；艦艇有外傾船身、分層上層結構、旋轉雷達、相位陣列、近迫武器、垂直發射格、救生艇與甲板標線；步兵有手臂、步槍、背心與不同姿勢。【鏡頭可放更大】3D 最大 6 倍、2D 最大 4 倍；放大時兵種名稱不再跟著變大遮住模型。【觸控旋轉】兩指一起左右滑改為旋轉鏡頭（取代兩指轉動）；兩指上下滑仍是傾斜。</p></div>
         <div class="cl-item"><span class="cl-ver">v103</span><span class="cl-date">2026.11.13</span><p>【固定鏡頭】鏡頭設為「固定」時，回合切換、代理指揮與回合開始的移動命令也不再移動鏡頭。</p></div>
         <div class="cl-item"><span class="cl-ver">v102</span><span class="cl-date">2026.11.13</span><p>【觀戰鏡頭選項】電腦行動時鏡頭可選「跟隨單位」（自動移到行動中的部隊）或「固定」（不自動移動，可自行拖曳、縮放、旋轉觀看）；在觀戰視窗的「鏡頭」列或 ⚙️ 戰場設定切換，會記住選擇。</p></div>
         <div class="cl-item"><span class="cl-ver">v101</span><span class="cl-date">2026.11.13</span><p>【3D 鏡頭傾斜範圍】傾斜範圍改為 0°（水平看地平線）到 90°（正上方往下看）。【點選更準】3D 模式點在部隊模型上就選到該部隊；鏡頭接近水平時改用最近的格子判斷點選位置。</p></div>
@@ -1369,7 +1370,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v103</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v104</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1568,7 +1569,7 @@ function setupInput() {
     if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, btn: e.button, shift: e.shiftKey }; dragging = false; camStart = { ...cam }; }
     else if (pts.size === 2) {
       const [a, b] = [...pts.values()];
-      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: cam.z, ang: Math.atan2(b.y - a.y, b.x - a.x), my: (a.y + b.y) / 2 };
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: cam.z, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
       dragging = true;
     }
   });
@@ -1578,15 +1579,12 @@ function setupInput() {
       const [a, b] = [...pts.values()], r = cvs.getBoundingClientRect();
       const nd = Math.hypot(a.x - b.x, a.y - b.y);
       zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, (pinch.z * nd / pinch.d) / cam.z);
-      // 3D：雙指轉動同時旋轉鏡頭
+      // 3D：雙指一起左右滑＝旋轉鏡頭；一起上下滑＝傾斜（往上較平視、往下較俯視）
       if (in3D) {
-        const ang = Math.atan2(b.y - a.y, b.x - a.x);
-        let d = ang - pinch.ang;
-        if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
-        R3D.rotateBy(d); pinch.ang = ang;
-        // 雙指一起上下滑：傾斜鏡頭（往上滑較平視、往下滑較俯視）
-        const my = (a.y + b.y) / 2;
-        R3D.tiltBy((my - pinch.my) * 0.25); pinch.my = my;
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        R3D.rotateBy(-(mx - pinch.mx) * 0.006);
+        R3D.tiltBy((my - pinch.my) * 0.25);
+        pinch.mx = mx; pinch.my = my;
       }
       return;
     }
