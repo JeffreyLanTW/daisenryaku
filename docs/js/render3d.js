@@ -110,8 +110,8 @@ function init() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   scene = new THREE.Scene();
-  scene.background = new THREE.Color('#0a1118');
-  scene.fog = new THREE.Fog('#0a1118', 1000, 6000);
+  scene.background = new THREE.Color('#000000');
+  scene.fog = new THREE.Fog('#000000', 1000, 6000);
   camera = new THREE.PerspectiveCamera(FOV, 1, 10, 20000);
   hemi = new THREE.HemisphereLight('#e4eeff', '#6b624c', 1.15);
   sun = new THREE.DirectionalLight('#fff1d6', 2.1);
@@ -349,10 +349,10 @@ function buildMap() {
   const pad = 3000;
   waterTex.repeat.set((ww + pad * 2) / 260, (wh + pad * 2) / 260);
   water = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: '#2d78bd', transparent: true, opacity: 0.8, roughness: 0.28, metalness: 0.05, normalMap: waterTex, normalScale: new THREE.Vector2(0.55, 0.55) }));
+    new THREE.MeshStandardMaterial({ color: '#000000', transparent: true, opacity: 0.92, roughness: 0.28, metalness: 0.05, normalMap: waterTex, normalScale: new THREE.Vector2(0.55, 0.55) }));
   water.position.set(ww / 2, WATER_Y, wh / 2);
   water.renderOrder = 0;
-  const bed = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#0f3157', roughness: 1 }));
+  const bed = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#000000', roughness: 1 }));
   bed.position.set(ww / 2, -8.2, wh / 2);
   mapGroup.add(bed, water);
   builtFor = G.terrain;
@@ -493,7 +493,7 @@ const API = {
       hemi.intensity = night ? 0.85 : 1.15; hemi.color.set(night ? '#8fa6e8' : '#e4eeff');
       sun.intensity = night ? 0.9 : 2.1; sun.color.set(night ? '#a9bcff' : '#fff1d6');
       mapGroup.userData.bMat.emissiveIntensity = night ? 1.6 : 0;
-      scene.background.set(night ? '#060a14' : '#0a1118'); scene.fog.color.copy(scene.background);
+      scene.background.set('#000000'); scene.fog.color.copy(scene.background);
     }
     syncProps();
     ovFill.done(); ovRing.done(); ovSeg.done();
