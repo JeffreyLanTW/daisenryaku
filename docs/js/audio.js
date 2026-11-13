@@ -686,14 +686,14 @@ function sfxMove(u) {
   else sfx('engine');
 }
 
-// ===== 背景音樂：五首由 Google Lyria 3.5 產生的配樂（docs/audio/track1–5.mp3）=====
+// ===== 背景音樂：五首由 Google Lyria 3.5 產生的配樂（docs/audio/track1–5.dat，內容是 MP3；副檔名不用 .mp3 是因為部分公司網路閘道會擋）=====
 // 檔案在第一次播放該曲時才下載並解碼，同時間只保留一首在記憶體中。
 const TRACKS = [
-  { name: '前線簡報', file: 'audio/track1.mp3' },
-  { name: '裝甲矛頭', file: 'audio/track2.mp3' },
-  { name: '蒼穹之盾', file: 'audio/track3.mp3' },
-  { name: '聯合艦隊', file: 'audio/track4.mp3' },
-  { name: '決戰黎明', file: 'audio/track5.mp3' },
+  { name: '前線簡報', file: 'audio/track1.dat' },
+  { name: '裝甲矛頭', file: 'audio/track2.dat' },
+  { name: '蒼穹之盾', file: 'audio/track3.dat' },
+  { name: '聯合艦隊', file: 'audio/track4.dat' },
+  { name: '決戰黎明', file: 'audio/track5.dat' },
 ];
 
 if (!(AUDIO.on.track >= 0 && AUDIO.on.track < TRACKS.length)) AUDIO.on.track = 0;
@@ -706,7 +706,7 @@ function loadTrack(idx) {
   if (TRACK_CACHE.idx === idx && TRACK_CACHE.buf) return Promise.resolve(TRACK_CACHE.buf);
   if (TRACK_CACHE.pending[idx]) return TRACK_CACHE.pending[idx];
   if (TRACK_CACHE.failedAt[idx] && Date.now() - TRACK_CACHE.failedAt[idx] < TRACK_RETRY_MS) return Promise.reject(new Error('retry later'));
-  const p = fetch(TRACKS[idx].file + '?v=93')
+  const p = fetch(TRACKS[idx].file + '?v=94')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
     // decodeAudioData 同時支援回呼與 Promise 兩種寫法（舊版 iOS Safari 只有回呼）
     .then(ab => new Promise((res, rej) => { const p2 = c.decodeAudioData(ab, res, rej); if (p2 && p2.catch) p2.catch(rej); }))

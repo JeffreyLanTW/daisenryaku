@@ -1165,7 +1165,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v93</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v94</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1197,6 +1197,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v94</span><span class="cl-date">2026.11.13</span><p>【音樂檔改副檔名】部分公司網路會擋 .mp3 下載導致沒有音樂，音樂檔改用 .dat 副檔名（內容不變）。</p></div>
         <div class="cl-item"><span class="cl-ver">v93</span><span class="cl-date">2026.11.13</span><p>【音樂載入修正】曲目下載期間不再因每次點擊而重複下載或取消播放；載入失敗時會顯示原因，30 秒後才重試。</p></div>
         <div class="cl-item"><span class="cl-ver">v92</span><span class="cl-date">2026.11.13</span><p>【3D 戰場】戰場改以 Three.js 立體呈現：有高度的六角地形、山脈與雪線、森林、城市建築（夜戰時窗戶會亮）、機場跑道、港口吊車、道路橋樑、動態海面，部隊以立牌站在格子上；拉遠較俯視、拉近較平視。右側「3D」按鈕可隨時切回 2D，不支援 WebGL 的裝置自動使用 2D。【各國專屬圖示】約 50 種兵種在 16 國各自依真實裝備重畫輪廓（例如防空砲：獵豹、石勒喀、M163、87 式、M42…），不再只是換色或加小配件。【全新配樂】原本五首合成曲目全數移除，改為五首由 Google Lyria 3.5 產生的管弦配樂。【劇情地圖加大】「昇龍 2031」第四至六章放大為 46×30、56×42、64×64，終章延伸到高屏與花東，並加重終章敵軍。</p></div>
         <div class="cl-item"><span class="cl-ver">v91</span><span class="cl-date">2026.11.12</span><p>【音樂音效重製】音效改為多層合成（爆炸、火砲、機槍、飛彈、佔領、回合提示）並加入空間殘響；爆炸與砲擊時背景音樂自動壓低讓出空間；音樂的銅管與鋪底音色加厚、鼓組放軟、高頻修圓；總輸出加上軟性限幅避免破音，音樂與音效的音量比例重新平衡。</p></div>
@@ -1345,7 +1346,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v93</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v94</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

@@ -43,7 +43,7 @@ python3 -m http.server 8765 --directory docs
 | `docs/js/campaign_fs.js` | 劇情「福爾摩沙之盾」 |
 | `docs/js/campaign_qian.js` | 劇情「乾為天・六龍御天」（易經乾卦） |
 | `research/daisenryaku/` | 大戰略系列參考資料（FC／世嘉主機版數值、經典地圖、來源索引） |
-| `docs/js/audio.js` | 背景音樂（載入 `docs/audio/track1–5.mp3`）與音效（Web Audio 合成） |
+| `docs/js/audio.js` | 背景音樂（載入 `docs/audio/track1–5.dat`）與音效（Web Audio 合成） |
 | `docs/js/render3d.js` | 3D 戰場（Three.js，ES module；`docs/vendor/three.min.js` 為 r187 打包檔） |
 | `docs/js/icons_nat_*.js` | 各國專屬單位造型（防空與火砲、裝甲與步兵、航空器、艦艇），由 `icons.js` 的 `NAT_ICONS` 掛入 |
 | `tools/iconsheet.js` | 產生「國家 × 兵種」圖示對照表（Playwright） |
