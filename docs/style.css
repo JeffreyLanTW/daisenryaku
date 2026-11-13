@@ -1066,10 +1066,15 @@ button:focus-visible { outline: 2px solid #7fb4ff; outline-offset: 2px; }
 #zoomCtl button { border-radius: 9px; background: rgba(20, 27, 35, .9); display: grid; place-items: center; }
 #zoomCtl button .ui-ico-wrap { margin: 0; }
 #zoomCtl button .ui-ico { width: 18px; height: 18px; }
-#zoomCtl #zMusic.on, #zoomCtl #zStats.on, #zoomCtl #zLabel.on { background: var(--gold); border-color: var(--gold); color: #1b1405; }
+#zoomCtl #zMusic.on, #zoomCtl #zStats.on, #zoomCtl #zLabel.on, #zoomCtl #z3d.on { background: var(--gold); border-color: var(--gold); color: #1b1405; }
 .dialog .dname { letter-spacing: .04em; }
 .dialog .dtext { line-height: 1.75; font-size: 16px; }
 .mtitle h2 { letter-spacing: .12em; }
 .autopilot-banner { border: 1px solid #3a4a5c !important; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.5) !important; }
 .btn-ap-stop { box-shadow: none !important; text-shadow: none !important; }
 #battleStats { border-radius: 12px; }
+
+/* ===== 3D 戰場：WebGL 畫布在下，原本的 2D 畫布疊在上面負責文字標示與操作 ===== */
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+#map { position: relative; }
+#zoomCtl #z3d { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }

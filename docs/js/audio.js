@@ -686,447 +686,35 @@ function sfxMove(u) {
   else sfx('engine');
 }
 
-// ===== 100% 同步 PCM 合成引擎（嚴格單音閘門控制，前後音符絕不重疊串音） =====
-const midi = n => 440 * Math.pow(2, (n - 69) / 12);
-
-// 5 首鮮明辨識度的 90 年代《大戰略》工業管弦軍武曲目
+// ===== 背景音樂：五首由 Google Lyria 3.5 產生的配樂（docs/audio/track1–5.mp3）=====
+// 檔案在第一次播放該曲時才下載並解碼，同時間只保留一首在記憶體中。
 const TRACKS = [
-  {
-    name: '鋼鐵進行曲・前線簡報',
-    desc: 'A 小調經典大戰略軍武銅管進行曲',
-    bpm: 106,
-    bass: 'march',
-    chords: [
-      [57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62],
-      [57, 60, 64], [50, 53, 57], [52, 56, 59], [57, 60, 64],
-    ],
-    kick:  [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-    snare: [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1],
-    hat:   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-    melody: [
-      69, -1, 72, 71, 69, -1, 64, -1, 65, -1, 69, -1, 67, -1, 64, -1,
-      64, -1, 67, 69, 72, -1, 71, 69, 67, -1, 71, -1, 74, -1, -1, -1,
-      69, -1, 72, 71, 69, -1, 76, -1, 74, -1, 72, 71, 69, -1, 65, -1,
-      68, -1, 71, 69, 68, -1, 64, -1, 69, -1, -1, -1, -1, -1, -1, -1,
-    ],
-  },
-  {
-    name: '裝甲戰線・閃電推進',
-    desc: 'E 小調高速工業合成貝斯與裝甲突擊主旋律',
-    bpm: 128,
-    bass: 'drive',
-    chords: [
-      [52, 55, 59], [48, 52, 55], [50, 54, 57], [52, 55, 59],
-      [52, 55, 59], [57, 60, 64], [54, 59, 63], [52, 55, 59],
-    ],
-    kick:  [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0],
-    snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-    hat:   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
-    melody: [
-      64, -1, 67, -1, 71, -1, 69, 67, 64, -1, 67, 71, 72, -1, 71, 67,
-      66, -1, 69, -1, 74, -1, 72, 69, 71, -1, -1, -1, 67, -1, 66, -1,
-      64, 67, 71, -1, 76, -1, 74, 71, 72, -1, 76, 74, 72, -1, 69, -1,
-      71, -1, 69, 67, 66, -1, 69, -1, 64, -1, -1, -1, -1, -1, -1, -1,
-    ],
-  },
-  {
-    name: '蒼穹防線・制空攔截',
-    desc: 'D 小調高昂空戰號角與緊湊戰術節奏',
-    bpm: 134,
-    bass: 'drive',
-    chords: [
-      [50, 53, 57], [46, 50, 53], [48, 52, 55], [53, 57, 60],
-      [55, 58, 62], [50, 53, 57], [45, 49, 52], [50, 53, 57],
-    ],
-    kick:  [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0],
-    snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
-    hat:   [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
-    melody: [
-      74, -1, -1, 69, 74, -1, 76, 77, 74, -1, 72, -1, 70, -1, 74, -1,
-      72, -1, -1, 67, 72, -1, 74, 76, 77, -1, 76, -1, 72, -1, -1, -1,
-      70, -1, 74, -1, 77, -1, 79, 77, 74, -1, 76, 74, 72, -1, 69, -1,
-      69, -1, 73, -1, 76, -1, 73, 69, 74, -1, -1, -1, -1, -1, -1, -1,
-    ],
-  },
-  {
-    name: '聯合艦隊・大洋巡航',
-    desc: 'C 小調壯闊海戰管弦與定音鼓波濤',
-    bpm: 90,
-    bass: 'fleet',
-    chords: [
-      [48, 51, 55], [44, 48, 51], [46, 50, 53], [51, 55, 58],
-      [53, 56, 60], [48, 51, 55], [43, 47, 50], [48, 51, 55],
-    ],
-    kick:  [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-    snare: [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1],
-    hat:   [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-    melody: [
-      67, -1, -1, 67, 72, -1, 70, 68, 67, -1, 63, -1, 68, -1, 67, -1,
-      65, -1, -1, 65, 70, -1, 68, 65, 67, -1, -1, -1, 70, -1, -1, -1,
-      68, -1, 72, -1, 75, -1, 74, 72, 70, -1, 67, -1, 72, -1, 68, -1,
-      67, -1, 65, -1, 62, -1, 67, -1, 60, -1, -1, -1, -1, -1, -1, -1,
-    ],
-  },
-  {
-    name: '決戰黎明・總攻號角',
-    desc: 'F 小調全編制工業管弦總攻進行曲',
-    bpm: 122,
-    bass: 'drive',
-    chords: [
-      [53, 56, 60], [49, 53, 56], [51, 55, 58], [48, 51, 55],
-      [49, 53, 56], [46, 49, 53], [48, 52, 55], [53, 56, 60],
-    ],
-    kick:  [1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0],
-    snare: [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1],
-    hat:   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
-    melody: [
-      65, -1, 68, 70, 72, -1, 75, -1, 73, -1, 72, 70, 68, -1, 65, -1,
-      67, -1, 70, 72, 75, -1, 73, 72, 70, -1, 67, -1, 72, -1, -1, -1,
-      73, -1, 77, -1, 75, 73, 72, -1, 70, -1, 73, -1, 72, 70, 68, -1,
-      67, -1, 72, -1, 76, -1, 79, -1, 77, -1, -1, -1, -1, -1, -1, -1,
-    ],
-  },
+  { name: '前線簡報', file: 'audio/track1.mp3' },
+  { name: '裝甲矛頭', file: 'audio/track2.mp3' },
+  { name: '蒼穹之盾', file: 'audio/track3.mp3' },
+  { name: '聯合艦隊', file: 'audio/track4.mp3' },
+  { name: '決戰黎明', file: 'audio/track5.mp3' },
 ];
 
 if (!(AUDIO.on.track >= 0 && AUDIO.on.track < TRACKS.length)) AUDIO.on.track = 0;
 
-// 寫入單一管弦銅管主旋律音符（嚴格閘門在 [i0, i1) 內，首尾完美歸零，絕不與下一個音重疊）
-function writeBrassNote(L, R, sr, i0, i1, freq, peak, pan = -0.1) {
-  const len = i1 - i0;
-  if (len <= 64) return;
-  const atk = Math.min(Math.floor(sr * 0.018), Math.floor(len * 0.25));
-  const rel = Math.min(Math.floor(sr * 0.028), Math.floor(len * 0.30));
-  const susEnd = len - rel;
-  const invAtk = 1 / Math.max(1, atk);
-  const invRel = 1 / Math.max(1, rel);
-  const decayStep = Math.exp(-1.2 / sr);
-  let decay = 1.0;
-  const gainL = peak * Math.min(1, 1 - pan);
-  const gainR = peak * Math.min(1, 1 + pan);
-  const dt = freq / sr;
-  // 合奏加倍聲部：微失諧（+5 cents）並反向聲像，產生自然立體寬度與合奏感
-  const dt2 = dt * 1.0029;
-  const gain2L = peak * 0.22 * Math.min(1, 1 + pan * 4);
-  const gain2R = peak * 0.22 * Math.min(1, 1 - pan * 4);
-  // 動態亮度：起音時泛音最亮，約 120ms 內收斂至較暗的持續音色（真實銅管特性，持續段不刺耳）
-  const brightStep = Math.exp(-1 / (sr * 0.12));
-  let bright = 1.0;
-  let phase = 0, phase2 = 0.25;
-
-  for (let k = 0; k < len; k++) {
-    let envVal;
-    if (k < atk) {
-      const u = k * invAtk;
-      envVal = u * u * (3 - 2 * u);
-    } else if (k >= susEnd) {
-      const u = 1 - (k - susEnd) * invRel;
-      envVal = u * u * (3 - 2 * u) * decay;
-    } else {
-      decay *= decayStep;
-      envVal = decay;
-    }
-    bright *= brightStep;
-    const b = 0.45 + 0.55 * bright;
-    // 柔和銅管泛音（3、4 次泛音隨亮度包絡收斂，消除小喇叭上的刺耳鼻音）
-    const sig = (
-      0.68 * fastSin(phase) +
-      0.24 * b * fastSin(phase * 2) +
-      0.07 * b * b * fastSin(phase * 3) +
-      0.015 * b * b * fastSin(phase * 4)
-    ) * envVal;
-    const sig2 = (0.80 * fastSin(phase2) + 0.15 * b * fastSin(phase2 * 2)) * envVal;
-    const idx = i0 + k;
-    L[idx] += sig * gainL + sig2 * gain2L;
-    R[idx] += sig * gainR + sig2 * gain2R;
-    phase += dt;
-    phase2 += dt2;
-  }
-}
-
-// 寫入中音域管弦弦樂／法國號伴奏和弦（單迴圈三音同步合成，換和弦前歸零，零跨小節串音）
-function writeChordPad(L, R, sr, i0, i1, chordMidi, peak) {
-  const len = i1 - i0;
-  if (len <= 128) return;
-  const atk = Math.min(Math.floor(sr * 0.045), Math.floor(len * 0.25));
-  const rel = Math.min(Math.floor(sr * 0.055), Math.floor(len * 0.30));
-  const susEnd = len - rel;
-  const invAtk = 1 / Math.max(1, atk);
-  const invRel = 1 / Math.max(1, rel);
-
-  const n0 = chordMidi[0] < 55 ? chordMidi[0] + 12 : chordMidi[0];
-  const n1 = chordMidi[1] < 55 ? chordMidi[1] + 12 : chordMidi[1];
-  const n2 = chordMidi[2] < 55 ? chordMidi[2] + 12 : chordMidi[2];
-  // 左右聲道各自微失諧（±0.5 cent）的弦樂合奏：去相關產生立體寬度，單聲道相加時僅輕微慢速拍頻
-  const dL = 0.9997, dR = 1.0003;
-  const dt0 = midi(n0) / sr, dt1 = midi(n1) / sr, dt2 = midi(n2) / sr;
-  const l0 = dt0 * dL, l1 = dt1 * dL, l2 = dt2 * dL;
-  const r0 = dt0 * dR, r1 = dt1 * dR, r2 = dt2 * dR;
-  let p0 = 0, p1 = 0, p2 = 0;
-  let q0 = 0, q1 = 0, q2 = 0;
-
-  for (let k = 0; k < len; k++) {
-    let envVal;
-    if (k < atk) {
-      const u = k * invAtk;
-      envVal = u * u * (3 - 2 * u);
-    } else if (k >= susEnd) {
-      const u = 1 - (k - susEnd) * invRel;
-      envVal = u * u * (3 - 2 * u);
-    } else {
-      envVal = 1.0;
-    }
-    const a = envVal * peak;
-    // 二次泛音左右共用（省運算），僅基音各自微失諧
-    const h0 = 0.13 * fastSin(p0 * 2), h1 = 0.13 * fastSin(p1 * 2), h2 = 0.13 * fastSin(p2 * 2);
-    const sL0 = (0.76 * fastSin(p0) + h0) * a;
-    const sL1 = (0.76 * fastSin(p1) + h1) * a;
-    const sL2 = (0.76 * fastSin(p2) + h2) * a;
-    const sR0 = (0.76 * fastSin(q0) + h0) * a;
-    const sR1 = (0.76 * fastSin(q1) + h1) * a;
-    const sR2 = (0.76 * fastSin(q2) + h2) * a;
-    const idx = i0 + k;
-    L[idx] += sL0 * 1.15 + sL1 + sL2 * 0.85;
-    R[idx] += sR0 * 0.85 + sR1 + sR2 * 1.15;
-    p0 += l0; p1 += l1; p2 += l2;
-    q0 += r0; q1 += r1; q2 += r2;
-  }
-}
-
-// 寫入 90 年代工業合成貝斯音符（單音閘門，下一個貝斯音開始前必定歸零）
-function writeBassNote(L, R, sr, i0, i1, freq, peak) {
-  const len = i1 - i0;
-  if (len <= 64) return;
-  const atk = Math.min(Math.floor(sr * 0.010), Math.floor(len * 0.15));
-  const rel = Math.min(Math.floor(sr * 0.024), Math.floor(len * 0.25));
-  const susEnd = len - rel;
-  const invAtk = 1 / Math.max(1, atk);
-  const invRel = 1 / Math.max(1, rel);
-  const decayStep = Math.exp(-3.5 / sr);
-  let decay = 1.0;
-  const dt = freq / sr;
-  let phase = 0;
-
-  for (let k = 0; k < len; k++) {
-    let envVal;
-    if (k < atk) {
-      const u = k * invAtk;
-      envVal = u * u * (3 - 2 * u);
-    } else if (k >= susEnd) {
-      const u = 1 - (k - susEnd) * invRel;
-      envVal = u * u * (3 - 2 * u) * decay;
-    } else {
-      decay *= decayStep;
-      envVal = decay;
-    }
-    const sig = (0.66 * fastSin(phase) + 0.26 * fastSin(phase * 2) + 0.08 * fastSin(phase * 3)) * envVal * peak;
-    const idx = i0 + k;
-    L[idx] += sig;
-    R[idx] += sig;
-    phase += dt;
-  }
-}
-
-// 寫入工業軍武打擊樂（大鼓、軍鼓、細緻銅鈸）
-function writeDrumHit(L, R, sr, i0, maxIdx, kind, stepSeed) {
-  if (kind === 'kick') {
-    const dur = Math.min(Math.floor(sr * 0.15), maxIdx - i0);
-    const invDur = 1 / Math.max(1, dur);
-    // 起音 3.5ms smoothstep（原 2ms 線性）＋較慢的音高掃頻：減少「喀」聲，保留低頻衝擊
-    const atk = Math.max(1, Math.floor(sr * 0.0035));
-    const fDecay = Math.exp(-24 / sr);
-    const eDecay = Math.exp(-18 / sr);
-    // 基頻由 36Hz 提高至 48Hz：iPad Mini 喇叭無法重現極低頻，硬推只會失真
-    let fSweep = 56, envExp = 1.0, phase = 0;
-    for (let k = 0; k < dur; k++) {
-      phase += (48 + fSweep) / sr;
-      fSweep *= fDecay;
-      envExp *= eDecay;
-      let a = 1;
-      if (k < atk) { const u = k / atk; a = u * u * (3 - 2 * u); }
-      const v = fastSin(phase) * envExp * a * (1 - k * invDur) * 0.30;
-      L[i0 + k] += v;
-      R[i0 + k] += v;
-    }
-  } else if (kind === 'snare') {
-    const dur = Math.min(Math.floor(sr * 0.10), maxIdx - i0);
-    const invDur = 1 / Math.max(1, dur);
-    const pOff = (stepSeed * 997) % (PINK_LEN - dur - 2);
-    const fDecay = Math.exp(-35 / sr);
-    const eDecay = Math.exp(-24 / sr);
-    let fSweep = 80, envExp = 1.0, phase = 0;
-    // 軍鼓響弦噪音先經單極低通（約 4.5kHz），起音 2.5ms，去除刺耳的數位「喀」聲
-    const nA = 1 - Math.exp(-2 * Math.PI * 4500 / sr);
-    const sAtk = Math.max(1, Math.floor(sr * 0.0025));
-    let nY = 0;
-    for (let k = 0; k < dur; k++) {
-      phase += (85 + fSweep) / sr;
-      fSweep *= fDecay;
-      envExp *= eDecay;
-      const a = k < sAtk ? k / sAtk : 1;
-      const envVal = envExp * a * (1 - k * invDur);
-      nY += nA * (PINK_TABLE[pOff + k] - nY);
-      const v = (fastSin(phase) * 0.14 + nY * 0.22) * envVal;
-      L[i0 + k] += v * 0.95;
-      R[i0 + k] += v * 1.05;
-    }
-  } else if (kind === 'hat') {
-    const dur = Math.min(Math.floor(sr * 0.030), maxIdx - i0);
-    const invDur = 1 / Math.max(1, dur);
-    const pOff = (stepSeed * 1597) % (PINK_LEN - dur - 2);
-    // 銅鈸起音 1.5ms 淡入並略降音量，避免每拍一個尖銳脈衝
-    const hAtk = Math.max(1, Math.floor(sr * 0.0015));
-    for (let k = 0; k < dur; k++) {
-      const u = 1 - k * invDur;
-      const fi = k < hAtk ? k / hAtk : 1;
-      const hp = PINK_TABLE[pOff + k + 1] - PINK_TABLE[pOff + k];
-      const v = hp * u * u * fi * 0.034;
-      L[i0 + k] += v * 1.05;
-      R[i0 + k] += v * 0.95;
-    }
-  }
-}
-
-// 100% 同步渲染單一曲目為無縫迴圈立體聲 AudioBuffer（原生取樣率，極速 ~15ms 零非同步競態）
-function getTrackBufferSync(trackIdx) {
-  if (AUDIO.bgmCache[trackIdx]) return AUDIO.bgmCache[trackIdx];
+const TRACK_CACHE = { idx: -1, buf: null, loading: -1 };
+// 下載並解碼一首曲目；decodeAudioData 同時支援回呼與 Promise 兩種寫法（舊版 iOS Safari 只有回呼）
+function loadTrack(idx) {
   const c = AUDIO.ctx;
-  if (!c) return null;
-
-  const cfg = TRACKS[trackIdx] || TRACKS[0];
-  // 採用 AudioContext 原生硬體取樣率（iPad Mini 6 為 48000Hz / 44100Hz），確保 Safari 100% 零重取樣失真
-  const sr = c.sampleRate || 48000;
-  const sp = 60 / cfg.bpm / 4;
-  const totalSteps = 128; // 8 小節完整兩段式循環
-  const loopSamples = Math.floor(totalSteps * sp * sr);
-
-  const buf = c.createBuffer(2, loopSamples, sr);
-  const L = buf.getChannelData(0);
-  const R = buf.getChannelData(1);
-  const stepSamples = sp * sr;
-
-  // 1. 預先計算所有貝斯觸發步點，確保每個貝斯音在下一個貝斯音前完全結束（零串音）
-  const bassSteps = [];
-  for (let s = 0; s < totalSteps; s++) {
-    const pos = s % 16;
-    if (cfg.bass === 'drive') {
-      if (pos % 2 === 0) bassSteps.push(s);
-    } else if (cfg.bass === 'fleet') {
-      if (pos === 0 || pos === 8 || pos === 12) bassSteps.push(s);
-    } else {
-      if (pos % 4 === 0 || pos === 14) bassSteps.push(s);
-    }
-  }
-  for (let idx = 0; idx < bassSteps.length; idx++) {
-    const s0 = bassSteps[idx];
-    const s1 = idx + 1 < bassSteps.length ? bassSteps[idx + 1] : totalSteps;
-    const bar = Math.floor(s0 / 16) % cfg.chords.length;
-    const pos = s0 % 16;
-    const ch = cfg.chords[bar];
-    const note = (cfg.bass === 'drive' && pos % 4 === 2) ? ch[2] - 12 : ch[0] - 12;
-    const i0 = Math.floor(s0 * stepSamples);
-    const maxDurSteps = Math.min(s1 - s0 - 0.12, cfg.bass === 'fleet' ? 5.5 : 2.6);
-    const i1 = Math.min(loopSamples, Math.floor((s0 + Math.max(0.5, maxDurSteps)) * stepSamples));
-    writeBassNote(L, R, sr, i0, i1, midi(note), 0.22);
-  }
-
-  // 2. 寫入每小節分拍和弦伴奏（每 8 步一拍獨立呼吸，換小節前強制歸零，絕不跨小節殘留）
-  for (let barIdx = 0; barIdx < 8; barIdx++) {
-    const ch = cfg.chords[barIdx % cfg.chords.length];
-    const secondHalf = barIdx >= 4;
-    for (const beatOffset of [0, 8]) {
-      const s0 = barIdx * 16 + beatOffset;
-      const i0 = Math.floor(s0 * stepSamples);
-      const i1 = Math.min(loopSamples, Math.floor((s0 + 7.6) * stepSamples));
-      writeChordPad(L, R, sr, i0, i1, ch, secondHalf ? 0.062 : 0.050);
-    }
-  }
-
-  // 3. 預先計算所有主旋律音符邊界：每個音符嚴格在下一個音符開始前 0.15 步歸零結束！
-  const mel = cfg.melody;
-  const melEvents = [];
-  for (let s = 0; s < totalSteps; s++) {
-    const n = mel[s % mel.length];
-    if (n > 0) melEvents.push({ step: s, note: n });
-  }
-  for (let idx = 0; idx < melEvents.length; idx++) {
-    const ev = melEvents[idx];
-    const nextStep = idx + 1 < melEvents.length ? melEvents[idx + 1].step : totalSteps;
-    const availSteps = Math.min(nextStep - ev.step - 0.15, 3.6);
-    const durSteps = Math.max(0.65, availSteps);
-    const i0 = Math.floor(ev.step * stepSamples);
-    const i1 = Math.min(loopSamples, Math.floor((ev.step + durSteps) * stepSamples));
-    const isClimax = ev.step >= 64;
-    writeBrassNote(L, R, sr, i0, i1, midi(ev.note), isClimax ? 0.18 : 0.16, -0.08);
-    if (isClimax) {
-      writeBrassNote(L, R, sr, i0, i1, midi(ev.note - 12), 0.075, 0.12);
-    }
-  }
-
-  // 4. 寫入打擊樂節奏
-  for (let s = 0; s < totalSteps; s++) {
-    const pos = s % 16;
-    const i0 = Math.floor(s * stepSamples);
-    if (cfg.kick && cfg.kick[pos]) writeDrumHit(L, R, sr, i0, loopSamples, 'kick', s);
-    if (cfg.snare && cfg.snare[pos]) writeDrumHit(L, R, sr, i0, loopSamples, 'snare', s);
-    if (cfg.hat && cfg.hat[pos]) writeDrumHit(L, R, sr, i0, loopSamples, 'hat', s);
-  }
-
-  // 5. 雙極（兩級單極串接，約 6.2kHz）柔和低通去除整體刺耳高頻，預先掃描迴圈尾端使濾波狀態於首尾一致（無縫接合）
-  const lpA = 1 - Math.exp(-2 * Math.PI * 6200 / sr);
-  for (const ch of [L, R]) {
-    let y1 = 0, y2 = 0;
-    for (let i = loopSamples - 2048; i < loopSamples; i++) { y1 += lpA * (ch[i] - y1); y2 += lpA * (y1 - y2); }
-    for (let i = 0; i < loopSamples; i++) {
-      y1 += lpA * (ch[i] - y1);
-      y2 += lpA * (y1 - y2);
-      ch[i] = y2;
-    }
-  }
-
-  // 5b. 交叉早期反射（13ms／17ms 互饋對側聲道，環狀索引保持迴圈無縫）：增加空間感與立體寬度
-  {
-    const cL = Float32Array.from(L);
-    const cR = Float32Array.from(R);
-    const d1 = Math.floor(sr * 0.013), d2 = Math.floor(sr * 0.017);
-    const x = 0.10;
-    for (let i = 0; i < loopSamples; i++) {
-      let jR = i - d1; if (jR < 0) jR += loopSamples;
-      let jL = i - d2; if (jL < 0) jL += loopSamples;
-      L[i] = cL[i] + cR[jR] * x;
-      R[i] = cR[i] + cL[jL] * x;
-    }
-  }
-
-  // 6. 響度校準（全曲目統一 RMS 目標，預留多聲部餘裕）與首尾零交越平滑
-  let sumSq = 0;
-  for (let i = 0; i < loopSamples; i += 4) {
-    sumSq += L[i] * L[i] + R[i] * R[i];
-  }
-  const rms = Math.sqrt(sumSq / ((loopSamples / 4) * 2)) || 0.001;
-  const gain = Math.min(2.0, 0.12 / rms);
-  const fadeSamples = Math.min(96, Math.floor(sr * 0.002));
-  // 有界軟削波：|u|≤0.7 完全線性，之上 tanh 平滑逼近 0.98，保證任何樣本絕不超過 ±1.0
-  const KNEE = 0.7, ROOM = 0.28;
-  const shape = u => {
-    const a = u < 0 ? -u : u;
-    if (a <= KNEE) return u;
-    const y = KNEE + ROOM * Math.tanh((a - KNEE) / ROOM);
-    return u < 0 ? -y : y;
-  };
-
-  for (let i = 0; i < loopSamples; i++) {
-    let g = gain;
-    if (i < fadeSamples) g *= i / fadeSamples;
-    else if (i >= loopSamples - fadeSamples) g *= (loopSamples - 1 - i) / fadeSamples;
-    L[i] = shape(L[i] * g);
-    R[i] = shape(R[i] * g);
-  }
-
-  AUDIO.bgmCache[trackIdx] = buf;
-  return buf;
+  if (TRACK_CACHE.idx === idx && TRACK_CACHE.buf) return Promise.resolve(TRACK_CACHE.buf);
+  TRACK_CACHE.loading = idx;
+  return fetch(TRACKS[idx].file + '?v=92')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+    .then(ab => new Promise((res, rej) => { const p2 = c.decodeAudioData(ab, res, rej); if (p2 && p2.catch) p2.catch(rej); }))
+    .then(buf => {
+      // 只保留最後要求的那一首
+      if (TRACK_CACHE.loading === idx) { TRACK_CACHE.idx = idx; TRACK_CACHE.buf = buf; TRACK_CACHE.loading = -1; }
+      return buf;
+    });
 }
 
-// 100% 同步啟動單例 BGM（無 async/await 空窗期，絕不產生多重實例）
+// 啟動背景音樂（單例）：先停掉舊的；曲目尚未載入時先下載，期間若又切歌或關閉音樂就放棄這次啟動
 function startMusic() {
   stopMusic();
   if (!AUDIO.ctx || !AUDIO.on.music || typeof window === 'undefined') return;
@@ -1142,32 +730,25 @@ function startMusic() {
   resumeCtx();
 
   const trackIdx = ((AUDIO.on.track % TRACKS.length) + TRACKS.length) % TRACKS.length;
-  const buf = getTrackBufferSync(trackIdx);
-  if (!buf) return;
-
-  const src = c.createBufferSource();
-  const bus = c.createGain();
-  src.buffer = buf;
-  src.loop = true;
-  src.loopStart = 0;
-  src.loopEnd = buf.duration;
-
-  const targetGain = AUDIO.tense ? 0.85 : 1.0;
-  bus.gain.setValueAtTime(targetGain, c.currentTime);
-  bus.gain.value = targetGain;
-
-  src.connect(bus);
-  bus.connect(AUDIO.music);
-
-  // 單例保證：渲染期間若世代已變更（理論上同步不會發生），放棄本次啟動
-  if (gen !== AUDIO.bgmGen || AUDIO.bgmSource) {
-    try { bus.disconnect(); src.disconnect(); } catch (e) { /* 忽略 */ }
-    return;
-  }
-  AUDIO.bgmSource = src;
-  AUDIO.bgmBus = bus;
-  AUDIO.activeList.push({ src, bus });
-  src.start(0);
+  loadTrack(trackIdx).then(buf => {
+    // 下載期間已切歌、關閉音樂或已有別的音樂在播：放棄
+    if (gen !== AUDIO.bgmGen || AUDIO.bgmSource || !AUDIO.on.music || AUDIO.ctx !== c) return;
+    const src = c.createBufferSource();
+    const bus = c.createGain();
+    src.buffer = buf;
+    src.loop = true;
+    src.loopStart = 0;
+    src.loopEnd = buf.duration;
+    const targetGain = AUDIO.tense ? 0.85 : 1.0;
+    bus.gain.setValueAtTime(targetGain, c.currentTime);
+    bus.gain.value = targetGain;
+    src.connect(bus);
+    bus.connect(AUDIO.music);
+    AUDIO.bgmSource = src;
+    AUDIO.bgmBus = bus;
+    AUDIO.activeList.push({ src, bus });
+    src.start(0);
+  }).catch(() => { /* 離線或檔案載入失敗：維持無音樂，不影響遊戲與音效 */ });
 }
 
 function setTrack(i, manual = true) {
@@ -1190,6 +771,7 @@ const MISSION_TRACK = {
   t1: 0, t2: 2, t3: 4, c2: 3, c3: 1, c4: 2, c5: 4,
   f1: 0, f2: 3, f3: 2, f4: 1, f5: 2, f6: 1, f7: 3, f8: 4,
   q1: 0, q2: 1, q3: 2, q4: 3, q5: 2, q6: 4,
+  s1: 0, s2: 1, s3: 2, s4: 3, s5: 2, s6: 4,
 };
 
 function scenarioTrack(g) {

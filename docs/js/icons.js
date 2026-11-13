@@ -94,6 +94,8 @@ const NAT_FEATURES = {
   USCORP: { land: ['basket', 'smoke'], air: ['pods', 'stinger'], sea: ['dome', 'jack'], inf: ['antenna', 'brim'] },
 };
 
+const NAT_ICONS = {};   // NAT_ICONS[兵種][國家] = T => { ... }，由 icons_nat_*.js 填入
+
 // 繪製可愛 Q 版 (SD Chibi) 軍事部隊圖示
 // 中心 0,0，範圍約 -21..21 x -15..15，朝右，邊框無棋子包邊
 function drawIcon(c, d) {
@@ -730,7 +732,10 @@ function drawIcon(c, d) {
     if (['GB', 'FR', 'AU', 'IN'].includes(nat)) { c.beginPath(); c.arc(x, y, r * 0.62, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill(); }
     c.beginPath(); c.arc(x, y, r * (['GB', 'FR', 'AU', 'IN'].includes(nat) ? 0.34 : 0.48), 0, Math.PI * 2); c.fillStyle = N[1]; c.fill();
   }
-  const variantDrawn = drawModelVariant();
+  // 各國專屬造型（icons_nat_*.js）：有登錄就優先使用，否則退回型號變體與通用造型
+  const natDraw = typeof NAT_ICONS !== 'undefined' && NAT_ICONS[base] && NAT_ICONS[base][nat];
+  if (natDraw) natDraw({ c, d, nat, base, col, hi, lo, acc, ink, toonPoly, toonRR, toonCirc, toonEll, line, toonTracks, toonWheels, shine, clearShadow, natBadge, drawNationalHelmet });
+  const variantDrawn = natDraw ? true : drawModelVariant();
   if (!variantDrawn) switch (base) {
     // ===================== 擴充兵種（v83） =====================
     case 'ifv': {   // 步兵戰車：高車身＋小砲塔＋側掛飛彈筒
@@ -1359,7 +1364,8 @@ function drawIcon(c, d) {
   const INF_BASES = ['inf', 'atinf', 'mortar', 'sniper', 'specops', 'manpads', 'engineer', 'wafer_inf', 'marine'];
   const nf = (NAT_FEATURES[nat] || NAT_FEATURES.TW);
   const dark = lo;
-  if (INF_BASES.includes(base)) {
+  if (natDraw) { /* 各國專屬造型已自帶特徵，不再疊加通用配件 */ }
+  else if (INF_BASES.includes(base)) {
     const f = nf.inf;
     if (f.includes('antenna')) { line(-12, -4, -15, -17, 1.8, ink); toonCirc(-15, -17, 1.3, ink, 0); }          // 無線電天線
     if (f.includes('goggles')) toonRR(-9, -13, 10, 3, 1.4, '#94a3b8', 1.4);                                     // 鋼盔風鏡

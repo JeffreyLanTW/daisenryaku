@@ -8,6 +8,26 @@ const cam = { x: 0, y: 0, z: 1 };
 const FX = [];
 let cvs, ctx, mini, mctx, terrainCvs = null, dpr = 1;
 
+// ----- 2D／3D 顯示切換 -----
+// 3D 由 render3d.js（Three.js）負責；裝置不支援 WebGL 或使用者關閉時用 2D。
+function use3D() { return SETTINGS.view3d && typeof window !== 'undefined' && window.R3D && window.R3D.ready && !window.R3D.failed; }
+let in3D = false;   // 本幀是否以 3D 繪製
+// 螢幕座標（相對於地圖畫布左上角）↔ 地圖座標
+function screenToWorld(sx, sy) { return in3D ? R3D.pick(sx, sy) : [cam.x + sx / cam.z, cam.y + sy / cam.z]; }
+function worldToScreen(wx, wy) { if (in3D) { const p = R3D.project(wx, wy); return [p[0], p[1]]; } return [(wx - cam.x) * cam.z, (wy - cam.y) * cam.z]; }
+// 3D 模式下，把原本以地圖座標寫的小型 2D 繪圖（地名、氣泡、進度條、特效）貼到投影後的位置
+function at(wx, wy, fn) {
+  if (in3D) {
+    const [sx, sy, k] = R3D.project(wx, wy), z = k * dpr;
+    ctx.setTransform(z, 0, 0, z, (sx - wx * k) * dpr, (sy - wy * k) * dpr);
+  }
+  fn();
+}
+function strokeHexAt(i, color, lw) {
+  if (in3D) return R3D.strokeHex(i, color);
+  const [cx, cy] = idxCenter(i); hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.stroke();
+}
+
 function tileCenter(x, y) { return [2 * HW * x + HW * (y & 1) + HW, 1.5 * R * y + R]; }
 function idxCenter(i) { const [x, y] = ixy(i); return tileCenter(x, y); }
 function worldSize() { return [2 * HW * G.w + HW, 1.5 * R * (G.h - 1) + 2 * R]; }
@@ -54,7 +74,12 @@ const TCOLOR = {
   airport: '#b9c98e', port: '#b9c98e',
 };
 
+let terrainStale = false;
 function buildTerrain() {
+  if (typeof window !== 'undefined' && window.R3D) R3D.dirty = true;
+  // 3D 模式不需要 2D 地形底圖；切回 2D 時才補畫
+  if (use3D()) { terrainStale = true; terrainCvs = terrainCvs || document.createElement('canvas'); return; }
+  terrainStale = false;
   const [ww, wh] = worldSize();
   // 高解析度螢幕（Retina／iPad）小地圖用 3 倍底圖，放大後地形仍清晰
   TS = Math.max(0.8, Math.min((window.devicePixelRatio || 1) >= 2 ? 3 : 2, Math.sqrt(14e6 / (ww * wh))));
@@ -212,7 +237,8 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
   const air = d.cat === 'air';
   const oy = air ? -5 : -2, w = 50, h = 38;
   const top = cy - h / 2 + oy;
-  if (air) {
+  if (o.noShadow) { /* 3D 模式的影子畫在地面上 */ }
+  else if (air) {
     c.fillStyle = 'rgba(0,0,0,0.32)'; c.beginPath(); c.ellipse(cx, cy + 15, 16, 4.5, 0, 0, 7); c.fill();
   } else {
     c.fillStyle = 'rgba(0,0,0,0.24)'; c.beginPath(); c.ellipse(cx, cy + 12, 18, 5, 0, 0, 7); c.fill();
@@ -326,10 +352,20 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
 function draw(now) {
   stepCamera();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const want3D = !!G && use3D();
+  if (want3D !== in3D && typeof window !== 'undefined' && window.R3D) R3D.show(want3D);
+  in3D = want3D;
+  if (in3D) {
+    if (G.terrainDirty) { G.terrainDirty = false; buildTerrain(); }
+    if (!R3D.begin()) { in3D = false; SETTINGS.view3d = false; return; }
+    draw3D(now);
+    return;
+  }
   ctx.fillStyle = '#0c1117'; ctx.fillRect(0, 0, cvs.width, cvs.height);
   if (!G || !terrainCvs) return;
   // 工兵建好基地後地形改變：重繪地形底圖
   if (G.terrainDirty) { G.terrainDirty = false; buildTerrain(); }
+  if (terrainStale) buildTerrain();
   const z = cam.z * dpr;
   ctx.setTransform(z, 0, 0, z, -cam.x * z, -cam.y * z);
   ctx.imageSmoothingQuality = 'high';
@@ -346,16 +382,34 @@ function draw(now) {
   drawFX(now);
 }
 
+// 3D：地形、建物、部隊由 Three.js 畫；2D 畫布疊在上面，只畫文字與小型標示
+function draw3D(now) {
+  drawMissionMarks(now, false);
+  drawOverlays(now);
+  R3D.setUnits(unitDrawList(true));
+  R3D.render(now);
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  drawProps();
+  drawPlaceNames();
+  drawMissionMarks(now, true);
+  drawForecastBubble();
+  drawFX(now);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
 // 劇情地圖的真實地名（縮得太小時不顯示）
 function drawPlaceNames() {
   if (!G.placeNames || cam.z < 0.42) return;
-  ctx.font = '600 11px -apple-system, "PingFang TC", "Noto Sans TC", sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const [x, y, name] of G.placeNames) {
-    const [cx, cy] = tileCenter(x, y), w = ctx.measureText(name).width + 8;
-    roundRect(ctx, cx - w / 2, cy + 18, w, 14, 4);
-    ctx.fillStyle = 'rgba(12,17,23,0.72)'; ctx.fill();
-    ctx.fillStyle = '#e8edf3'; ctx.fillText(name, cx, cy + 25.5);
+    const [cx, cy] = tileCenter(x, y);
+    at(cx, cy, () => {
+      ctx.font = '600 11px -apple-system, "PingFang TC", "Noto Sans TC", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const w = ctx.measureText(name).width + 8;
+      roundRect(ctx, cx - w / 2, cy + 18, w, 14, 4);
+      ctx.fillStyle = 'rgba(12,17,23,0.72)'; ctx.fill();
+      ctx.fillStyle = '#e8edf3'; ctx.fillText(name, cx, cy + 25.5);
+    });
   }
 }
 function drawProps() {
@@ -363,18 +417,20 @@ function drawProps() {
     if (!TERRAIN[G.terrain[i]].prop) continue;
     const o = G.owner[i], [cx, cy] = idxCenter(i);
     const col = o >= 0 ? SIDES[o].color : '#eeeeee';
-    hexPath(ctx, cx, cy, R - 3);
-    ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1;
-    ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(cx + 14, cy - 23); ctx.lineTo(cx + 14, cy - 8); ctx.stroke();
-    ctx.fillStyle = col; ctx.fillRect(cx + 14, cy - 23, 10, 6); ctx.lineWidth = 1; ctx.strokeRect(cx + 14, cy - 23, 10, 6);
-    const c = G.capture[i];
+    const c = G.capture[i], b = G.construct && G.construct[i];
+    if (in3D) { if (!c && !b) continue; at(cx, cy, () => {}); }
+    else {
+      hexPath(ctx, cx, cy, R - 3);
+      ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx + 14, cy - 23); ctx.lineTo(cx + 14, cy - 8); ctx.stroke();
+      ctx.fillStyle = col; ctx.fillRect(cx + 14, cy - 23, 10, 6); ctx.lineWidth = 1; ctx.strokeRect(cx + 14, cy - 23, 10, 6);
+    }
     if (c) {
       ctx.fillStyle = '#111'; ctx.fillRect(cx - 15, cy + 19, 30, 5);
       ctx.fillStyle = SIDES[c.side].light; ctx.fillRect(cx - 14, cy + 20, 28 * (1 - c.pts / CAPTURE_POINTS), 3);
     }
     // 工兵建設進度：金色進度條與基地圖示
-    const b = G.construct && G.construct[i];
     if (b) {
       const B = BASE_TYPES[b.type];
       ctx.fillStyle = '#111'; ctx.fillRect(cx - 15, cy + 13, 30, 5);
@@ -392,6 +448,11 @@ function drawMissionMarks(now, top) {
   const p = 0.5 + 0.5 * Math.sin(now / 260);
   if (!top) {
     for (const t of mt.tiles) {
+      if (in3D) {
+        R3D.fillHex(t.i, t.bonus ? `rgba(160,220,255,${0.2 + 0.14 * p})` : `rgba(255,200,60,${0.24 + 0.2 * p})`);
+        R3D.strokeHex(t.i, t.bonus ? '#a8dcff' : '#ffd34d');
+        continue;
+      }
       const [cx, cy] = idxCenter(t.i);
       hexPath(ctx, cx, cy, R - 2);
       ctx.fillStyle = t.bonus ? `rgba(160,220,255,${0.12 + 0.1 * p})` : `rgba(255,200,60,${0.15 + 0.15 * p})`;
@@ -404,19 +465,24 @@ function drawMissionMarks(now, top) {
   }
   for (const t of mt.tiles) {
     const [cx, cy] = idxCenter(t.i);
-    ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-    ctx.strokeText(t.bonus ? '⭐' : '🎯', cx - 18, cy - 20); ctx.fillText(t.bonus ? '⭐' : '🎯', cx - 18, cy - 20);
+    at(cx, cy, () => {
+      ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+      ctx.strokeText(t.bonus ? '⭐' : '🎯', cx - 18, cy - 20); ctx.fillText(t.bonus ? '⭐' : '🎯', cx - 18, cy - 20);
+    });
   }
   for (const u of G.units) {
     if (!u.tag || !mt.tags.includes(u.tag)) continue;
     const [cx, cy] = u._anim || tileCenter(u.x, u.y), r = 24 + 2 * p;
-    ctx.strokeStyle = '#ff4b4b'; ctx.lineWidth = 2;
-    circle(ctx, cx, cy - 3, r); ctx.stroke();
-    for (const a of [0, 1, 2, 3]) {
-      const ang = a * Math.PI / 2, ix = Math.cos(ang), iy = Math.sin(ang);
-      ctx.beginPath(); ctx.moveTo(cx + ix * (r - 5), cy - 3 + iy * (r - 5)); ctx.lineTo(cx + ix * (r + 5), cy - 3 + iy * (r + 5)); ctx.stroke();
-    }
+    at(cx, cy, () => {
+      const oy = in3D ? -14 : -3;
+      ctx.strokeStyle = '#ff4b4b'; ctx.lineWidth = 2;
+      circle(ctx, cx, cy + oy, r); ctx.stroke();
+      for (const a of [0, 1, 2, 3]) {
+        const ang = a * Math.PI / 2, ix = Math.cos(ang), iy = Math.sin(ang);
+        ctx.beginPath(); ctx.moveTo(cx + ix * (r - 5), cy + oy + iy * (r - 5)); ctx.lineTo(cx + ix * (r + 5), cy + oy + iy * (r + 5)); ctx.stroke();
+      }
+    });
   }
 }
 
@@ -424,7 +490,10 @@ function drawMissionMarks(now, top) {
 function drawForecastBubble() {
   const f = UIS.fc;
   if (!f || (UIS.mode !== 'selected' && UIS.mode !== 'target')) return;
-  const [cx, cy] = tileCenter(f.x, f.y);
+  const [cx, cy0] = tileCenter(f.x, f.y), cy = cy0 - (in3D ? 22 : 0);
+  at(cx, cy0, () => drawForecastAt(f, cx, cy));
+}
+function drawForecastAt(f, cx, cy) {
   const t1 = f.kill ? '擊破!' : `-${f.dmg}`, t2 = `↩ -${f.counter}`;
   ctx.font = 'bold 13px sans-serif';
   const w = Math.max(ctx.measureText(t1).width, ctx.measureText(t2).width) + 34, h = 38, x = cx - w / 2, y = cy - 30 - h;
@@ -438,7 +507,7 @@ function drawForecastBubble() {
   ctx.fillStyle = f.counter ? '#ff8a7a' : '#8fd18f'; ctx.fillText(t2, x + 24, y + 28);
 }
 
-function fillHex(i, color) { const [cx, cy] = idxCenter(i); hexPath(ctx, cx, cy, R - 1); ctx.fillStyle = color; ctx.fill(); }
+function fillHex(i, color) { if (in3D) return R3D.fillHex(i, color); const [cx, cy] = idxCenter(i); hexPath(ctx, cx, cy, R - 1); ctx.fillStyle = color; ctx.fill(); }
 
 function drawOverlays(now) {
   const sel = UIS.sel;
@@ -448,7 +517,7 @@ function drawOverlays(now) {
     if (UIS.deploySel) {
       const ds = UIS.deploySel, mt = UNITS[ds.type].mt;
       for (const i of UIS.deployZone) if (!unitAt(...ixy(i)) && moveCost(G.terrain[i], mt) !== Infinity) fillHex(i, 'rgba(90,220,120,0.35)');
-      if (ds.x >= 0) { const [cx, cy] = tileCenter(ds.x, ds.y); hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = '#7dff9a'; ctx.lineWidth = 3; ctx.stroke(); }
+      if (ds.x >= 0) strokeHexAt(idxOf(ds.x, ds.y), '#7dff9a', 3);
     }
   }
   if (UIS.mode === 'selected' && UIS.reach) {
@@ -467,7 +536,10 @@ function drawOverlays(now) {
     const p = 0.35 + 0.25 * Math.sin(now / 150);
     for (const u of UIS.targets) fillHex(idxOf(u.x, u.y), `rgba(255,40,40,${p})`);
   }
-  if (UIS.path && UIS.path.length > 1) {
+  if (in3D && UIS.path && UIS.path.length > 1) {
+    R3D.path(UIS.path, 'rgba(0,0,0,0.5)', 9); R3D.path(UIS.path, '#fff5c2', 5);
+    R3D.fillHex(UIS.path[UIS.path.length - 1], 'rgba(255,245,194,0.55)');
+  } else if (UIS.path && UIS.path.length > 1) {
     const pts = UIS.path.map(idxCenter);
     for (const [col, lw] of [['rgba(0,0,0,0.5)', 9], ['#fff5c2', 5]]) {
       ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
@@ -480,6 +552,12 @@ function drawOverlays(now) {
   // 移動命令：預覽與已設定的目的地（虛線＋旗）
   const dashPath = (path, col) => {
     if (!path || path.length < 2) return;
+    if (in3D) {
+      R3D.path(path, col, 3.5, [7, 6, now / 60]);
+      const end = path[path.length - 1];
+      R3D.strokeHex(end, '#ffd34d'); R3D.fillHex(end, 'rgba(255,211,77,0.3)');
+      return;
+    }
     const pts = path.map(idxCenter);
     ctx.setLineDash([7, 6]); ctx.lineDashOffset = -now / 60;
     ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
@@ -494,22 +572,24 @@ function drawOverlays(now) {
   if (UIS.mode === 'selected' && UIS.orderPreview) dashPath(UIS.orderPreview, '#ffd34d');
   const showOrder = sel || (UIS.hover && unitAt(UIS.hover[0], UIS.hover[1]));
   if (showOrder && showOrder.side === G.cur && showOrder.order != null && !UIS.orderPreview) dashPath(orderPath(showOrder, showOrder.order), 'rgba(255,211,77,0.75)');
-  if (sel) {
-    const [cx, cy] = tileCenter(sel.x, sel.y);
-    hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-  }
-  if (UIS.hover && inMap(UIS.hover[0], UIS.hover[1])) {
-    const [cx, cy] = tileCenter(UIS.hover[0], UIS.hover[1]);
-    hexPath(ctx, cx, cy, R - 1.5); ctx.strokeStyle = '#ffe27a'; ctx.lineWidth = 2.5; ctx.stroke();
-  }
+  if (sel) strokeHexAt(idxOf(sel.x, sel.y), '#fff', 3);
+  if (UIS.hover && inMap(UIS.hover[0], UIS.hover[1])) strokeHexAt(idxOf(UIS.hover[0], UIS.hover[1]), '#ffe27a', 2.5);
+  if (in3D && UIS.inspect) R3D.fillHex(idxOf(UIS.inspect.x, UIS.inspect.y), 'rgba(255,226,122,0.4)');
 }
 
 function drawUnits() {
-  const list = [...G.units].sort((a, b) => (UNITS[a.type].cat === 'air') - (UNITS[b.type].cat === 'air') || a.y - b.y);
-  for (const u of list) {
+  for (const { u, o } of unitDrawList(false)) {
     const [cx, cy] = u._anim || tileCenter(u.x, u.y);
+    drawCounter(ctx, cx, cy, u.type, u.side, o);
+  }
+}
+// 每個部隊這一幀要畫的樣子；key 相同代表外觀相同（3D 立牌貼圖以此快取）
+function unitDrawList(for3D) {
+  const list = [...G.units].sort((a, b) => (UNITS[a.type].cat === 'air') - (UNITS[b.type].cat === 'air') || a.y - b.y);
+  const out = [];
+  for (const u of list) {
     const d = UNITS[u.type];
-    drawCounter(ctx, cx, cy, u.type, u.side, {
+    const o = {
       hp: u.hp,
       maxHp: u.maxHp || d.maxHp || 10,
       hasAura: typeof unitAura === 'function' ? unitAura(u).hasAura : false,
@@ -524,8 +604,12 @@ function drawUnits() {
       allyAI: UNITS[u.type].ally && G.allyAI,
       rank: rankOf(u),
       tier: UNITS[u.type].tier || 0,
-    });
+    };
+    if (for3D) { o.noShadow = true; o.highlight = false; }
+    const col = typeof nationColor === 'function' ? nationColor(d.nation, u.side) : '';
+    out.push({ u, o, key: for3D ? `${u.type}|${u.side}|${col}|${o.hp}|${o.maxHp}|${+o.hasAura}${+o.hasEscort}${+o.done}${+o.fuelLow}${+o.label}${+!!o.vip}${+o.order}${+!!o.allyAI}|${o.cargo || 0}|${o.rank}|${o.tier}` : '' });
   }
+  return out;
 }
 
 function drawFX(now) {
@@ -533,6 +617,7 @@ function drawFX(now) {
     const f = FX[k], t = (now - f.t0) / f.dur;
     if (t >= 1) { FX.splice(k, 1); continue; }
     if (t < 0) continue;
+    if (in3D) at(f.x, f.y, () => {});
     if (f.kind === 'boom') {
       const r = (8 + t * 22) * (f.big ? 1.5 : 1);
       const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
@@ -598,7 +683,8 @@ let camGoal = null;
 function ensureVisible(x, y) {
   const [cx, cy] = tileCenter(x, y), [vw, vh] = viewSize();
   const ref = camGoal || cam;
-  const sx = (cx - ref.x) * cam.z, sy = (cy - ref.y) * cam.z;
+  let sx = (cx - ref.x) * cam.z, sy = (cy - ref.y) * cam.z;
+  if (in3D && !camGoal) [sx, sy] = worldToScreen(cx, cy);
   if (!(sx < 60 || sy < 60 || sx > vw - 60 || sy > vh - 60)) return;
   if (G && G.players && G.players[G.cur] && G.players[G.cur].ai) {
     const keep = { x: cam.x, y: cam.y };
@@ -648,5 +734,8 @@ function drawMini() {
   }
   const [vw, vh] = viewSize();
   mctx.strokeStyle = '#ffe27a'; mctx.lineWidth = 2 / s;
-  mctx.strokeRect(cam.x, cam.y, vw / cam.z, vh / cam.z);
+  if (in3D) {
+    const q = R3D.corners();
+    mctx.beginPath(); q.forEach(([x, y], k) => (k ? mctx.lineTo(x, y) : mctx.moveTo(x, y))); mctx.closePath(); mctx.stroke();
+  } else mctx.strokeRect(cam.x, cam.y, vw / cam.z, vh / cam.z);
 }

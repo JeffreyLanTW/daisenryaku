@@ -7,7 +7,8 @@ const UIS = {
   sel: null, reach: null, attackSet: null, path: null, hover: null,
   origin: null, targets: null, inspect: null, inspectSet: null, lastReachHover: null,
 };
-const SETTINGS = { aiStep: 10, labels: true };   // 電腦速度預設極快
+const SETTINGS = { aiStep: 10, labels: true, view3d: true };   // 電腦速度預設極快；畫面預設 3D
+try { SETTINGS.view3d = localStorage.getItem('daisenryaku_3d') !== '0'; } catch (e) { /* 忽略 */ }
 try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETTINGS.labels = l === '1'; } catch (e) { /* 忽略 */ }
 // 戰場資訊面板：stats 平常是否開啟、statsPos 位置（bl 左下 / tl 左上）、statsMin 收合
 SETTINGS.stats = true; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false; SETTINGS.engineer = false; SETTINGS.apMin = false;
@@ -389,9 +390,10 @@ function positionMenu() {
   const m = $('#actionMenu');
   if (m.classList.contains('hidden') || !UIS.sel) return;
   const [cx, cy] = tileCenter(UIS.sel.x, UIS.sel.y);
-  let sx = (cx - cam.x) * cam.z + 34 * cam.z, sy = (cy - cam.y) * cam.z - 30;
+  const [px, py] = worldToScreen(cx, cy);
+  let sx = px + 34 * cam.z, sy = py - 30;
   const [vw, vh] = viewSize();
-  if (sx + m.offsetWidth > vw - 6) sx = (cx - cam.x) * cam.z - 34 * cam.z - m.offsetWidth;
+  if (sx + m.offsetWidth > vw - 6) sx = px - 34 * cam.z - m.offsetWidth;
   sy = Math.max(6, Math.min(vh - m.offsetHeight - 6, sy));
   m.style.left = sx + 'px'; m.style.top = sy + 'px';
 }
@@ -1163,7 +1165,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v91</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v92</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1195,6 +1197,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v92</span><span class="cl-date">2026.11.13</span><p>【3D 戰場】戰場改以 Three.js 立體呈現：有高度的六角地形、山脈與雪線、森林、城市建築（夜戰時窗戶會亮）、機場跑道、港口吊車、道路橋樑、動態海面，部隊以立牌站在格子上；拉遠較俯視、拉近較平視。右側「3D」按鈕可隨時切回 2D，不支援 WebGL 的裝置自動使用 2D。【各國專屬圖示】約 50 種兵種在 16 國各自依真實裝備重畫輪廓（例如防空砲：獵豹、石勒喀、M163、87 式、M42…），不再只是換色或加小配件。【全新配樂】原本五首合成曲目全數移除，改為五首由 Google Lyria 3.5 產生的管弦配樂。【劇情地圖加大】「昇龍 2031」第四至六章放大為 46×30、56×42、64×64，終章延伸到高屏與花東，並加重終章敵軍。</p></div>
         <div class="cl-item"><span class="cl-ver">v91</span><span class="cl-date">2026.11.12</span><p>【音樂音效重製】音效改為多層合成（爆炸、火砲、機槍、飛彈、佔領、回合提示）並加入空間殘響；爆炸與砲擊時背景音樂自動壓低讓出空間；音樂的銅管與鋪底音色加厚、鼓組放軟、高頻修圓；總輸出加上軟性限幅避免破音，音樂與音效的音量比例重新平衡。</p></div>
         <div class="cl-item"><span class="cl-ver">v90</span><span class="cl-date">2026.11.11</span><p>【介面視覺整理】介面上的表情符號全部改為單色線條圖示（跟隨文字顏色、高解析度下清晰）；統一配色為深灰加單一金色強調、統一按鈕圓角與字級、數字等寬對齊；主選單改為圖示加說明的列表；高解析度螢幕（Retina／iPad）的地形底圖提高到 3 倍。</p></div>
         <div class="cl-item"><span class="cl-ver">v89</span><span class="cl-date">2026.11.11</span><p>【升級系統重製與部隊卡片】每升一階（老兵、精銳、王牌）獲得 1 點專長，可在行動選單自選：火力專精、裝甲強化、機動強化、野戰維修，同一專長最多 2 級，劇情中隨部隊帶到下一章；電腦依兵種自動分配。部隊卡片加上兵種圖示、階級菱形與經驗條、專長標籤，有未分配專長時提示。</p></div>
@@ -1294,7 +1297,7 @@ function toggleFullscreen() {
   else if (el.requestFullscreen || el.webkitRequestFullscreen) (el.requestFullscreen || el.webkitRequestFullscreen).call(el).catch?.(() => {});
 }
 function openTrackMenu() {
-  openModal(`<h2>🎼 選擇背景音樂曲目</h2><div class="sub">點擊曲目立即切換（共 ${TRACKS.length} 首 90 年代工業管弦無縫迴圈曲目）</div>
+  openModal(`<h2>🎼 選擇背景音樂曲目</h2><div class="sub">點擊曲目立即切換（共 ${TRACKS.length} 首管弦配樂，由 Google Lyria 3.5 產生）</div>
     <div class="moregrid">${TRACKS.map((tr, i) => `<button class="trbtn ${i === AUDIO.on.track ? 'primary' : ''}" data-i="${i}">
       <b>${i + 1}. ${tr.name}${i === AUDIO.on.track ? ' ✓' : ''}</b><br><small style="color:var(--muted);font-weight:400">${tr.desc || ''} · ${tr.bpm} BPM</small></button>`).join('')}</div>
     <div class="row"><button id="trBack">← 返回選單</button><span class="spacer"></span><button class="close primary">完成</button></div>`, box => {
@@ -1341,7 +1344,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v91</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v92</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1530,7 +1533,7 @@ function setupInput() {
   let down = null, dragging = false, camStart = null, pinch = null;
   const tileOf = e => {
     const r = cvs.getBoundingClientRect();
-    return pixelToTile(cam.x + (e.clientX - r.left) / cam.z, cam.y + (e.clientY - r.top) / cam.z);
+    return pixelToTile(...screenToWorld(e.clientX - r.left, e.clientY - r.top));
   };
   cvs.addEventListener('pointerdown', e => {
     camGoal = null;
@@ -1556,7 +1559,7 @@ function setupInput() {
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (!dragging && Math.hypot(dx, dy) > 6) dragging = true;
       if (dragging) {
-        cam.x = camStart.x - dx / cam.z; cam.y = camStart.y - dy / cam.z; clampCam();
+        cam.x = camStart.x - dx / cam.z; cam.y = camStart.y - dy / cam.z * (in3D ? R3D.panKY() : 1); clampCam();
         cvs.style.cursor = 'grabbing';
         return;
       }
@@ -1675,6 +1678,15 @@ function setupInput() {
   lb.onclick = () => {
     SETTINGS.labels = !SETTINGS.labels; lb.classList.toggle('on', SETTINGS.labels);
     try { localStorage.setItem('daisenryaku_labels', SETTINGS.labels ? '1' : '0'); } catch (e) { /* 忽略 */ }
+  };
+  const b3 = $('#z3d');
+  b3.classList.toggle('on', SETTINGS.view3d);
+  b3.onclick = () => {
+    SETTINGS.view3d = !SETTINGS.view3d;
+    if (SETTINGS.view3d && window.R3D && R3D.failed) { SETTINGS.view3d = false; showToast('這台裝置不支援 3D 畫面'); }
+    b3.classList.toggle('on', SETTINGS.view3d);
+    try { localStorage.setItem('daisenryaku_3d', SETTINGS.view3d ? '1' : '0'); } catch (e) { /* 忽略 */ }
+    showToast(SETTINGS.view3d ? '3D 戰場' : '2D 戰場');
   };
   $('#zIn').onclick = () => { const [vw, vh] = viewSize(); zoomAt(vw / 2, vh / 2, 1.2); };
   $('#zOut').onclick = () => { const [vw, vh] = viewSize(); zoomAt(vw / 2, vh / 2, 1 / 1.2); };
