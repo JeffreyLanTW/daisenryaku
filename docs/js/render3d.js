@@ -349,10 +349,10 @@ function buildMap() {
   const pad = 3000;
   waterTex.repeat.set((ww + pad * 2) / 260, (wh + pad * 2) / 260);
   water = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: '#000000', transparent: true, opacity: 0.92, roughness: 0.28, metalness: 0.05, normalMap: waterTex, normalScale: new THREE.Vector2(0.55, 0.55) }));
+    new THREE.MeshStandardMaterial({ color: '#2d78bd', transparent: true, opacity: 0.8, roughness: 0.28, metalness: 0.05, normalMap: waterTex, normalScale: new THREE.Vector2(0.55, 0.55) }));
   water.position.set(ww / 2, WATER_Y, wh / 2);
   water.renderOrder = 0;
-  const bed = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#000000', roughness: 1 }));
+  const bed = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#0f3157', roughness: 1 }));
   bed.position.set(ww / 2, -8.2, wh / 2);
   mapGroup.add(bed, water);
   builtFor = G.terrain;

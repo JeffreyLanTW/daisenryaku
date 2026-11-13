@@ -1165,7 +1165,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v95</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v96</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1197,6 +1197,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v96</span><span class="cl-date">2026.11.13</span><p>【3D 底色調整】3D 戰場的背景與霧氣維持黑色，海面恢復原本的藍色。</p></div>
         <div class="cl-item"><span class="cl-ver">v95</span><span class="cl-date">2026.11.13</span><p>【3D 底色改黑】3D 戰場的海面與底色改為黑色。</p></div>
         <div class="cl-item"><span class="cl-ver">v94</span><span class="cl-date">2026.11.13</span><p>【音樂檔改副檔名】部分公司網路會擋 .mp3 下載導致沒有音樂，音樂檔改用 .dat 副檔名（內容不變）。</p></div>
         <div class="cl-item"><span class="cl-ver">v93</span><span class="cl-date">2026.11.13</span><p>【音樂載入修正】曲目下載期間不再因每次點擊而重複下載或取消播放；載入失敗時會顯示原因，30 秒後才重試。</p></div>
@@ -1347,7 +1348,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v95</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v96</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
