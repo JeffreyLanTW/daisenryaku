@@ -689,8 +689,8 @@ function centerOn(wx, wy) {
 // 電腦回合的鏡頭：平滑移動到目標（不瞬間跳轉，觀戰時眼睛較舒服）；玩家拖曳或縮放時取消
 let camGoal = null;
 function ensureVisible(x, y) {
-  // 電腦行動時可關閉鏡頭跟隨（固定鏡頭觀戰）
-  if (!SETTINGS.followCam && G && G.players && G.players[G.cur] && G.players[G.cur].ai) return;
+  // 固定鏡頭：不自動移動（電腦行動、代理指揮、回合開始的移動命令都一樣）
+  if (!SETTINGS.followCam) return;
   const [cx, cy] = tileCenter(x, y), [vw, vh] = viewSize();
   const ref = camGoal || cam;
   let sx = (cx - ref.x) * cam.z, sy = (cy - ref.y) * cam.z;

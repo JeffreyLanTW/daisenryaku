@@ -14,7 +14,7 @@ try { const l = localStorage.getItem('daisenryaku_labels'); if (l !== null) SETT
 // 戰場資訊面板：stats 平常是否開啟、statsPos 位置（bl 左下 / tl 左上）、statsMin 收合
 SETTINGS.stats = true; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false; SETTINGS.engineer = false; SETTINGS.apMin = false;
 try { SETTINGS.engineer = localStorage.getItem('daisenryaku_engineer2') === '1'; } catch (e) { /* 忽略 */ }   // 預設關閉
-// 電腦行動時鏡頭是否自動移到行動中的部隊（預設開啟）
+// 鏡頭是否自動移動：電腦行動、代理指揮、回合切換時移到行動中的部隊（預設開啟）；關閉＝固定鏡頭
 SETTINGS.followCam = true;
 try { SETTINGS.followCam = localStorage.getItem('daisenryaku_follow') !== '0'; } catch (e) { /* 忽略 */ }
 function setFollowCam(on) {
@@ -626,7 +626,7 @@ function updateAutoPilotUI() {
           ${seg(`data-ap="ctl" data-k="${k}"`, [['h', '玩家'], ['ai', '電腦']])}
           ${seg(`data-ap="per" data-k="${k}"`, per)}
         </div>`).join('') + `<div class="ap-speed"><span>速度</span>${seg('data-ap="spd"', [['200', '慢'], ['110', '普通'], ['45', '快'], ['10', '極快']])}</div>`
-        + `<div class="ap-speed ap-cam"><span>鏡頭</span>${seg('data-ap="cam"', [['1', '跟隨單位', '電腦行動時鏡頭自動移到行動中的部隊'], ['0', '固定', '鏡頭不自動移動，可自行拖曳、縮放、旋轉']])}</div>`
+        + `<div class="ap-speed ap-cam"><span>鏡頭</span>${seg('data-ap="cam"', [['1', '跟隨單位', '電腦行動與回合切換時，鏡頭自動移到行動中的部隊'], ['0', '固定', '鏡頭完全不自動移動（含回合切換），可自行拖曳、縮放、旋轉']])}</div>`
         + `<div class="ap-speed ap-eng"><span>工兵</span>${seg('data-ap="eng"', [['1', '開啟（可建基地）', '工兵可把己方城市建設為工廠、機場或港口'], ['0', '關閉', '不能生產工兵']])}</div>`;
       $('#apSides').onclick = e => { const b = e.target.closest('button[data-ap]'); if (b) apSegClick(b); };
     }
@@ -683,7 +683,7 @@ function apSegClick(b) {
   if (!G) return;
   const k = +b.dataset.k, v = b.dataset.v;
   if (b.dataset.ap === 'spd') { SETTINGS.aiStep = +v; showToast('電腦速度：' + b.textContent); }
-  else if (b.dataset.ap === 'cam') { setFollowCam(v === '1'); showToast(SETTINGS.followCam ? '鏡頭：跟隨行動中的部隊' : '鏡頭：固定（不自動移動）'); }
+  else if (b.dataset.ap === 'cam') { setFollowCam(v === '1'); showToast(SETTINGS.followCam ? '鏡頭：跟隨行動中的部隊' : '鏡頭：固定（回合切換也不移動）'); }
   else if (b.dataset.ap === 'eng') {
     G.rules = Object.assign({}, G.rules, { engineer: v === '1' });
     SETTINGS.engineer = G.rules.engineer;
@@ -1014,7 +1014,7 @@ function openBattleSettings() {
     <div class="form">${side(0)}${side(1)}
       <label>工兵（基地建設）<select id="bsEng"><option value="1">開啟</option><option value="0" ${G.rules && G.rules.engineer === false ? 'selected' : ''}>關閉</option></select></label>
       <label>電腦速度<select id="bsSpeed"><option value="200">慢</option><option value="110">普通</option><option value="45">快</option><option value="10">極快</option></select></label>
-      <label>電腦行動時鏡頭<select id="bsCam"><option value="1">跟隨單位</option><option value="0" ${SETTINGS.followCam ? '' : 'selected'}>固定</option></select></label>
+      <label>鏡頭<select id="bsCam"><option value="1">跟隨單位</option><option value="0" ${SETTINGS.followCam ? '' : 'selected'}>固定（含回合切換）</option></select></label>
     </div>
     <div class="desc">工兵可在己方城市建設 🏭工廠、✈️機場或 ⚓港口（臨海）。關閉後本局不能再生產工兵，已在場上的工兵仍可行動。</div>
     <div class="row"><button class="close">取消</button><button id="bsOk" class="primary">套用</button></div>`, box => {
@@ -1179,7 +1179,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v102</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v103</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1211,6 +1211,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v103</span><span class="cl-date">2026.11.13</span><p>【固定鏡頭】鏡頭設為「固定」時，回合切換、代理指揮與回合開始的移動命令也不再移動鏡頭。</p></div>
         <div class="cl-item"><span class="cl-ver">v102</span><span class="cl-date">2026.11.13</span><p>【觀戰鏡頭選項】電腦行動時鏡頭可選「跟隨單位」（自動移到行動中的部隊）或「固定」（不自動移動，可自行拖曳、縮放、旋轉觀看）；在觀戰視窗的「鏡頭」列或 ⚙️ 戰場設定切換，會記住選擇。</p></div>
         <div class="cl-item"><span class="cl-ver">v101</span><span class="cl-date">2026.11.13</span><p>【3D 鏡頭傾斜範圍】傾斜範圍改為 0°（水平看地平線）到 90°（正上方往下看）。【點選更準】3D 模式點在部隊模型上就選到該部隊；鏡頭接近水平時改用最近的格子判斷點選位置。</p></div>
         <div class="cl-item"><span class="cl-ver">v100</span><span class="cl-date">2026.11.13</span><p>【3D 鏡頭】旋轉每次改為 15°（原 45°），滑鼠拖曳旋轉也較細。新增鏡頭傾斜：▲ 更俯視、▼ 更平視（每次 10°，範圍 22°–88°，雙擊回預設）；也可用 R／F 鍵、滑鼠右鍵或 Shift＋左鍵上下拖曳、雙指一起上下滑。</p></div>
@@ -1368,7 +1369,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v102</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v103</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1468,7 +1469,7 @@ async function turnIntro() {
     endTurn();
     return turnIntro();
   }
-  if (G.players.every(p => !p.ai)) { const [cx, cy] = idxCenter(G.caps[G.cur]); centerOn(cx, cy); }
+  if (G.players.every(p => !p.ai) && SETTINGS.followCam) { const [cx, cy] = idxCenter(G.caps[G.cur]); centerOn(cx, cy); }
   if (G.units.some(u => u.side === G.cur && u.order != null)) {
     UIS.mode = 'busy';
     await sleep(500);
