@@ -344,15 +344,21 @@ function buildMap() {
   pole.done();
   mapGroup.add(pole.mesh, flagMesh.mesh, ringMesh.mesh);
 
-  // 海：地圖外再延伸一大圈，遠處融入霧色
+  // 海：只鋪在地圖範圍內，用六角格外形的遮罩裁切，地圖外露出黑色底色
   if (!waterTex) waterTex = makeWaterNormal();
-  const pad = 3000;
-  waterTex.repeat.set((ww + pad * 2) / 260, (wh + pad * 2) / 260);
-  water = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: '#2d78bd', transparent: true, opacity: 0.8, roughness: 0.28, metalness: 0.05, normalMap: waterTex, normalScale: new THREE.Vector2(0.55, 0.55) }));
+  waterTex.repeat.set(ww / 260, wh / 260);
+  const ms = Math.min(1, 1024 / Math.max(ww, wh));
+  const mask = canvasTex(Math.ceil(ww * ms), Math.ceil(wh * ms), c => {
+    c.fillStyle = '#000'; c.fillRect(0, 0, c.canvas.width, c.canvas.height);
+    c.scale(ms, ms); c.fillStyle = '#fff';
+    for (let i = 0; i < N; i++) { const [cx, cy] = idxCenter(i); hexPath(c, cx, cy, R + 0.8); c.fill(); }
+  });
+  mask.colorSpace = THREE.NoColorSpace;
+  water = new THREE.Mesh(new THREE.PlaneGeometry(ww, wh).rotateX(-Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: '#2d78bd', transparent: true, opacity: 0.8, roughness: 0.28, metalness: 0.05, normalMap: waterTex, normalScale: new THREE.Vector2(0.55, 0.55), alphaMap: mask }));
   water.position.set(ww / 2, WATER_Y, wh / 2);
   water.renderOrder = 0;
-  const bed = new THREE.Mesh(new THREE.PlaneGeometry(ww + pad * 2, wh + pad * 2).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#0f3157', roughness: 1 }));
+  const bed = new THREE.Mesh(new THREE.PlaneGeometry(ww, wh).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#0f3157', roughness: 1, alphaMap: mask, alphaTest: 0.5 }));
   bed.position.set(ww / 2, -8.2, wh / 2);
   mapGroup.add(bed, water);
   builtFor = G.terrain;
