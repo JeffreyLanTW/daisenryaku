@@ -252,7 +252,7 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
 
   c.save();
   if (o.done) c.globalAlpha = 0.48;
-  c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2 * 1.14, cy + oy + 1 - ICON_H / 2 * 1.14, ICON_W * 1.14, ICON_H * 1.14);
+  if (!o.noIcon) c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2 * 1.14, cy + oy + 1 - ICON_H / 2 * 1.14, ICON_W * 1.14, ICON_H * 1.14);
   c.restore();
 
   if (o.label) {
@@ -606,7 +606,7 @@ function unitDrawList(for3D) {
       rank: rankOf(u),
       tier: UNITS[u.type].tier || 0,
     };
-    if (for3D) { o.noShadow = true; o.highlight = false; }
+    if (for3D) { o.noShadow = true; o.highlight = false; o.noIcon = true; }
     const col = typeof nationColor === 'function' ? nationColor(d.nation, u.side) : '';
     out.push({ u, o, key: for3D ? `${u.type}|${u.side}|${col}|${o.hp}|${o.maxHp}|${+o.hasAura}${+o.hasEscort}${+o.done}${+o.fuelLow}${+o.label}${+!!o.vip}${+o.order}${+!!o.allyAI}|${o.cargo || 0}|${o.rank}|${o.tier}` : '' });
   }

@@ -45,6 +45,7 @@ python3 -m http.server 8765 --directory docs
 | `research/daisenryaku/` | 大戰略系列參考資料（FC／世嘉主機版數值、經典地圖、來源索引） |
 | `docs/js/audio.js` | 背景音樂（載入 `docs/audio/track1–5.dat`）與音效（Web Audio 合成） |
 | `docs/js/render3d.js` | 3D 戰場（Three.js，ES module；`docs/vendor/three.min.js` 為 r187 打包檔） |
+| `docs/js/models3d.js` | 3D 部隊模型（程式產生的低多邊形模型，依兵種與國家組裝、合併為單一幾何並快取） |
 | `docs/js/icons_nat_*.js` | 各國專屬單位造型（防空與火砲、裝甲與步兵、航空器、艦艇），由 `icons.js` 的 `NAT_ICONS` 掛入 |
 | `tools/iconsheet.js` | 產生「國家 × 兵種」圖示對照表（Playwright） |
 | `docs/js/saves.js` | 存檔系統 |

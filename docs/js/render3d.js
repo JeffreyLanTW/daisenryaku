@@ -3,6 +3,7 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
+import { unitModel } from './models3d.js';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -18,8 +19,10 @@ let hemi, sun, mapGroup = null, water = null, waterTex = null;
 let hgt = null, builtFor = null, nightNow = null;
 let props = [], flagMesh = null, ringMesh = null;          // 據點旗幟與底環（顏色隨佔領變化）
 let ovFill, ovRing, ovSeg, blob;                            // 每幀重建的覆蓋層
-const sprites = [], texCache = new Map();
-let unitGroup;
+const texCache = new Map();
+let unitGroup, unitScene, uHemi, uSun, modelMat, doneMat;
+const MODEL_SCALE = 1.35;
+const pool = new Map();   // 部隊 id → { mesh, rotors, sprite, model, yaw, goal, px, py }
 const elev = { v: 55 * Math.PI / 180 };
 // 鏡頭水平旋轉角（弧度）：0 = 從南往北看；增加時畫面內容順時針轉
 const view = { yaw: 0, goal: 0 };
@@ -127,8 +130,15 @@ function init() {
   ovRing = new Inst(hexRing, alphaMaterial({}), 800, { alpha: true, order: 3 });
   ovSeg = new Inst(new THREE.BoxGeometry(1, 1, 1), alphaMaterial({}), 3000, { alpha: true, order: 4 });
   blob = new Inst(new THREE.CircleGeometry(1, 20).rotateX(-Math.PI / 2), alphaMaterial({ color: '#000' }), 1500, { alpha: true, order: 5 });
+  scene.add(ovFill.mesh, ovRing.mesh, ovSeg.mesh, blob.mesh);
+  // 部隊另成一個場景、在地圖之後繪製（先清除深度），所以一律畫在建築與山前面，模型本身仍有正確的前後遮擋
+  unitScene = new THREE.Scene();
+  uHemi = hemi.clone(); uSun = sun.clone();
   unitGroup = new THREE.Group();
-  scene.add(ovFill.mesh, ovRing.mesh, ovSeg.mesh, blob.mesh, unitGroup);
+  unitScene.add(uHemi, uSun, unitGroup);
+  modelMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.72, metalness: 0.08 });
+  doneMat = modelMat.clone(); doneMat.color.set('#707070');
+  renderer.autoClear = false;
   renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); });
   renderer.domElement.addEventListener('webglcontextrestored', () => { builtFor = null; texCache.clear(); });
   return true;
@@ -189,6 +199,9 @@ function makeWaterNormal() {
 function buildMap() {
   if (mapGroup) disposeGroup(mapGroup);
   mapGroup = new THREE.Group();
+  // 換地圖（新局、讀檔）：清掉上一局的部隊模型
+  for (const e of pool.values()) unitGroup.remove(e.mesh, e.sprite);
+  pool.clear();
   scene.add(mapGroup);
   const N = G.w * G.h, [ww, wh] = worldSize();
   hgt = new Float32Array(N);
@@ -425,7 +438,7 @@ function pick(sx, sy) {
   return [x, z];
 }
 
-// ----- 部隊立牌 -----
+// ----- 部隊：3D 模型＋上方的資訊牌（兵種名、生命值、階級等，用 2D 畫好當貼圖）-----
 const SPR_W = 76, SPR_H = 78, SPR_CX = 38, SPR_CY = 40, SPR_RES = 3;
 function unitMaterial(key, type, side, o) {
   let m = texCache.get(key);
@@ -440,22 +453,51 @@ function unitMaterial(key, type, side, o) {
   texCache.set(key, m);
   return m;
 }
+const angWrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 function syncUnits(list) {
   blob.reset();
-  let n = 0;
+  const now = performance.now(), seen = new Set();
   for (const it of list) {
     const { u, o, key } = it, d = UNITS[u.type], air = d.cat === 'air';
     const [ax, ay] = u._anim || tileCenter(u.x, u.y);
-    const gy = heightAt(ax, ay), y = gy + (air ? 20 : 0);
-    let sp = sprites[n];
-    if (!sp) { sp = sprites[n] = new THREE.Sprite(); sp.center.set(SPR_CX / SPR_W, 1 - (SPR_CY + 12) / SPR_H); sp.scale.set(SPR_W * 0.94, SPR_H * 0.94, 1); sp.renderOrder = 10; unitGroup.add(sp); }
-    sp.material = unitMaterial(key, u.type, u.side, o);
-    sp.position.set(ax, y + 0.8, ay);
-    sp.visible = true;
-    blob.add(ax, gy + 0.7, ay, air ? 13 : 17, 1, air ? 6 : 8.5, '#000', 0, air ? 0.22 : 0.3);
-    n++;
+    const gy = heightAt(ax, ay);
+    const col = typeof nationColor === 'function' ? nationColor(d.nation, u.side) : SIDES[u.side].color;
+    const m = unitModel(d, col);
+    let e = pool.get(u.id);
+    if (!e) {
+      const mesh = new THREE.Mesh(m.geo, modelMat);
+      mesh.scale.setScalar(MODEL_SCALE);
+      const sprite = new THREE.Sprite();
+      sprite.center.set(SPR_CX / SPR_W, 1 - SPR_CY / SPR_H); sprite.scale.set(SPR_W * 0.94, SPR_H * 0.94, 1); sprite.renderOrder = 10;
+      const face = u.side === 1 ? Math.PI : 0;
+      e = { mesh, rotors: [], sprite, model: null, yaw: face, goal: face, px: ax, py: ay };
+      unitGroup.add(mesh, sprite);
+      pool.set(u.id, e);
+    }
+    seen.add(u.id);
+    if (e.model !== m) {
+      e.mesh.geometry = m.geo;
+      for (const r of e.rotors) e.mesh.remove(r);
+      e.rotors = m.rotors.map(r => { const rm = new THREE.Mesh(r.geo, modelMat); rm.position.set(r.x, r.y, r.z); e.mesh.add(rm); return rm; });
+      e.model = m;
+    }
+    // 朝向移動方向（停下後維持最後的方向）
+    const dx = ax - e.px, dz = ay - e.py;
+    if (dx * dx + dz * dz > 0.09) e.goal = Math.atan2(-dz, dx);
+    e.px = ax; e.py = ay;
+    e.yaw += angWrap(e.goal - e.yaw) * 0.25;
+    const y = air ? gy + 24 + Math.sin(now / 600 + u.id) * 1.2 : gy;
+    e.mesh.position.set(ax, y, ay);
+    e.mesh.rotation.y = e.yaw;
+    const mat = o.done ? doneMat : modelMat;
+    if (e.mesh.material !== mat) { e.mesh.material = mat; for (const r of e.rotors) r.material = mat; }
+    for (const r of e.rotors) r.rotation.y = now / 45;
+    e.sprite.material = unitMaterial(key, u.type, u.side, o);
+    // 資訊牌錨在地面（飛機在機身高度）：兵種名落在模型下方，生命值在右上
+    e.sprite.position.set(ax, air ? y - 4 : gy + 2, ay);
+    blob.add(ax, gy + 0.7, ay, air ? 15 : 21, 1, air ? 7 : 11, '#000', e.yaw, air ? 0.2 : 0.3);
   }
-  for (let k = n; k < sprites.length; k++) sprites[k].visible = false;
+  for (const [id, e] of pool) if (!seen.has(id)) { unitGroup.remove(e.mesh, e.sprite); pool.delete(id); }
   blob.done();
 }
 
@@ -502,14 +544,18 @@ const API = {
     if (night !== nightNow) {
       nightNow = night;
       hemi.intensity = night ? 0.85 : 1.15; hemi.color.set(night ? '#8fa6e8' : '#e4eeff');
-      sun.intensity = night ? 0.9 : 2.1; sun.color.set(night ? '#a9bcff' : '#fff1d6');
+      sun.intensity = night ? 0.9 : 2.1;
+      uHemi.intensity = hemi.intensity; uHemi.color.copy(hemi.color); uSun.intensity = sun.intensity; sun.color.set(night ? '#a9bcff' : '#fff1d6'); uSun.color.copy(sun.color);
       mapGroup.userData.bMat.emissiveIntensity = night ? 1.6 : 0;
       scene.background.set('#000000'); scene.fog.color.copy(scene.background);
     }
     syncProps();
     ovFill.done(); ovRing.done(); ovSeg.done();
     if (waterTex) waterTex.offset.set(now * 0.000012, now * 0.000021);
+    renderer.clear();
     renderer.render(scene, camera);
+    renderer.clearDepth();
+    renderer.render(unitScene, camera);
   },
   project, pick, heightAt,
   // 拖曳地圖時，垂直方向每個像素對應的地圖距離比水平大（因為鏡頭是斜的）
