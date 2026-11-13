@@ -16,6 +16,9 @@ SETTINGS.stats = true; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false; SETT
 try { SETTINGS.engineer = localStorage.getItem('daisenryaku_engineer2') === '1'; } catch (e) { /* 忽略 */ }   // 預設關閉
 // 鏡頭是否自動移動：電腦行動、代理指揮、回合切換時移到行動中的部隊（預設開啟）；關閉＝固定鏡頭
 SETTINGS.followCam = true;
+// 3D 戰鬥特效（射擊彈道、命中爆炸、擊毀殘骸），預設開啟
+SETTINGS.fx3d = true;
+try { SETTINGS.fx3d = localStorage.getItem('daisenryaku_fx3d') !== '0'; } catch (e) { /* 忽略 */ }
 try { SETTINGS.followCam = localStorage.getItem('daisenryaku_follow') !== '0'; } catch (e) { /* 忽略 */ }
 function setFollowCam(on) {
   SETTINGS.followCam = !!on;
@@ -201,19 +204,26 @@ function cancelAction() {
 async function performAttack(att, def, speed = 1) {
   const [ax, ay] = tileCenter(att.x, att.y), [dx, dy] = tileCenter(def.x, def.y);
   sfxFire(UNITS[att.type].base);
-  if (isIndirect(att.type)) {
+  // 3D 戰鬥特效：發射彈體，等彈體飛到才結算（電腦極快時不等，特效照常播放）
+  const fx3 = in3D && SETTINGS.fx3d;
+  if (fx3) {
+    const t = R3D.fire(att, def, speed);
+    await sleep(speed >= 0.3 ? Math.max(t, 220 * speed) : 220 * speed);
+  } else if (isIndirect(att.type)) {
     FX.push({ kind: 'flash', x: ax, y: ay - 6, t0: performance.now(), dur: 300 });
     await sleep(260 * speed);
   } else await animLunge(att, dx, dy, 220 * speed);
   const res = resolveAttack(att, def);
   if (res.dmg > 0 || def.hp <= 0) sfx('explode', { big: def.hp <= 0 });
-  fxBoom(dx, dy, def.hp <= 0);
+  if (!fx3) fxBoom(dx, dy, def.hp <= 0);
   fxText(dx, dy, res.evaded ? '迴避!' : def.hp <= 0 ? '擊破!' : `-${res.dmg}`, res.evaded ? '#8fe3ff' : '#ffd166');
   await sleep(420 * speed);
   if (res.countered) {
     sfxFire(UNITS[def.type].base);
-    if (res.counter > 0) audioTimer(() => sfx('explode', { big: att.hp <= 0 }), 120);
-    fxBoom(ax, ay, att.hp <= 0);
+    let tc = 120;
+    if (fx3) { const t = R3D.fire(def, att, speed); if (speed >= 0.3) { tc = t; await sleep(t); } }
+    if (res.counter > 0) audioTimer(() => sfx('explode', { big: att.hp <= 0 }), fx3 ? 0 : tc);
+    if (!fx3) fxBoom(ax, ay, att.hp <= 0);
     fxText(ax, ay, res.cEvaded ? '迴避!' : att.hp <= 0 ? '擊破!' : `-${res.counter}`, res.cEvaded ? '#8fe3ff' : '#ff9b8a');
     await sleep(420 * speed);
   }
@@ -1014,6 +1024,7 @@ function openBattleSettings() {
     <div class="form">${side(0)}${side(1)}
       <label>工兵（基地建設）<select id="bsEng"><option value="1">開啟</option><option value="0" ${G.rules && G.rules.engineer === false ? 'selected' : ''}>關閉</option></select></label>
       <label>電腦速度<select id="bsSpeed"><option value="200">慢</option><option value="110">普通</option><option value="45">快</option><option value="10">極快</option></select></label>
+      <label>3D 戰鬥特效<select id="bsFx"><option value="1">開啟</option><option value="0" ${SETTINGS.fx3d ? '' : 'selected'}>關閉</option></select></label>
       <label>鏡頭<select id="bsCam"><option value="1">跟隨單位</option><option value="0" ${SETTINGS.followCam ? '' : 'selected'}>固定（含回合切換）</option></select></label>
     </div>
     <div class="desc">工兵可在己方城市建設 🏭工廠、✈️機場或 ⚓港口（臨海）。關閉後本局不能再生產工兵，已在場上的工兵仍可行動。</div>
@@ -1030,6 +1041,8 @@ function openBattleSettings() {
       SETTINGS.engineer = G.rules.engineer;
       SETTINGS.aiStep = +box.querySelector('#bsSpeed').value;
       setFollowCam(box.querySelector('#bsCam').value === '1');
+      SETTINGS.fx3d = box.querySelector('#bsFx').value === '1';
+      try { localStorage.setItem('daisenryaku_fx3d', SETTINGS.fx3d ? '1' : '0'); } catch (e) { /* 忽略 */ }
       try { localStorage.setItem('daisenryaku_engineer2', SETTINGS.engineer ? '1' : '0'); } catch (e) { /* 忽略 */ }
       closeModal();
       showToast(G.players.every(p => p.ai) ? '觀戰模式：雙方由電腦指揮' : '設定已套用');
@@ -1179,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v106</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v107</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1211,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v107</span><span class="cl-date">2026.11.13</span><p>【3D 戰鬥特效】攻擊依兵種與目標使用符合現實的武器：步兵步槍曳光彈、戰車主砲（砲口焰與揚塵）、步戰車機砲、自走砲與迫砲拋物線彈、多管火箭齊射、彈道飛彈、防空砲曳光彈加黑色空爆、防空飛彈垂直發射近炸、反艦飛彈掠海、艦砲對岸射擊、潛艦魚雷水柱、戰機空對空飛彈、A-10 機砲掃射、轟炸機炸彈串、直升機反戰車飛彈與火箭、雷射光束等。命中有火球、煙、碎片、地面焦痕或水花，被擊中的部隊會晃動。【擊毀演出】車輛焦黑歪斜燃燒冒黑煙後沉入地面、飛機拖黑煙墜落爆炸、艦艇起火傾斜沉沒、步兵倒下；大爆炸有衝擊波與鏡頭震動。可在 ⚙️ 戰場設定「3D 戰鬥特效」開關。</p></div>
         <div class="cl-item"><span class="cl-ver">v106</span><span class="cl-date">2026.11.13</span><p>【觸控板旋轉】Mac 觸控板雙指左右滑改為旋轉 3D 鏡頭（上下滑仍是縮放，雙指開合縮放更靈敏）；不再因左右滑而觸發瀏覽器的上一頁／下一頁。</p></div>
         <div class="cl-item"><span class="cl-ver">v105</span><span class="cl-date">2026.11.13</span><p>【3D 記憶體】部隊資訊牌改用較省記憶體的方式產生（上傳後釋放畫布、每幀限量產生、最久未用的先淘汰），降低 iPad／iOS Safari 畫布記憶體超過上限而破圖的機會。</p></div>
         <div class="cl-item"><span class="cl-ver">v104</span><span class="cl-date">2026.11.13</span><p>【3D 模型更精緻】戰車有傾斜車體、托輪與主動輪、砲盾、抽煙器、車長機槍、天線、煙幕彈與置物籃，各國特徵加強（豹 2 箭形附加裝甲、俄印反應裝甲、梅卡瓦鐵鍊簾、16 式輪型等）；飛機有收尖機身、進氣道、座艙罩、噴嘴、翼下掛載與翼尖飛彈；艦艇有外傾船身、分層上層結構、旋轉雷達、相位陣列、近迫武器、垂直發射格、救生艇與甲板標線；步兵有手臂、步槍、背心與不同姿勢。【鏡頭可放更大】3D 最大 6 倍、2D 最大 4 倍；放大時兵種名稱不再跟著變大遮住模型。【觸控旋轉】兩指一起左右滑改為旋轉鏡頭（取代兩指轉動）；兩指上下滑仍是傾斜。</p></div>
@@ -1372,7 +1386,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v106</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v107</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>

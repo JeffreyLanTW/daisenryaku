@@ -3,7 +3,8 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=106';
+import { unitModel } from './models3d.js?v=107';
+import { createFX } from './fx3d.js?v=107';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -20,7 +21,7 @@ let hgt = null, builtFor = null, nightNow = null;
 let props = [], flagMesh = null, ringMesh = null;          // 據點旗幟與底環（顏色隨佔領變化）
 let ovFill, ovRing, ovSeg, blob;                            // 每幀重建的覆蓋層
 const texCache = new Map();
-let unitGroup, unitScene, uHemi, uSun, modelMat, doneMat;
+let unitGroup, unitScene, uHemi, uSun, modelMat, doneMat, fx = null;
 const MODEL_SCALE = 1.35;
 const pool = new Map();   // 部隊 id → { mesh, rotors, sprite, model, yaw, goal, px, py }
 const elev = { v: 55 * Math.PI / 180 };
@@ -140,6 +141,9 @@ function init() {
   modelMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.72, metalness: 0.08 });
   doneMat = modelMat.clone(); doneMat.color.set('#707070');
   renderer.autoClear = false;
+  // 戰鬥特效（射擊、彈道、命中、擊毀殘骸）：畫在部隊層，與部隊一起在建築前面
+  fx = createFX({ scene, fxScene: unitScene, heightAt: (x, z) => heightAt(x, z), waterY: WATER_Y,
+    isWater: (x, z) => { if (!hgt) return true; const [tx, ty] = pixelToTile(x, z); if (tx < 0 || ty < 0 || tx >= G.w || ty >= G.h) return true; const t = G.terrain[idxOf(tx, ty)]; return t === 'sea' || t === 'bridge'; } });
   renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); });
   renderer.domElement.addEventListener('webglcontextrestored', () => { builtFor = null; for (const m of texCache.values()) m.userData.dead = true; texCache.clear(); });
   return true;
@@ -203,6 +207,7 @@ function buildMap() {
   // 換地圖（新局、讀檔）：清掉上一局的部隊模型
   for (const e of pool.values()) unitGroup.remove(e.mesh, e.sprite);
   pool.clear();
+  if (fx) fx.clear();
   scene.add(mapGroup);
   const N = G.w * G.h, [ww, wh] = worldSize();
   hgt = new Float32Array(N);
@@ -529,6 +534,9 @@ function syncUnits(list) {
     e.yaw += angWrap(e.goal - e.yaw) * 0.25;
     const y = air ? gy + 24 + Math.sin(now / 600 + u.id) * 1.2 : gy;
     e.mesh.position.set(ax, y, ay);
+    e.u = u; e.air = air;
+    // 被擊中：短暫晃動
+    if (e.hitT && now - e.hitT < 260) { const k = (1 - (now - e.hitT) / 260) * 1.6; e.mesh.position.x += (Math.random() - 0.5) * k * 2; e.mesh.position.z += (Math.random() - 0.5) * k * 2; }
     e.mesh.userData.tile = [u.x, u.y];
     e.mesh.rotation.y = e.yaw;
     const mat = o.done ? doneMat : modelMat;
@@ -543,7 +551,16 @@ function syncUnits(list) {
     e.sprite.position.set(ax, air ? y - 4 : gy + 2, ay);
     blob.add(ax, gy + 0.7, ay, air ? 15 : 21, 1, air ? 7 : 11, '#000', e.yaw, air ? 0.2 : 0.3);
   }
-  for (const [id, e] of pool) if (!seen.has(id)) { unitGroup.remove(e.mesh, e.sprite); pool.delete(id); }
+  for (const [id, e] of pool) if (!seen.has(id)) {
+    unitGroup.remove(e.sprite);
+    // 被擊毀（生命值歸零）且特效開啟：模型變成殘骸演出後才移除；其他情況（被搭載、新局）直接移除
+    if (fx && SETTINGS.fx3d && e.u && e.u.hp <= 0) {
+      const d = UNITS[e.u.type] || {}, b = d.base;
+      fx.wreck(e.mesh, { air: d.cat === 'air', sea: d.cat === 'sea', inf: d.mt === 'foot', h: e.model ? e.model.h * MODEL_SCALE : 10,
+        big: ['carrier', 'cruiser', 'lhd', 'euv_fortress', 'wingman_carrier', 'bomber'].includes(b) });
+    } else unitGroup.remove(e.mesh);
+    pool.delete(id);
+  }
   blob.done();
 }
 
@@ -598,12 +615,34 @@ const API = {
     syncProps();
     ovFill.done(); ovRing.done(); ovSeg.done();
     if (waterTex) waterTex.offset.set(now * 0.000012, now * 0.000021);
+    // 戰鬥特效：粒子大小換算用畫面高度（像素）；大爆炸時鏡頭短暫震動
+    if (fx) {
+      const amp = fx.update(now, renderer.domElement.height / (2 * Math.tan(FOV * Math.PI / 360)));
+      if (amp > 0.05) { camera.position.x += (Math.random() - 0.5) * amp; camera.position.y += (Math.random() - 0.5) * amp; camera.updateMatrixWorld(); }
+    }
     renderer.clear();
     renderer.render(scene, camera);
     renderer.clearDepth();
     renderer.render(unitScene, camera);
   },
   project, pick, pickTile, heightAt,
+  // 3D 開火特效：依兵種與目標選武器，回傳到命中的毫秒數（特效關閉或不在 3D 時回傳 0）
+  fire(att, def, speed = 1) {
+    if (!fx || !SETTINGS.fx3d) return 0;
+    const ea = pool.get(att.id), ed = pool.get(def.id);
+    if (!ea || !ed) return 0;
+    const da = UNITS[att.type], dd = UNITS[def.type];
+    const pa = ea.mesh.position, pd = ed.mesh.position;
+    // 轉向目標
+    ea.goal = Math.atan2(-(pd.z - pa.z), pd.x - pa.x);
+    const dir = new THREE.Vector3(pd.x - pa.x, 0, pd.z - pa.z).normalize();
+    const ha = ea.model ? ea.model.h * MODEL_SCALE : 10, hd = ed.model ? ed.model.h * MODEL_SCALE : 10;
+    const a = pa.clone().add(new THREE.Vector3(0, da.cat === 'air' ? 0 : ha * 0.6, 0)).addScaledVector(dir, da.mt === 'foot' ? 4 : 12);
+    const b = dd.base === 'submarine' ? new THREE.Vector3(pd.x, WATER_Y, pd.z) : pd.clone().add(new THREE.Vector3(0, dd.cat === 'air' ? 0 : hd * 0.45, 0));
+    const w = fx.weaponFor({ base: da.base, nation: da.nation, cat: da.cat }, { base: dd.base, cat: dd.cat });
+    const k = Math.max(0.45, Math.min(1, speed));
+    return fx.fire(w, a, b, { k, onHit: () => { ed.hitT = performance.now(); } });
+  },
   // 拖曳地圖時，垂直方向每個像素對應的地圖距離比水平大（因為鏡頭是斜的）
   // 拖曳地圖：把螢幕上的位移（像素）換成地圖上的位移（未除以縮放），會依鏡頭旋轉與俯角調整
   panVec(dx, dy) {
