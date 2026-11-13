@@ -13,6 +13,7 @@ let cvs, ctx, mini, mctx, terrainCvs = null, dpr = 1;
 function use3D() { return SETTINGS.view3d && typeof window !== 'undefined' && window.R3D && window.R3D.ready && !window.R3D.failed; }
 let in3D = false;   // 本幀是否以 3D 繪製
 // 螢幕座標（相對於地圖畫布左上角）↔ 地圖座標
+function screenToTile(sx, sy) { return in3D ? R3D.pickTile(sx, sy) : pixelToTile(cam.x + sx / cam.z, cam.y + sy / cam.z); }
 function screenToWorld(sx, sy) { return in3D ? R3D.pick(sx, sy) : [cam.x + sx / cam.z, cam.y + sy / cam.z]; }
 function worldToScreen(wx, wy) { if (in3D) { const p = R3D.project(wx, wy); return [p[0], p[1]]; } return [(wx - cam.x) * cam.z, (wy - cam.y) * cam.z]; }
 // 3D 模式下，把原本以地圖座標寫的小型 2D 繪圖（地名、氣泡、進度條、特效）貼到投影後的位置

@@ -26,7 +26,7 @@ const pool = new Map();   // 部隊 id → { mesh, rotors, sprite, model, yaw, g
 const elev = { v: 55 * Math.PI / 180 };
 // 鏡頭水平旋轉角（弧度）：0 = 從南往北看；增加時畫面內容順時針轉
 const view = { yaw: 0, goal: 0, tilt: 0, tiltGoal: 0 };   // tilt：俯角的調整量（度），正值更俯視、負值更平視
-const TILT_MIN = 22, TILT_MAX = 88;
+const TILT_MIN = 0, TILT_MAX = 90;   // 0° = 水平看地平線，90° = 正上方往下看
 const V = new THREE.Vector3(), V2 = new THREE.Vector3(), Q = new THREE.Quaternion(), M = new THREE.Matrix4(), S = new THREE.Vector3(), C = new THREE.Color();
 const YAXIS = new THREE.Vector3(0, 1, 0);
 
@@ -405,13 +405,17 @@ function updateCamera() {
   const t = Math.max(0, Math.min(1, (Math.log(cam.z) - Math.log(0.3)) / (Math.log(1.8) - Math.log(0.3))));
   if (view.tilt !== view.tiltGoal) { view.tilt += (view.tiltGoal - view.tilt) * 0.2; if (Math.abs(view.tiltGoal - view.tilt) < 0.05) view.tilt = view.tiltGoal; }
   const baseDeg = 64 - 20 * t;
-  elev.v = Math.max(TILT_MIN, Math.min(TILT_MAX, baseDeg + view.tilt)) * Math.PI / 180;
+  // 數學上避開正好 0° 與 90°（地面換算除以零、鏡頭上方向不確定）
+  elev.v = Math.max(TILT_MIN + 0.3, Math.min(TILT_MAX - 0.05, baseDeg + view.tilt)) * Math.PI / 180;
   // 超出範圍的調整量不累積（避免按到底後要按很多次才回來）
   view.tiltGoal = Math.max(TILT_MIN - baseDeg, Math.min(TILT_MAX - baseDeg, view.tiltGoal));
   // 旋轉按鈕：平滑轉到目標角度
   if (view.yaw !== view.goal) { view.yaw += (view.goal - view.yaw) * 0.2; if (Math.abs(view.goal - view.yaw) < 1e-3) view.yaw = view.goal; }
   const hd = dist * Math.cos(elev.v);
-  camera.position.set(cx + Math.sin(view.yaw) * hd, dist * Math.sin(elev.v), cz + Math.cos(view.yaw) * hd);
+  // 接近水平時鏡頭至少離地 14（高於部隊模型）
+  camera.position.set(cx + Math.sin(view.yaw) * hd, Math.max(14, dist * Math.sin(elev.v)), cz + Math.cos(view.yaw) * hd);
+  // 接近正上方時改用「畫面上方 = 前進方向」作為鏡頭上方向，兩者在中間角度的結果相同，切換不會跳動
+  if (elev.v > Math.PI / 4) camera.up.set(-Math.sin(view.yaw), 0, -Math.cos(view.yaw)); else camera.up.set(0, 1, 0);
   camera.near = Math.max(4, dist * 0.04); camera.far = dist * 5 + 4000;
   camera.lookAt(cx, 0, cz);
   camera.updateProjectionMatrix();
@@ -434,13 +438,35 @@ function pick(sx, sy) {
   V.set(sx / vw * 2 - 1, -(sy / vh) * 2 + 1, 0.5).unproject(camera).sub(o).normalize();
   let y = 0, x = 0, z = 0;
   for (let k = 0; k < 3; k++) {
-    const t = V.y < -1e-6 ? (y - o.y) / V.y : 1e6;
+    // 地平線以上（看向天空）的點：取鏡頭可見距離的遠處，避免無限遠
+    const t = V.y < -1e-6 ? Math.min((y - o.y) / V.y, camera.far * 0.9) : camera.far * 0.9;
     x = o.x + V.x * t; z = o.z + V.z * t;
     const ny = heightAt(x, z);
     if (Math.abs(ny - y) < 0.01) break;
     y = ny;
   }
   return [x, z];
+}
+// 點到哪一格：俯角夠大時用地面射線；接近水平時（射線幾乎貼地，誤差很大）改為找螢幕上最近的格子中心
+const ray = new THREE.Raycaster(), NDC = new THREE.Vector2();
+function pickTile(sx, sy) {
+  // 先看是否點在部隊模型上（部隊畫在最前面，點到誰就是誰）
+  const [vw, vh] = viewSize();
+  NDC.set(sx / vw * 2 - 1, -(sy / vh) * 2 + 1);
+  ray.setFromCamera(NDC, camera);
+  const hits = ray.intersectObjects([...pool.values()].map(e => e.mesh), false);
+  if (hits.length) return hits[0].object.userData.tile;
+  if (elev.v >= 25 * Math.PI / 180) return pixelToTile(...pick(sx, sy));
+  const sv = Math.max(0.15, Math.sin(elev.v));
+  let best = -1, bd = Infinity;
+  for (let i = 0; i < G.w * G.h; i++) {
+    const [cx, cz] = idxCenter(i), [px, py, k] = project(cx, cz, standY(i) + 3);
+    const rx = R * k, ry = rx * sv;
+    const d = ((px - sx) / rx) ** 2 + ((py - sy) / ry) ** 2;
+    // 距離相近時取離鏡頭較近（畫面較下方）的格子，因為它擋在前面
+    if (d < bd - 0.05 || (d < bd + 0.05 && py > (best >= 0 ? project(...idxCenter(best), standY(best) + 3)[1] : -1e9))) { bd = d; best = i; }
+  }
+  return best >= 0 && bd < 2.5 ? ixy(best) : pixelToTile(...pick(sx, sy));
 }
 
 // ----- 部隊：3D 模型＋上方的資訊牌（兵種名、生命值、階級等，用 2D 畫好當貼圖）-----
@@ -493,6 +519,7 @@ function syncUnits(list) {
     e.yaw += angWrap(e.goal - e.yaw) * 0.25;
     const y = air ? gy + 24 + Math.sin(now / 600 + u.id) * 1.2 : gy;
     e.mesh.position.set(ax, y, ay);
+    e.mesh.userData.tile = [u.x, u.y];
     e.mesh.rotation.y = e.yaw;
     const mat = o.done ? doneMat : modelMat;
     if (e.mesh.material !== mat) { e.mesh.material = mat; for (const r of e.rotors) r.material = mat; }
@@ -562,11 +589,11 @@ const API = {
     renderer.clearDepth();
     renderer.render(unitScene, camera);
   },
-  project, pick, heightAt,
+  project, pick, pickTile, heightAt,
   // 拖曳地圖時，垂直方向每個像素對應的地圖距離比水平大（因為鏡頭是斜的）
   // 拖曳地圖：把螢幕上的位移（像素）換成地圖上的位移（未除以縮放），會依鏡頭旋轉與俯角調整
   panVec(dx, dy) {
-    const c = Math.cos(view.yaw), sn = Math.sin(view.yaw), k = 1 / Math.sin(elev.v);
+    const c = Math.cos(view.yaw), sn = Math.sin(view.yaw), k = 1 / Math.max(0.25, Math.sin(elev.v));
     return [c * dx + sn * dy * k, -sn * dx + c * dy * k];
   },
   // 旋轉：rotate 平滑轉到新角度（按鈕、鍵盤），rotateBy 立即轉（拖曳、雙指旋轉）
