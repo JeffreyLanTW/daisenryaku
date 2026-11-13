@@ -3,7 +3,7 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=104';
+import { unitModel } from './models3d.js?v=105';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -141,7 +141,7 @@ function init() {
   doneMat = modelMat.clone(); doneMat.color.set('#707070');
   renderer.autoClear = false;
   renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); });
-  renderer.domElement.addEventListener('webglcontextrestored', () => { builtFor = null; texCache.clear(); });
+  renderer.domElement.addEventListener('webglcontextrestored', () => { builtFor = null; for (const m of texCache.values()) m.userData.dead = true; texCache.clear(); });
   return true;
 }
 
@@ -470,17 +470,26 @@ function pickTile(sx, sy) {
 }
 
 // ----- 部隊：3D 模型＋上方的資訊牌（兵種名、生命值、階級等，用 2D 畫好當貼圖）-----
-const SPR_W = 76, SPR_H = 78, SPR_CX = 38, SPR_CY = 40, SPR_RES = 3;
-function unitMaterial(key, type, side, o) {
+// iPad／iOS Safari 對畫布總記憶體有硬性上限，超過會畫出空白或破碎的圖：
+// 資訊牌用 2 倍解析度、上傳到 GPU 後立刻釋放畫布、每幀最多新建 20 張（換回合時全部部隊的資訊牌會同時改變）、
+// 快取最多 400 張並以「最久沒用」逐張淘汰
+const SPR_W = 76, SPR_H = 78, SPR_CX = 38, SPR_CY = 40, SPR_RES = 2, TEX_MAX = 400, TEX_PER_FRAME = 20;
+let texBudget = TEX_PER_FRAME;
+function dropMaterial(m) { m.userData.dead = true; m.map.dispose(); m.dispose(); }
+function unitMaterial(key, type, side, o, fallback) {
   let m = texCache.get(key);
-  if (m) return m;
-  if (texCache.size > 700) { for (const v of texCache.values()) { v.map.dispose(); v.dispose(); } texCache.clear(); }
+  if (m) { texCache.delete(key); texCache.set(key, m); return m; }       // 移到最新（LRU）
+  if (texBudget <= 0 && fallback && !fallback.userData.dead) return fallback;   // 本幀額度用完：先沿用舊的資訊牌
+  texBudget--;
+  while (texCache.size >= TEX_MAX) { const [k0, v] = texCache.entries().next().value; texCache.delete(k0); dropMaterial(v); }
   const cv = document.createElement('canvas'); cv.width = SPR_W * SPR_RES; cv.height = SPR_H * SPR_RES;
   const c = cv.getContext('2d'); c.scale(SPR_RES, SPR_RES);
   drawCounter(c, SPR_CX, SPR_CY, type, side, o);
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  t.onUpdate = () => { cv.width = cv.height = 1; t.onUpdate = null; };   // 已上傳到 GPU：釋放畫布記憶體
   m = new THREE.SpriteMaterial({ map: t, transparent: true, alphaTest: 0.02, depthWrite: false, depthTest: false, fog: false, toneMapped: false });
+  m.userData.key = key;
   texCache.set(key, m);
   return m;
 }
@@ -488,6 +497,7 @@ const angWrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 function syncUnits(list) {
   blob.reset();
   const now = performance.now(), seen = new Set();
+  texBudget = TEX_PER_FRAME;
   for (const it of list) {
     const { u, o, key } = it, d = UNITS[u.type], air = d.cat === 'air';
     const [ax, ay] = u._anim || tileCenter(u.x, u.y);
@@ -524,7 +534,8 @@ function syncUnits(list) {
     const mat = o.done ? doneMat : modelMat;
     if (e.mesh.material !== mat) { e.mesh.material = mat; for (const r of e.rotors) r.material = mat; }
     for (const r of e.rotors) r.rotation.y = now / 45;
-    e.sprite.material = unitMaterial(key, u.type, u.side, o);
+    e.key = key;
+    e.sprite.material = unitMaterial(key, u.type, u.side, o, e.sprite.material && e.sprite.material.map ? e.sprite.material : null);
     // 資訊牌放大到 1.6 倍後就不再變大，拉近看模型時不會被字擋住
     const ls = 0.94 * Math.min(1, 1.6 / cam.z);
     e.sprite.scale.set(SPR_W * ls, SPR_H * ls, 1);
@@ -612,6 +623,8 @@ const API = {
   // 目前畫面四個角落對應的地圖座標（小地圖的視野框）
   corners() { const [vw, vh] = viewSize(); return [pick(0, 0), pick(vw, 0), pick(vw, vh), pick(0, vh)]; },
   get scene() { return scene; },
+  get texCount() { return texCache.size; },
+  staleLabels() { let n = 0; for (const e of pool.values()) if (e.sprite.material && e.sprite.material.userData.key !== e.key) n++; return n; },
   show(on) { if (glCanvas) glCanvas.style.display = on ? 'block' : 'none'; },
 };
 window.R3D = API;
