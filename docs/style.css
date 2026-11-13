@@ -1078,3 +1078,8 @@ button:focus-visible { outline: 2px solid #7fb4ff; outline-offset: 2px; }
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
 #map { position: relative; }
 #zoomCtl #z3d { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+
+/* 3D 鏡頭旋轉按鈕：只在 3D 模式顯示 */
+#zoomCtl #zRot { display: none; flex-direction: column; gap: inherit; }
+body.view3d #zoomCtl #zRot { display: flex; }
+#zoomCtl #zRot button { font-size: 17px; }

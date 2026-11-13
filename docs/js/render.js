@@ -354,6 +354,7 @@ function draw(now) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const want3D = !!G && use3D();
   if (want3D !== in3D && typeof window !== 'undefined' && window.R3D) R3D.show(want3D);
+  if (want3D !== in3D) document.body.classList.toggle('view3d', want3D);
   in3D = want3D;
   if (in3D) {
     if (G.terrainDirty) { G.terrainDirty = false; buildTerrain(); }
@@ -670,6 +671,12 @@ function viewSize() { return [cvs.clientWidth, cvs.clientHeight]; }
 function clampCam() {
   const [ww, wh] = worldSize(), [vw, vh] = viewSize();
   const m = 40 / cam.z, w = vw / cam.z, h = vh / cam.z;
+  // 3D（可旋轉）：只限制畫面中心不離開地圖
+  if (in3D) {
+    cam.x = Math.max(0, Math.min(ww, cam.x + w / 2)) - w / 2;
+    cam.y = Math.max(0, Math.min(wh, cam.y + h / 2)) - h / 2;
+    return;
+  }
   cam.x = ww + 2 * m <= w ? (ww - w) / 2 : Math.max(-m, Math.min(ww - w + m, cam.x));
   cam.y = wh + 2 * m <= h ? (wh - h) / 2 : Math.max(-m, Math.min(wh - h + m, cam.y));
 }
@@ -700,6 +707,18 @@ function stepCamera() {
 }
 function zoomAt(sx, sy, factor) {
   camGoal = null;
+  if (in3D) {
+    // 3D：以游標下的地面點為中心縮放
+    const [vw, vh] = viewSize(), a = R3D.pick(sx, sy);
+    const cx = cam.x + vw / cam.z / 2, cy = cam.y + vh / cam.z / 2;
+    cam.z = Math.max(0.25, Math.min(2.5, cam.z * factor));
+    cam.x = cx - vw / cam.z / 2; cam.y = cy - vh / cam.z / 2;
+    R3D.sync();
+    const b = R3D.pick(sx, sy);
+    cam.x += a[0] - b[0]; cam.y += a[1] - b[1];
+    clampCam();
+    return;
+  }
   const wx = cam.x + sx / cam.z, wy = cam.y + sy / cam.z;
   cam.z = Math.max(0.25, Math.min(2.5, cam.z * factor));
   cam.x = wx - sx / cam.z; cam.y = wy - sy / cam.z;

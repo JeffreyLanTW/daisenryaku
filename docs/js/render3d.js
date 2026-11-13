@@ -21,6 +21,8 @@ let ovFill, ovRing, ovSeg, blob;                            // 每幀重建的�
 const sprites = [], texCache = new Map();
 let unitGroup;
 const elev = { v: 55 * Math.PI / 180 };
+// 鏡頭水平旋轉角（弧度）：0 = 從南往北看；增加時畫面內容順時針轉
+const view = { yaw: 0, goal: 0 };
 const V = new THREE.Vector3(), V2 = new THREE.Vector3(), Q = new THREE.Quaternion(), M = new THREE.Matrix4(), S = new THREE.Vector3(), C = new THREE.Color();
 const YAXIS = new THREE.Vector3(0, 1, 0);
 
@@ -388,7 +390,10 @@ function updateCamera() {
   // 拉遠時較俯視（看全局），拉近時較平視（看立體感）
   const t = Math.max(0, Math.min(1, (Math.log(cam.z) - Math.log(0.3)) / (Math.log(1.8) - Math.log(0.3))));
   elev.v = (64 - 20 * t) * Math.PI / 180;
-  camera.position.set(cx, dist * Math.sin(elev.v), cz + dist * Math.cos(elev.v));
+  // 旋轉按鈕：平滑轉到目標角度
+  if (view.yaw !== view.goal) { view.yaw += (view.goal - view.yaw) * 0.2; if (Math.abs(view.goal - view.yaw) < 1e-3) view.yaw = view.goal; }
+  const hd = dist * Math.cos(elev.v);
+  camera.position.set(cx + Math.sin(view.yaw) * hd, dist * Math.sin(elev.v), cz + Math.cos(view.yaw) * hd);
   camera.near = Math.max(4, dist * 0.04); camera.far = dist * 5 + 4000;
   camera.lookAt(cx, 0, cz);
   camera.updateProjectionMatrix();
@@ -431,7 +436,7 @@ function unitMaterial(key, type, side, o) {
   drawCounter(c, SPR_CX, SPR_CY, type, side, o);
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-  m = new THREE.SpriteMaterial({ map: t, transparent: true, alphaTest: 0.02, depthWrite: false, fog: false, toneMapped: false });
+  m = new THREE.SpriteMaterial({ map: t, transparent: true, alphaTest: 0.02, depthWrite: false, depthTest: false, fog: false, toneMapped: false });
   texCache.set(key, m);
   return m;
 }
@@ -508,7 +513,17 @@ const API = {
   },
   project, pick, heightAt,
   // 拖曳地圖時，垂直方向每個像素對應的地圖距離比水平大（因為鏡頭是斜的）
-  panKY() { return 1 / Math.sin(elev.v); },
+  // 拖曳地圖：把螢幕上的位移（像素）換成地圖上的位移（未除以縮放），會依鏡頭旋轉與俯角調整
+  panVec(dx, dy) {
+    const c = Math.cos(view.yaw), sn = Math.sin(view.yaw), k = 1 / Math.sin(elev.v);
+    return [c * dx + sn * dy * k, -sn * dx + c * dy * k];
+  },
+  // 旋轉：rotate 平滑轉到新角度（按鈕、鍵盤），rotateBy 立即轉（拖曳、雙指旋轉）
+  rotate(d) { view.goal += d; },
+  rotateBy(d) { view.yaw += d; view.goal = view.yaw; },
+  resetYaw() { const full = Math.PI * 2; view.goal = Math.round(view.yaw / full) * full; },
+  get yaw() { return view.yaw; },
+  sync: updateCamera,
   // 目前畫面四個角落對應的地圖座標（小地圖的視野框）
   corners() { const [vw, vh] = viewSize(); return [pick(0, 0), pick(vw, 0), pick(vw, vh), pick(0, vh)]; },
   get scene() { return scene; },

@@ -1165,7 +1165,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v97</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v98</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1197,6 +1197,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v98</span><span class="cl-date">2026.11.13</span><p>【3D 鏡頭旋轉】3D 模式右下新增 ⟲ ⟳ 按鈕（每次 45°，雙擊回正北）；也可用 Q／E 鍵、滑鼠右鍵或 Shift＋左鍵左右拖曳、雙指轉動來旋轉。拖曳與縮放會跟著旋轉方向，縮放以游標位置為中心。【部隊在建築前】3D 模式的部隊一律畫在建築、山與樹木前面，不再被遮住。</p></div>
         <div class="cl-item"><span class="cl-ver">v97</span><span class="cl-date">2026.11.13</span><p>【3D 地圖外改黑】3D 戰場的海面只鋪在地圖範圍內，邊緣跟著六角格；地圖外是黑色。</p></div>
         <div class="cl-item"><span class="cl-ver">v96</span><span class="cl-date">2026.11.13</span><p>【3D 底色調整】3D 戰場的背景與霧氣維持黑色，海面恢復原本的藍色。</p></div>
         <div class="cl-item"><span class="cl-ver">v95</span><span class="cl-date">2026.11.13</span><p>【3D 底色改黑】3D 戰場的海面與底色改為黑色。</p></div>
@@ -1349,7 +1350,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v97</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v98</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1545,10 +1546,10 @@ function setupInput() {
     lastPointerType = e.pointerType;
     try { cvs.setPointerCapture(e.pointerId); } catch (err) { /* 部分裝置不支援，忽略 */ }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, btn: e.button }; dragging = false; camStart = { ...cam }; }
+    if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, btn: e.button, shift: e.shiftKey }; dragging = false; camStart = { ...cam }; }
     else if (pts.size === 2) {
       const [a, b] = [...pts.values()];
-      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: cam.z };
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: cam.z, ang: Math.atan2(b.y - a.y, b.x - a.x) };
       dragging = true;
     }
   });
@@ -1558,13 +1559,29 @@ function setupInput() {
       const [a, b] = [...pts.values()], r = cvs.getBoundingClientRect();
       const nd = Math.hypot(a.x - b.x, a.y - b.y);
       zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, (pinch.z * nd / pinch.d) / cam.z);
+      // 3D：雙指轉動同時旋轉鏡頭
+      if (in3D) {
+        const ang = Math.atan2(b.y - a.y, b.x - a.x);
+        let d = ang - pinch.ang;
+        if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+        R3D.rotateBy(d); pinch.ang = ang;
+      }
       return;
     }
     if (down) {
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (!dragging && Math.hypot(dx, dy) > 6) dragging = true;
       if (dragging) {
-        cam.x = camStart.x - dx / cam.z; cam.y = camStart.y - dy / cam.z * (in3D ? R3D.panKY() : 1); clampCam();
+        // 3D：右鍵或 Shift＋左鍵拖曳旋轉鏡頭
+        if (in3D && (down.btn === 2 || down.shift)) {
+          R3D.rotateBy(-(e.clientX - (down.lx ?? down.x)) * 0.008);
+          down.lx = e.clientX;
+          cvs.style.cursor = 'ew-resize';
+          return;
+        }
+        if (in3D) { const [mx, my] = R3D.panVec(dx, dy); cam.x = camStart.x - mx / cam.z; cam.y = camStart.y - my / cam.z; }
+        else { cam.x = camStart.x - dx / cam.z; cam.y = camStart.y - dy / cam.z; }
+        clampCam();
         cvs.style.cursor = 'grabbing';
         return;
       }
@@ -1608,6 +1625,8 @@ function setupInput() {
     if (!$('#modal').classList.contains('hidden')) { if (e.key === 'Escape' && modalDismissable) closeModal(); return; }
     if (e.key === 'Escape') cancelAction();
     else if (e.key === 'Tab') { e.preventDefault(); nextUnit(); }
+    else if (in3D && (e.key === 'q' || e.key === 'Q')) R3D.rotate(-Math.PI / 4);
+    else if (in3D && (e.key === 'e' || e.key === 'E')) R3D.rotate(Math.PI / 4);
   });
   $('#btnEnd').onclick = endTurnClicked;
   $('#btnNext').onclick = nextUnit;
@@ -1693,6 +1712,9 @@ function setupInput() {
     try { localStorage.setItem('daisenryaku_3d', SETTINGS.view3d ? '1' : '0'); } catch (e) { /* 忽略 */ }
     showToast(SETTINGS.view3d ? '3D 戰場' : '2D 戰場');
   };
+  $('#zRotL').onclick = () => { if (in3D) R3D.rotate(-Math.PI / 4); };
+  $('#zRotR').onclick = () => { if (in3D) R3D.rotate(Math.PI / 4); };
+  $('#zRotL').ondblclick = $('#zRotR').ondblclick = () => { if (in3D) R3D.resetYaw(); };
   $('#zIn').onclick = () => { const [vw, vh] = viewSize(); zoomAt(vw / 2, vh / 2, 1.2); };
   $('#zOut').onclick = () => { const [vw, vh] = viewSize(); zoomAt(vw / 2, vh / 2, 1 / 1.2); };
   // 觸控開啟對話框的同一次點擊，可能落在剛出現的按鈕上（Android）：開啟後 0.4 秒內忽略點擊
