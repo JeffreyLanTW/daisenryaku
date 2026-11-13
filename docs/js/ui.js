@@ -1179,7 +1179,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v105</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v106</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1211,6 +1211,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v106</span><span class="cl-date">2026.11.13</span><p>【觸控板旋轉】Mac 觸控板雙指左右滑改為旋轉 3D 鏡頭（上下滑仍是縮放，雙指開合縮放更靈敏）；不再因左右滑而觸發瀏覽器的上一頁／下一頁。</p></div>
         <div class="cl-item"><span class="cl-ver">v105</span><span class="cl-date">2026.11.13</span><p>【3D 記憶體】部隊資訊牌改用較省記憶體的方式產生（上傳後釋放畫布、每幀限量產生、最久未用的先淘汰），降低 iPad／iOS Safari 畫布記憶體超過上限而破圖的機會。</p></div>
         <div class="cl-item"><span class="cl-ver">v104</span><span class="cl-date">2026.11.13</span><p>【3D 模型更精緻】戰車有傾斜車體、托輪與主動輪、砲盾、抽煙器、車長機槍、天線、煙幕彈與置物籃，各國特徵加強（豹 2 箭形附加裝甲、俄印反應裝甲、梅卡瓦鐵鍊簾、16 式輪型等）；飛機有收尖機身、進氣道、座艙罩、噴嘴、翼下掛載與翼尖飛彈；艦艇有外傾船身、分層上層結構、旋轉雷達、相位陣列、近迫武器、垂直發射格、救生艇與甲板標線；步兵有手臂、步槍、背心與不同姿勢。【鏡頭可放更大】3D 最大 6 倍、2D 最大 4 倍；放大時兵種名稱不再跟著變大遮住模型。【觸控旋轉】兩指一起左右滑改為旋轉鏡頭（取代兩指轉動）；兩指上下滑仍是傾斜。</p></div>
         <div class="cl-item"><span class="cl-ver">v103</span><span class="cl-date">2026.11.13</span><p>【固定鏡頭】鏡頭設為「固定」時，回合切換、代理指揮與回合開始的移動命令也不再移動鏡頭。</p></div>
@@ -1371,7 +1372,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v105</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v106</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1629,8 +1630,13 @@ function setupInput() {
   });
   cvs.addEventListener('wheel', e => {
     e.preventDefault();
-    const r = cvs.getBoundingClientRect();
-    zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
+    const r = cvs.getBoundingClientRect(), px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+    const dx = e.deltaX * px, dy = e.deltaY * px;
+    // 觸控板雙指開合（瀏覽器以 ctrlKey＋滾輪事件送出）：縮放，靈敏度較高
+    if (e.ctrlKey) return zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-dy * 0.01));
+    // 3D：觸控板雙指左右滑旋轉鏡頭；以主要方向決定旋轉或縮放，斜滑不會兩者同時發生
+    if (in3D && Math.abs(dx) > Math.abs(dy)) { camGoal = null; R3D.rotateBy(dx * 0.005); return; }
+    zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-dy * 0.0015));
   }, { passive: false });
   cvs.addEventListener('contextmenu', e => e.preventDefault());
 

@@ -1085,3 +1085,6 @@ button:focus-visible { outline: 2px solid #7fb4ff; outline-offset: 2px; }
 #zoomCtl #zRot { display: none; flex-direction: column; gap: inherit; }
 body.view3d #zoomCtl #zRot { display: flex; }
 #zoomCtl #zRot button { font-size: 17px; }
+
+/* 觸控板雙指左右滑用來旋轉 3D 鏡頭：不要觸發瀏覽器的上一頁／下一頁手勢 */
+html, body { overscroll-behavior-x: none; }
