@@ -236,7 +236,7 @@ function audioInit() {
   if (AUDIO.ctx) {
     if (audioAllOff()) return;
     resumeCtx();
-    if (AUDIO.on.music && !AUDIO.bgmSource) startMusic();
+    if (AUDIO.on.music && !AUDIO.bgmSource && !musicBusy()) startMusic();
     return;
   }
   if (audioAllOff()) return;
@@ -438,7 +438,7 @@ function setAudio(kind, on) {
   // 至少一項開啟：恢復主增益並（經互斥鎖）解除 iOS 的中斷狀態
   setParam(AUDIO.master.gain, MASTER_GAIN);
   resumeCtx();
-  if (AUDIO.on.music && !AUDIO.bgmSource) startMusic();
+  if (AUDIO.on.music && !AUDIO.bgmSource && !musicBusy()) startMusic();
 }
 
 // ----- 戰術音效合成基礎積木 -----
@@ -698,29 +698,47 @@ const TRACKS = [
 
 if (!(AUDIO.on.track >= 0 && AUDIO.on.track < TRACKS.length)) AUDIO.on.track = 0;
 
-const TRACK_CACHE = { idx: -1, buf: null, loading: -1 };
-// 下載並解碼一首曲目；decodeAudioData 同時支援回呼與 Promise 兩種寫法（舊版 iOS Safari 只有回呼）
+const TRACK_CACHE = { idx: -1, buf: null, pending: {}, failedAt: {} };
+const TRACK_RETRY_MS = 30000;
+// 下載並解碼一首曲目。同一首同時間只會有一個下載；失敗後 30 秒內不重試（避免每次點擊都重抓）
 function loadTrack(idx) {
   const c = AUDIO.ctx;
   if (TRACK_CACHE.idx === idx && TRACK_CACHE.buf) return Promise.resolve(TRACK_CACHE.buf);
-  TRACK_CACHE.loading = idx;
-  return fetch(TRACKS[idx].file + '?v=92')
+  if (TRACK_CACHE.pending[idx]) return TRACK_CACHE.pending[idx];
+  if (TRACK_CACHE.failedAt[idx] && Date.now() - TRACK_CACHE.failedAt[idx] < TRACK_RETRY_MS) return Promise.reject(new Error('retry later'));
+  const p = fetch(TRACKS[idx].file + '?v=93')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+    // decodeAudioData 同時支援回呼與 Promise 兩種寫法（舊版 iOS Safari 只有回呼）
     .then(ab => new Promise((res, rej) => { const p2 = c.decodeAudioData(ab, res, rej); if (p2 && p2.catch) p2.catch(rej); }))
     .then(buf => {
-      // 只保留最後要求的那一首
-      if (TRACK_CACHE.loading === idx) { TRACK_CACHE.idx = idx; TRACK_CACHE.buf = buf; TRACK_CACHE.loading = -1; }
+      delete TRACK_CACHE.pending[idx];
+      // 記憶體中只保留目前選定的那一首
+      if (AUDIO.on.track === idx) { TRACK_CACHE.idx = idx; TRACK_CACHE.buf = buf; }
       return buf;
+    }, err => {
+      delete TRACK_CACHE.pending[idx];
+      TRACK_CACHE.failedAt[idx] = Date.now();
+      if (!TRACK_CACHE.warned && typeof showToast === 'function') {
+        TRACK_CACHE.warned = true;
+        showToast('背景音樂載入失敗（' + (err && err.message || '網路錯誤') + '），音效不受影響');
+      }
+      throw err;
     });
+  TRACK_CACHE.pending[idx] = p;
+  return p;
+}
+// 目前選定的曲目是否正在下載或剛失敗（此時不需要再啟動一次）
+function musicBusy() {
+  const i = AUDIO.on.track;
+  return !!TRACK_CACHE.pending[i] || (TRACK_CACHE.failedAt[i] && Date.now() - TRACK_CACHE.failedAt[i] < TRACK_RETRY_MS);
 }
 
-// 啟動背景音樂（單例）：先停掉舊的；曲目尚未載入時先下載，期間若又切歌或關閉音樂就放棄這次啟動
+// 啟動背景音樂（單例）：先停掉舊的；曲目尚未載入時先下載，載完時若仍是這一首且音樂開著才播放
 function startMusic() {
   stopMusic();
   if (!AUDIO.ctx || !AUDIO.on.music || typeof window === 'undefined') return;
   const c = AUDIO.ctx;
 
-  const gen = AUDIO.bgmGen;
   if (!AUDIO.musicConnected && AUDIO.bgmFilter) {
     try { AUDIO.music.connect(AUDIO.bgmFilter); AUDIO.musicConnected = true; } catch (e) { /* 忽略 */ }
   }
@@ -731,8 +749,8 @@ function startMusic() {
 
   const trackIdx = ((AUDIO.on.track % TRACKS.length) + TRACKS.length) % TRACKS.length;
   loadTrack(trackIdx).then(buf => {
-    // 下載期間已切歌、關閉音樂或已有別的音樂在播：放棄
-    if (gen !== AUDIO.bgmGen || AUDIO.bgmSource || !AUDIO.on.music || AUDIO.ctx !== c) return;
+    // 下載期間已切到別首、關閉音樂或已有音樂在播：放棄
+    if (AUDIO.on.track !== trackIdx || AUDIO.bgmSource || !AUDIO.on.music || AUDIO.ctx !== c) return;
     const src = c.createBufferSource();
     const bus = c.createGain();
     src.buffer = buf;
