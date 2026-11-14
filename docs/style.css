@@ -1107,3 +1107,9 @@ html, body { overscroll-behavior-x: none; }
 .dlauto { height: 3px; margin: 10px 2px 0; background: rgba(148,163,184,.2); border-radius: 2px; overflow: hidden; }
 .dlauto i { display: block; height: 100%; width: 0; background: var(--gold, #e0b54a); animation: dlauto linear forwards; }
 @keyframes dlauto { from { width: 0; } to { width: 100%; } }
+
+/* ===== 最上列不使用透明度（iPad 上半透明看起來像整列淡掉）：停用按鈕與非行動方改用實色、灰色文字 ===== */
+#topbar button:disabled { opacity: 1; color: #6b7686; background: #161c24; border-color: #252d38; box-shadow: none; }
+#topbar button.primary:disabled { color: #8c7d58; background: #2e281b; border-color: #463c26; }
+#funds .pill { opacity: 1; }
+#funds .pill:not(.active) { color: #8592a3; background: #141a21; }
