@@ -2301,7 +2301,7 @@ function makeNpcToken(npc) {
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   g.scale.setScalar(1.25);
   scene.add(g);
-  return { g, pos: npc.pos, from: npc.pos, t: 1, moveN: npc.moveN || 0 };
+  return { g, pos: npc.pos, from: npc.pos, t: 1, moveN: npc.moveN || 0, attachedTo: npc.attachedTo != null ? npc.attachedTo : null };
 }
 
 const slotOff = k => new THREE.Vector3([-2.3, 2.3, -2.3, 2.3][k % 4], 0, [1.0, 1.0, 3.5, 3.5][k % 4]);
@@ -2673,13 +2673,19 @@ function frame(now) {
       const tk = tokens[k] || (tokens[k] = makeToken(pl));
       tk.g.visible = !pl.bankrupt;
       tk.g.scale.setScalar(k === G.cur ? 1.46 : 1.36);
-      // 玩家附身神明光環特效（神明本體由對應的單一 3D 神明棋子跟隨）
+      // 玩家附身神明光環特效（等待玩家棋子實際經過神明所在格後才點亮並跟隨）
       if (pl.god) {
-        const gCol = R.GODS[pl.god.kind].color;
-        tk.godVis.visible = true;
-        tk.spirit.visible = false;
-        tk.ring.material.color.set(gCol);
-        tk.ring.material.emissive.set(gCol);
+        const gNpc = (G.npcs || []).find(n => n.attachedTo === k);
+        const gNt = gNpc ? npcTokens.get(gNpc.id) : null;
+        if (!gNt || gNt.attachedTo === k) {
+          const gCol = R.GODS[pl.god.kind].color;
+          tk.godVis.visible = true;
+          tk.spirit.visible = false;
+          tk.ring.material.color.set(gCol);
+          tk.ring.material.emissive.set(gCol);
+        } else {
+          tk.godVis.visible = false;
+        }
       } else {
         tk.godVis.visible = false;
       }
@@ -2709,13 +2715,18 @@ function frame(now) {
       }
     });
 
-    // 地圖神明與野狗棋子（各只有一隻：附身時跟隨玩家，離開後飛往地圖隨機位置停留）
+    // 地圖神明與野狗棋子（各只有一隻：玩家棋子經過神明格後才觸發附身跟隨，離開後飛往地圖隨機位置停留）
     if (G.npcs) {
       for (const npc of G.npcs) {
         let nt = npcTokens.get(npc.id);
         if (!nt) { nt = makeNpcToken(npc); npcTokens.set(npc.id, nt); }
-        if (npc.attachedTo != null) {
-          const host = tokens[npc.attachedTo], hostPl = G.players[npc.attachedTo];
+        const host = npc.attachedTo != null ? tokens[npc.attachedTo] : null;
+        const waitingPass = npc.attachedTo != null && nt.attachedTo !== npc.attachedTo && host && host.path && host.path.includes(nt.pos);
+        if (npc.attachedTo != null && !waitingPass) {
+          const justAttached = nt.attachedTo !== npc.attachedTo;
+          nt.attachedTo = npc.attachedTo;
+          if (justAttached) renderPlayersAndTurn();
+          const hostPl = G.players[npc.attachedTo];
           nt.g.visible = !!(host && hostPl && !hostPl.bankrupt);
           nt.moveN = npc.moveN || 0;
           nt.pos = npc.pos;
@@ -2734,9 +2745,10 @@ function frame(now) {
           }
           continue;
         }
+        if (npc.attachedTo == null) nt.attachedTo = null;
         nt.g.visible = true;
         nt.g.scale.setScalar(1.25);
-        if (npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
+        if (!waitingPass && npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
         if (nt.t < 1) {
           if (!diceAnim) {
             nt.t = Math.min(1, nt.t + dt / (STEP_MS() * 1.8));
@@ -2748,7 +2760,7 @@ function frame(now) {
             nt.g.position.copy(npcWorld(nt.from));
           }
         } else {
-          nt.g.position.copy(npcWorld(npc.pos));
+          nt.g.position.copy(npcWorld(waitingPass ? nt.pos : npc.pos));
           nt.g.position.y += Math.sin(now * 0.004 + npc.id) * 0.35;
         }
         if (nt.g.userData.tail) nt.g.userData.tail.rotation.z = Math.sin(now * 0.015) * 0.45;
@@ -3047,28 +3059,43 @@ function openLeaderboardModal(round, isMilestone) {
   });
 }
 
-function renderUI() {
+function visibleGod(p) {
+  if (!p || !p.god) return null;
+  const gNpc = (G.npcs || []).find(n => n.attachedTo === p.id);
+  const gNt = gNpc ? npcTokens.get(gNpc.id) : null;
+  if (gNt && gNt.attachedTo !== p.id) return null;
+  return p.god;
+}
+function renderPlayersAndTurn() {
   if (!G) return;
-  const rText = G.phase === 'over' ? '遊戲結束' : (G.maxRounds > 0 ? `第 ${G.round} / ${G.maxRounds} 輪 ✎` : `第 ${G.round} 輪（無限）✎`);
-  $('#roundInfo').textContent = rText;
-
   $('#players').innerHTML = G.players.map((p, k) => {
-    const god = p.god ? R.GODS[p.god.kind] : null;
-    const godBadge = god ? `<span class="god-badge ${god.good ? 'good' : 'bad'}" title="${god.desc}">${god.icon}${god.name}(${p.god.turns})</span>` : '';
+    const vg = visibleGod(p);
+    const god = vg ? R.GODS[vg.kind] : null;
+    const godBadge = god ? `<span class="god-badge ${god.good ? 'good' : 'bad'}" title="${god.desc}">${god.icon}${god.name}(${vg.turns})</span>` : '';
     return `<div class="pcard ${k === G.cur && G.phase !== 'over' ? 'cur' : ''} ${p.bankrupt ? 'out' : ''}" style="--c:${p.color}">
       <div class="av">${p.name[0]}</div>
       <b>${p.name}${p.kind === 'ai' ? ' <small>電腦</small>' : mine(k) && NET.role !== 'local' ? ' <small>你</small>' : ''}${p.jail ? ' <small>🔒監獄</small>' : ''}${p.skip ? ' <small>🏥住院</small>' : ''}${godBadge}</b>
       <div><span class="cash">$${p.cash.toLocaleString()}</span> <small>🎲${p.dice || 1}・地 ${R.lands(G, p).length}・道具 ${p.items.length}</small></div>
     </div>`;
   }).join('');
+  const p = R.cur(G), my = mine(p.id) && G.phase !== 'over', pGod = visibleGod(p);
+  $('#turnName').innerHTML = G.phase === 'over'
+    ? `🏆 <b>${G.players[G.winner].name}</b> 獲勝`
+    : `輪到 <b style="color:${p.color}">${p.name}</b>${pGod ? ` [${R.GODS[pGod.kind].icon}${R.GODS[pGod.kind].name}]` : ''}${my ? '（你）' : p.kind === 'ai' ? '（電腦思考中…）' : '（等待對方）'}`;
+}
+
+function renderUI() {
+  if (!G) return;
+  const rText = G.phase === 'over' ? '遊戲結束' : (G.maxRounds > 0 ? `第 ${G.round} / ${G.maxRounds} 輪 ✎` : `第 ${G.round} 輪（無限）✎`);
+  $('#roundInfo').textContent = rText;
+
+  renderPlayersAndTurn();
 
   syncDiceVisible();
   const p = R.cur(G), my = mine(p.id) && G.phase !== 'over';
-  $('#turnName').innerHTML = G.phase === 'over'
-    ? `🏆 <b>${G.players[G.winner].name}</b> 獲勝`
-    : `輪到 <b style="color:${p.color}">${p.name}</b>${p.god ? ` [${R.GODS[p.god.kind].icon}${R.GODS[p.god.kind].name}]` : ''}${my ? '（你）' : p.kind === 'ai' ? '（電腦思考中…）' : '（等待對方）'}`;
   renderUIButtons();
-  $('#logBox').innerHTML = G.log.slice().reverse().map(s => `<div>${s}</div>`).join('');
+  const syncLog = () => { if (G) $('#logBox').innerHTML = G.log.slice().reverse().map(s => `<div>${s}</div>`).join(''); };
+  if (isMoving()) whenWalkDone(syncLog); else syncLog();
   renderNews();
 
   // 機會／命運卡片快閃（僅在非自己抽卡確認時排隊提示，避免與抽卡視窗重疊）
