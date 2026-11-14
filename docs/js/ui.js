@@ -1288,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v161</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v162</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1320,6 +1320,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v162</span><span class="cl-date">2026.11.15</span><p>【環島富豪 都市點位改為廣大矩形街區・擴大尺寸差距】解除全地圖八角形限制：都市與交通樞紐改為寬廣矩形街區廣場＋十字道路標線＋衛星街廓建築（大都會擴大至 2.35x），海岸離島改為 12 邊形沙洲（小島 0.52x），山岳支線改為 6 邊形岩盤（0.52x），凸顯各地區真實佔地規模差異。</p></div>
         <div class="cl-item"><span class="cl-ver">v161</span><span class="cl-date">2026.11.15</span><p>【環島富豪 放慢野狗移動速度】將野狗棋子巡邏與接近咬人時的每步移動時間由 1.6x 調整為 3.8x，大幅放慢本島上的移動節奏，方便玩家與鏡頭清楚跟隨野狗動向。</p></div>
         <div class="cl-item"><span class="cl-ver">v160</span><span class="cl-date">2026.11.15</span><p>【環島富豪 擴大點位尺寸差異】大幅拉開各地點位規模對比：都會核心（信義區、台北、高雄、台中、新北）放大至 1.95x、重要樞紐／大景點 1.65x、區域城市 1.35x、一般城鎮 1.02x、機會命運 0.82x、山區支線與小島縮為 0.58x，並同步強化地標與房屋比例縮放。</p></div>
         <div class="cl-item"><span class="cl-ver">v159</span><span class="cl-date">2026.11.15</span><p>【環島富豪 修復棋盤地形切割與中橫樹林遮擋】修正 <code>ROAD_SEGS</code> 路網地形整平與避樹區段計算，改依實際圖邊（<code>R.BOARD[i].next</code>）建立，徹底消除 66→67 誤連造成的台灣本島縱向地形切痕，並將北橫、中橫、南橫三條支線納入道路淨空範圍，清除擋住中橫道路的樹林。</p></div>
@@ -1544,7 +1545,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v161</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v162</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>

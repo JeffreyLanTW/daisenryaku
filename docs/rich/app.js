@@ -1893,12 +1893,12 @@ const URBAN_TILES = new Set(['台北', '信義區', '高雄', '台中', '新北'
 function tileScale(t, i) {
   if (!t) return 1;
   const nm = t.name;
-  if (['信義區', '台北', '高雄', '台中', '新北'].includes(nm)) return 1.95;
-  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '國家公園', '賭場', '起點'].includes(nm)) return 1.65;
-  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南', '竹科', '新竹', '桃園', '花蓮', '台東', '宜蘭'].includes(nm)) return 1.35;
-  if (['小琉球', '七美', '東引', '烈嶼', '龜山島', '拉拉山', '明池', '谷關', '梨山', '天祥', '甲仙', '梅山', '埡口', '向陽'].includes(nm)) return 0.58;
-  if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.82;
-  return 1.02;
+  if (['信義區', '台北', '高雄', '台中', '新北'].includes(nm)) return 2.35;
+  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '國家公園', '賭場', '起點'].includes(nm)) return 1.75;
+  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南', '竹科', '新竹', '桃園', '花蓮', '台東', '宜蘭'].includes(nm)) return 1.45;
+  if (['小琉球', '七美', '東引', '烈嶼', '龜山島', '拉拉山', '明池', '谷關', '梨山', '天祥', '甲仙', '梅山', '埡口', '向陽'].includes(nm)) return 0.52;
+  if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.78;
+  return 1.0;
 }
 function tileTheme(t, i) {
   if (t.type === 'temple') return 'temple';
@@ -1958,20 +1958,52 @@ function makeTileBase(t, i) {
   const g = new THREE.Group();
   const gc = t.group ? R.GROUPS[t.group].color : (TYPE_STYLE[t.type]?.[1] || '#94a3b8');
   const theme = tileTheme(t, i);
-  // 石台：往下延伸埋進地形
-  const stone = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R, TILE_R + 0.55, 3.2, 8), new THREE.MeshStandardMaterial({ color: '#d8cfbb', roughness: 0.82 }));
-  stone.rotation.y = Math.PI / 8; stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
-  // 組別色環（以顏色辨識地段組別）
-  const rim = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R + 0.06, TILE_R + 0.06, 0.34, 8, 1, true), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.18, roughness: 0.5, side: THREE.DoubleSide }));
-  rim.rotation.y = Math.PI / 8; rim.position.y = 0.06;
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R - 0.18, TILE_R - 0.18, 0.12, 8), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.9 }));
-  top.rotation.y = Math.PI / 8; top.position.y = 0.26; top.receiveShadow = true;
-  // 四角組別色小方塔（從遠處也能一眼看出地段顏色）
-  for (let k = 0; k < 4; k++) {
-    const a = Math.PI / 4 + k * Math.PI / 2, post = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.9, 0.5), new THREE.MeshStandardMaterial({ color: gc, roughness: 0.55 }));
-    post.position.set(Math.cos(a) * (TILE_R - 0.35), 0.62, Math.sin(a) * (TILE_R - 0.35)); post.rotation.y = -a; post.castShadow = true; g.add(post);
+  const ts = tileScale(t, i);
+  let stone, top;
+  if (theme === 'urban') {
+    // 都會／交通樞紐：突破八角形限制，改為寬闊方形／矩形街區廣場＋周邊街廓
+    const w = TILE_R * 2.05, d = TILE_R * 1.82;
+    stone = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 3.2, d + 0.5), new THREE.MeshStandardMaterial({ color: '#c4cad3', roughness: 0.85 }));
+    stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.65, 0.34, d + 0.65), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.22, roughness: 0.45 }));
+    rim.position.y = 0.06;
+    top = new THREE.Mesh(new THREE.BoxGeometry(w, 0.14, d), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88 }));
+    top.position.y = 0.26; top.receiveShadow = true;
+    // 十字都市道路標線
+    const roadM = new THREE.MeshStandardMaterial({ color: '#475569', roughness: 0.9 });
+    const rx = new THREE.Mesh(new THREE.BoxGeometry(w - 0.3, 0.05, 0.9), roadM); rx.position.y = 0.34;
+    const rz = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, d - 0.3), roadM); rz.position.y = 0.34;
+    g.add(rx, rz);
+    // 大都會區外圍衛星街廓建築（凸顯都市廣大佔地）
+    if (ts >= 1.7) {
+      const bMat = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.65 });
+      const winMat = new THREE.MeshStandardMaterial({ color: '#e2e8f0', emissive: '#fde047', emissiveIntensity: 0.15 });
+      for (const [bx, bz, bw, bh, bd] of [[-w * 0.42, d * 0.36, 1.3, 1.8, 1.1], [w * 0.41, d * 0.35, 1.4, 2.2, 1.2], [-w * 0.42, -d * 0.34, 1.2, 1.5, 1.1]]) {
+        const blk = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bMat); blk.position.set(bx, 0.32 + bh * 0.5, bz); blk.castShadow = true;
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.82, 0.22, bd * 0.82), winMat); cap.position.set(bx, 0.35 + bh, bz);
+        g.add(blk, cap);
+      }
+    }
+    for (const [cx, cz] of [[-w * 0.48, -d * 0.48], [w * 0.48, -d * 0.48], [-w * 0.48, d * 0.48], [w * 0.48, d * 0.48]]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.95, 0.45), new THREE.MeshStandardMaterial({ color: gc, roughness: 0.5 }));
+      post.position.set(cx, 0.64, cz); post.castShadow = true; g.add(post);
+    }
+    g.add(stone, rim, top);
+  } else {
+    const sides = theme === 'coast' ? 12 : theme === 'mountain' ? 6 : 8;
+    const rot = Math.PI / sides;
+    stone = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R, TILE_R + 0.6, 3.2, sides), new THREE.MeshStandardMaterial({ color: '#d8cfbb', roughness: 0.82 }));
+    stone.rotation.y = rot; stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R + 0.06, TILE_R + 0.06, 0.34, sides, 1, true), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.18, roughness: 0.5, side: THREE.DoubleSide }));
+    rim.rotation.y = rot; rim.position.y = 0.06;
+    top = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R - 0.18, TILE_R - 0.18, 0.12, sides), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.9 }));
+    top.rotation.y = rot; top.position.y = 0.26; top.receiveShadow = true;
+    for (let k = 0; k < 4; k++) {
+      const a = Math.PI / 4 + k * Math.PI / 2, post = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.9, 0.5), new THREE.MeshStandardMaterial({ color: gc, roughness: 0.55 }));
+      post.position.set(Math.cos(a) * (TILE_R - 0.35), 0.62, Math.sin(a) * (TILE_R - 0.35)); post.rotation.y = -a; post.castShadow = true; g.add(post);
+    }
+    g.add(stone, rim, top);
   }
-  g.add(stone, rim, top);
   decorateTile(g, theme, i);
   stone.userData.i = i; top.userData.i = i;
   tileBases.push(stone, top);
@@ -4306,7 +4338,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v161</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v162</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
