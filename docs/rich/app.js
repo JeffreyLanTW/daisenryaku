@@ -1564,12 +1564,19 @@ function makeTileProp(t, idx) {
     animProps.push(now => { halo.rotation.y = now * 0.0028; });
     g.add(shrine, roof, halo);
   } else if (t.type === 'hospital') {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.5, 2.0), makeWinMat('#f1f5f9', '#38bdf8'));
-    b.position.y = 1.25;
-    const red = new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#7f1d1d' });
-    const c1 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.34, 0.16), red); c1.position.set(0, 1.75, 1.05);
-    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.34, 1.1, 0.16), red); c2.position.set(0, 1.75, 1.05);
-    g.add(b, c1, c2);
+    g.userData.baseScale = 1.45;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.0, 2.3), makeWinMat('#f1f5f9', '#38bdf8'));
+    b.position.y = 1.5;
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 2.0), makeWinMat('#e2e8f0', '#7dd3fc'));
+    wing.position.set(1.85, 1.05, 0);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.12, 16), new THREE.MeshStandardMaterial({ color: '#334155' }));
+    pad.position.set(0, 3.06, 0);
+    const red = new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#991b1b' });
+    const c1 = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.38, 0.18), red); c1.position.set(0, 2.15, 1.18);
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.25, 0.18), red); c2.position.set(0, 2.15, 1.18);
+    const h1 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.28), red); h1.position.set(0, 3.14, 0);
+    const h2 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 1.0), red); h2.position.set(0, 3.14, 0);
+    g.add(b, wing, pad, c1, c2, h1, h2);
   } else if (t.type === 'casino') {
     // 去金門途中的海峽豪華郵輪賭場（雙層霓虹甲板＋金幣輪盤塔＋旋轉幸運骰）
     const hull = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.85, 1.7), new THREE.MeshStandardMaterial({ color: '#1e1b4b', metalness: 0.35, roughness: 0.35 }));
@@ -1682,11 +1689,18 @@ function makeTileProp(t, idx) {
       g.add(barn, roof, silo, band);
     }
   } else if (t.type === 'jail') {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.0, 0.4), new THREE.MeshStandardMaterial({ color: '#64748b' }));
-    wall.position.set(0, 1.0, -0.5); g.add(wall);
+    g.userData.baseScale = 1.45;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.4, 2.4), new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.75 }));
+    body.position.set(0, 1.2, -0.2); g.add(body);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.35, 2.6), new THREE.MeshStandardMaterial({ color: '#334155' }));
+    roof.position.set(0, 2.55, -0.2); g.add(roof);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 3.4, 8), new THREE.MeshStandardMaterial({ color: '#475569' }));
+    tower.position.set(1.55, 1.7, 0.85); g.add(tower);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.34, 8, 8), new THREE.MeshStandardMaterial({ color: '#f97316', emissive: '#ea580c' }));
+    beacon.position.set(1.55, 3.55, 0.85); g.add(beacon);
     for (let k = -2; k <= 2; k++) {
-      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.6, 6), new THREE.MeshStandardMaterial({ color: '#1e293b', metalness: 0.7 }));
-      bar.position.set(k * 0.62, 1.3, 0.35); g.add(bar);
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.7, 6), new THREE.MeshStandardMaterial({ color: '#0f172a', metalness: 0.8 }));
+      bar.position.set(k * 0.58, 1.35, 1.05); g.add(bar);
     }
   } else if (t.type === 'gojail') {
     const booth = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.0, 1.8), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
@@ -1896,7 +1910,7 @@ function tileScale(t, i) {
   if (!t) return 1;
   const nm = t.name;
   if (['信義區', '台北', '高雄', '台中', '新北'].includes(nm)) return 2.35;
-  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '國家公園', '賭場', '起點'].includes(nm)) return 1.75;
+  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '國家公園', '賭場', '起點', '醫院', '監獄'].includes(nm)) return 1.75;
   if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南', '竹科', '新竹', '桃園', '花蓮', '台東', '宜蘭'].includes(nm)) return 1.45;
   if (['小琉球', '七美', '東引', '烈嶼', '龜山島', '拉拉山', '明池', '谷關', '梨山', '天祥', '甲仙', '梅山', '埡口', '向陽'].includes(nm)) return 0.52;
   if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.78;
@@ -3045,15 +3059,17 @@ function stepAmbulance(now) {
   }
   const ease = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
   ambGroup.position.lerpVectors(ambAnim.a, ambAnim.b, ease);
-  ambGroup.position.y += 0.35 + Math.sin(f * Math.PI) * 5.2 + Math.abs(Math.sin(f * Math.PI * 10)) * 0.25;
+  const ambTh = onMainland(ambGroup.position.x, ambGroup.position.z) ? terrainHeight(ambGroup.position.x, ambGroup.position.z) : 0.4;
+  const ambArcY = ambGroup.position.y + 0.35 + Math.sin(f * Math.PI) * 5.2 + Math.abs(Math.sin(f * Math.PI * 10)) * 0.25;
+  ambGroup.position.y = Math.max(ambArcY, ambTh + 1.5 + Math.sin(f * Math.PI) * 2.2);
   ambGroup.rotation.y = Math.atan2(ambAnim.b.x - ambAnim.a.x, ambAnim.b.z - ambAnim.a.z);
   const blink = Math.floor(now / 130) % 2 === 0;
   if (ambRed) ambRed.material.emissiveIntensity = blink ? 2.4 : 0.2;
   if (ambBlue) ambBlue.material.emissiveIntensity = blink ? 0.2 : 2.4;
 }
 
-// ---------- 機會移動專屬載具動畫（高鐵 700T 列車／環島直升機，不直接走棋子）----------
-let transportAnim = null, hsrGroup = null, heliGroup = null, heliMainRotor = null, heliTailRotor = null, transportBanner = null;
+// ---------- 機會移動與入監專屬載具動畫（高鐵 700T 列車／環島直升機／警備囚車，不直接走棋子）----------
+let transportAnim = null, hsrGroup = null, heliGroup = null, heliMainRotor = null, heliTailRotor = null, jailGroup = null, jailRed = null, jailBlue = null, transportBanner = null;
 function ensureTransportFx() {
   if (!hsrGroup) {
     hsrGroup = new THREE.Group();
@@ -3110,6 +3126,37 @@ function ensureTransportFx() {
     heliGroup.visible = false;
     scene.add(heliGroup);
   }
+  if (!jailGroup) {
+    jailGroup = new THREE.Group();
+    const darkM = new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.45 });
+    const whiteM = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.4 });
+    const barM = new THREE.MeshStandardMaterial({ color: '#94a3b8', metalness: 0.7 });
+    const tireM = new THREE.MeshStandardMaterial({ color: '#111827', roughness: 0.9 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.85, 4.1), darkM); body.position.set(0, 1.32, -0.3);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(2.56, 0.95, 1.55), whiteM); door.position.set(0, 1.15, 0.8);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.4, 1.5), darkM); cab.position.set(0, 1.1, 2.2);
+    const win = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 0.14), new THREE.MeshStandardMaterial({ color: '#93c5fd', roughness: 0.2 })); win.position.set(0, 1.38, 2.95);
+    for (let k = -1; k <= 1; k++) {
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.75, 6), barM);
+      bar.position.set(1.28, 1.65, -0.9 + k * 0.42);
+      const bar2 = bar.clone(); bar2.position.x = -1.28;
+      jailGroup.add(bar, bar2);
+    }
+    jailRed = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.34, 0.45), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#ef4444', emissiveIntensity: 1.5 }));
+    jailRed.position.set(-0.48, 2.42, 1.85);
+    jailBlue = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.34, 0.45), new THREE.MeshStandardMaterial({ color: '#3b82f6', emissive: '#3b82f6', emissiveIntensity: 1.5 }));
+    jailBlue.position.set(0.48, 2.42, 1.85);
+    jailGroup.add(body, door, cab, win, jailRed, jailBlue);
+    for (const [wx, wz] of [[-1.2, -1.45], [1.2, -1.45], [-1.15, 2.1], [1.15, 2.1]]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.38, 10), tireM);
+      w.rotation.z = Math.PI / 2; w.position.set(wx, 0.45, wz);
+      jailGroup.add(w);
+    }
+    jailGroup.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    jailGroup.scale.setScalar(2.85);
+    jailGroup.visible = false;
+    scene.add(jailGroup);
+  }
   if (!transportBanner) {
     transportBanner = document.createElement('div');
     transportBanner.className = 'amb-fx hidden';
@@ -3130,6 +3177,7 @@ function clearTransportFx() {
   transportAnim = null;
   if (hsrGroup) hsrGroup.visible = false;
   if (heliGroup) heliGroup.visible = false;
+  if (jailGroup) jailGroup.visible = false;
   if (transportBanner) transportBanner.classList.add('hidden');
 }
 function startTransportFx(pId, fromPos, toPos, kind, now) {
@@ -3140,17 +3188,20 @@ function startTransportFx(pId, fromPos, toPos, kind, now) {
   transportAnim = { t0: now, dur, p: pId, from: fromPos, to: toPos, kind, a, b };
   const tk = tokens[pId];
   if (tk) tk.g.visible = false;
-  const grp = kind === 'hsr' ? hsrGroup : heliGroup;
+  const grp = kind === 'hsr' ? hsrGroup : kind === 'jail' ? jailGroup : heliGroup;
   grp.position.copy(a);
   grp.visible = true;
-  if (kind === 'hsr' && heliGroup) heliGroup.visible = false;
-  if (kind === 'heli' && hsrGroup) hsrGroup.visible = false;
+  if (kind !== 'hsr' && hsrGroup) hsrGroup.visible = false;
+  if (kind !== 'heli' && heliGroup) heliGroup.visible = false;
+  if (kind !== 'jail' && jailGroup) jailGroup.visible = false;
   const pl = G && G.players[pId], toName = R.BOARD[toPos]?.name || '目的地';
   transportBanner.textContent = kind === 'hsr'
     ? `🚄 台灣高鐵 700T 全速出發！${pl ? pl.name : '玩家'} 直奔「${toName}」…`
-    : `🚁 環島直升機起飛！${pl ? pl.name : '玩家'} 飛往「${toName}」…`;
+    : kind === 'jail'
+      ? `🚔 警車鳴笛押送！${pl ? pl.name : '玩家'} 移送「${toName}」拘留…`
+      : `🚁 環島直升機起飛！${pl ? pl.name : '玩家'} 飛往「${toName}」…`;
   transportBanner.classList.remove('hidden');
-  snd(kind);
+  snd(kind === 'jail' ? 'siren' : kind);
 }
 function stepTransportFx(now) {
   if (!transportAnim) return;
@@ -3162,8 +3213,18 @@ function stepTransportFx(now) {
   const ease = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
   if (transportAnim.kind === 'hsr') {
     hsrGroup.position.lerpVectors(transportAnim.a, transportAnim.b, ease);
-    hsrGroup.position.y += 0.65 + Math.sin(f * Math.PI) * 3.8;
+    const th = onMainland(hsrGroup.position.x, hsrGroup.position.z) ? terrainHeight(hsrGroup.position.x, hsrGroup.position.z) : 0.4;
+    hsrGroup.position.y = Math.max(hsrGroup.position.y + 0.65 + Math.sin(f * Math.PI) * 3.8, th + 1.5);
     hsrGroup.rotation.y = Math.atan2(transportAnim.b.x - transportAnim.a.x, transportAnim.b.z - transportAnim.a.z);
+  } else if (transportAnim.kind === 'jail') {
+    jailGroup.position.lerpVectors(transportAnim.a, transportAnim.b, ease);
+    const th = onMainland(jailGroup.position.x, jailGroup.position.z) ? terrainHeight(jailGroup.position.x, jailGroup.position.z) : 0.4;
+    const arcY = jailGroup.position.y + 0.35 + Math.sin(f * Math.PI) * 4.5 + Math.abs(Math.sin(f * Math.PI * 10)) * 0.25;
+    jailGroup.position.y = Math.max(arcY, th + 1.5 + Math.sin(f * Math.PI) * 2.0);
+    jailGroup.rotation.y = Math.atan2(transportAnim.b.x - transportAnim.a.x, transportAnim.b.z - transportAnim.a.z);
+    const blink = Math.floor(now / 130) % 2 === 0;
+    if (jailRed) jailRed.material.emissiveIntensity = blink ? 2.4 : 0.2;
+    if (jailBlue) jailBlue.material.emissiveIntensity = blink ? 0.2 : 2.4;
   } else {
     heliGroup.position.lerpVectors(transportAnim.a, transportAnim.b, ease);
     heliGroup.position.y += 1.6 + Math.sin(f * Math.PI) * 18.5;
@@ -3553,6 +3614,7 @@ function frame(now) {
       : (ambAnim && ambGroup && ambGroup.visible) ? ambGroup.position
       : (transportAnim && hsrGroup && hsrGroup.visible) ? hsrGroup.position
       : (transportAnim && heliGroup && heliGroup.visible) ? heliGroup.position
+      : (transportAnim && jailGroup && jailGroup.visible) ? jailGroup.position
       : (bankruptAnim && bankruptGroup && bankruptGroup.visible) ? bankruptGroup.position
       : (godAnim && godFxGroup && godFxGroup.visible) ? godFxGroup.position
       : movingDogPos;
@@ -4478,7 +4540,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v165</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v166</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>

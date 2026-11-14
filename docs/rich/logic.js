@@ -266,7 +266,13 @@
   }
 
   function goJail(G, p, why = '違規入獄') {
-    p.pos = idx('監獄'); p.jail = JAIL_TURNS;
+    const from = p.pos, ji = idx('監獄');
+    if (ji >= 0) p.pos = ji;
+    p.jail = JAIL_TURNS;
+    if (ji >= 0 && ji !== from) {
+      G.moveSeq = (G.moveSeq || 0) + 1;
+      G.transportFx = { n: G.moveSeq, p: p.id, from, to: ji, kind: 'jail' };
+    }
     log(G, `🚨 ${p.name} ${why}，進監獄（${JAIL_TURNS} 回合）`);
     G.fx = { k: 'jail', p: p.id };
     pushNews(G, '社會新聞', `🚨 ${p.name} ${why}，已移送監獄拘留 ${JAIL_TURNS} 回合！`, '突發治安', '#e74c3c');
