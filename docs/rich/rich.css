@@ -34,9 +34,11 @@ button.primary:disabled { background: #2e281b; color: #8c7d58; border-color: #46
   background: radial-gradient(circle at top center, rgba(48, 22, 26, .97), rgba(14, 18, 26, .98));
   border: 3px solid var(--nc, var(--red)); border-radius: 18px; padding: 14px 18px 16px;
   box-shadow: 0 22px 64px rgba(0, 0, 0, .82), 0 0 32px color-mix(in srgb, var(--nc, var(--red)) 45%, transparent);
-  animation: newsPopCenter .38s cubic-bezier(.16, 1, .3, 1); pointer-events: none; text-align: center; }
+  animation: newsPopCenter .38s cubic-bezier(.16, 1, .3, 1); pointer-events: auto; cursor: pointer; user-select: none; text-align: center; }
 #newsToast .nt-head { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 12px; font-weight: 900; letter-spacing: .12em; color: #fff;
   background: linear-gradient(90deg, transparent, var(--nc, var(--red)), transparent); padding: 4px 14px; border-radius: 999px; margin-bottom: 12px; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+#newsToast .nt-close { margin-left: auto; font-size: 11px; font-weight: 700; opacity: .88; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, .38); border: 1px solid rgba(255, 255, 255, .22); }
+#newsToast:hover .nt-close { opacity: 1; background: rgba(255, 255, 255, .2); }
 #newsToast .nt-main { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 #newsToast .nt-art { width: 108px; height: 108px; flex-shrink: 0; border-radius: 16px; padding: 6px;
   background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(0,0,0,.35));
@@ -69,7 +71,7 @@ main { position: relative; flex: 1; min-height: 0; width: 100%; background: #1b5
 .acts { display: flex; gap: 8px; }
 .acts button { min-width: 92px; padding: 10px 14px; font-size: 15px; }
 #cardPop { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(420px, 86%); padding: 18px 20px; border-radius: 14px; text-align: center; z-index: 10;
-  background: #1a2230; border: 2px solid var(--c, var(--gold)); box-shadow: 0 20px 50px rgba(0, 0, 0, .6); animation: pop .35s ease; }
+  background: #1a2230; border: 2px solid var(--c, var(--gold)); box-shadow: 0 20px 50px rgba(0, 0, 0, .6); animation: pop .35s ease; cursor: pointer; }
 #cardPop h3 { margin: 0 0 8px; color: var(--c, var(--gold)); letter-spacing: .2em; }
 #cardPop p { margin: 0; font-size: 16px; line-height: 1.6; }
 @keyframes pop { from { transform: translateX(-50%) scale(.85); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }

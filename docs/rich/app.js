@@ -2149,7 +2149,7 @@ function rollDice(a, b, count = (b > 0 ? 2 : 1)) {
   const anchor = G ? tilePos(R.cur(G).pos) : new THREE.Vector3(-105, 1.5, 120);
   syncDiceVisible(count);
   diceAnim = {
-    t0: performance.now(), dur: 900, end: [a, b], count, anchor,
+    t0: performance.now(), dur: 650, end: [a, b], count, anchor,
     spin: [new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6), new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6)]
   };
   snd('dice');
@@ -2412,12 +2412,31 @@ if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
 
 // ---------- 每幀動畫 ----------
 let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0;
+function syncMoveStart() {
+  if (!G || !G.move || !G.move.path || !G.move.path.length) return;
+  if (G.move.n !== lastMoveN) {
+    lastMoveN = G.move.n;
+    moveAt = performance.now();
+  }
+  const k = G.move.p;
+  const pl = G.players[k];
+  if (!pl) return;
+  const tk = tokens[k] || (tokens[k] = makeToken(pl));
+  if (tk.moveN !== G.move.n) {
+    tk.moveN = G.move.n;
+    tk.path = [...G.move.path];
+    tk.t = 0;
+    tk.from = tk.pos;
+  }
+}
+
 function frame(now) {
   requestAnimationFrame(frame);
   if (waterTex) { waterTex.offset.x = (now * 0.000018) % 1; waterTex.offset.y = (now * 0.000012) % 1; }
   for (let k = 0; k < animProps.length; k++) animProps[k](now);
   if (G) {
-    syncBuildings();
+    syncMoveStart();
+    if (!isMoving() || !buildKey) syncBuildings();
     for (const ah of activeHouses) {
       const anim = buildingRise.get(ah.tileIdx);
       if (anim) {
@@ -2449,19 +2468,22 @@ function frame(now) {
         tk.godVis.visible = false;
       }
 
-      if (G.move && G.move.p === k && G.move.n !== tk.moveN) {
-        tk.moveN = G.move.n; tk.path = [...G.move.path]; tk.t = 0; tk.from = tk.pos;
-      }
       if (tk.path.length) {
-        tk.t += 0.085;
-        const a = tokenWorld(tk.from, k), b = tokenWorld(tk.path[0], k), f = Math.min(1, tk.t);
-        tk.g.position.lerpVectors(a, b, f);
-        tk.g.position.y += Math.sin(f * Math.PI) * 4.6;
-        tk.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
-        const swing = Math.sin(f * Math.PI * 2) * 0.65;
-        tk.leftArm.rotation.x = swing; tk.rightArm.rotation.x = -swing;
-        tk.leftLeg.rotation.x = -swing * 0.8; tk.rightLeg.rotation.x = swing * 0.8;
-        if (f >= 1) { tk.from = tk.path.shift(); tk.pos = tk.from; tk.t = 0; snd('step'); }
+        if (!diceAnim) {
+          tk.t += 0.085;
+          const a = tokenWorld(tk.from, k), b = tokenWorld(tk.path[0], k), f = Math.min(1, tk.t);
+          tk.g.position.lerpVectors(a, b, f);
+          tk.g.position.y += Math.sin(f * Math.PI) * 4.6;
+          tk.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+          const swing = Math.sin(f * Math.PI * 2) * 0.65;
+          tk.leftArm.rotation.x = swing; tk.rightArm.rotation.x = -swing;
+          tk.leftLeg.rotation.x = -swing * 0.8; tk.rightLeg.rotation.x = swing * 0.8;
+          if (f >= 1) { tk.from = tk.path.shift(); tk.pos = tk.from; tk.t = 0; snd('step'); }
+        } else {
+          tk.g.position.copy(tokenWorld(tk.from, k));
+          tk.leftArm.rotation.x = 0; tk.rightArm.rotation.x = 0;
+          tk.leftLeg.rotation.x = 0; tk.rightLeg.rotation.x = 0;
+        }
       } else {
         tk.pos = pl.pos;
         tk.g.position.copy(tokenWorld(pl.pos, k));
@@ -2471,7 +2493,7 @@ function frame(now) {
       }
     });
 
-    // 地圖移動 NPC 動畫
+    // 地圖移動 NPC 動畫（待骰子落地後再走動）
     if (G.npcs) {
       for (const npc of G.npcs) {
         let nt = npcTokens.get(npc.id);
@@ -2480,11 +2502,15 @@ function frame(now) {
         if (!nt.g.visible) continue;
         if (npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
         if (nt.t < 1) {
-          nt.t = Math.min(1, nt.t + 0.045);
-          const a = npcWorld(nt.from), b = npcWorld(nt.pos);
-          nt.g.position.lerpVectors(a, b, nt.t);
-          nt.g.position.y += Math.sin(nt.t * Math.PI) * 2.2;
-          nt.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+          if (!diceAnim) {
+            nt.t = Math.min(1, nt.t + 0.045);
+            const a = npcWorld(nt.from), b = npcWorld(nt.pos);
+            nt.g.position.lerpVectors(a, b, nt.t);
+            nt.g.position.y += Math.sin(nt.t * Math.PI) * 2.2;
+            nt.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+          } else {
+            nt.g.position.copy(npcWorld(nt.from));
+          }
         } else {
           nt.g.position.copy(npcWorld(npc.pos));
           nt.g.position.y += Math.sin(now * 0.004 + npc.id) * 0.35;
@@ -2510,13 +2536,101 @@ function frame(now) {
   renderer.render(scene, camera);
 }
 
-// ============================================================ 介面與 Breaking News
+// ============================================================ 介面與 Breaking News（移動後依序不重疊觸發）
 const mine = pid => NET.role === 'local' ? G.players[pid].kind !== 'ai' : NET.myIds.has(pid);
-const animBusy = () => tokens.some(t => t && t.path && t.path.length) || !!diceAnim;
+const isMoving = () => {
+  if (diceAnim) return true;
+  if (tokens.some(t => t && t.path && t.path.length)) return true;
+  if (G && G.move && G.move.path && G.move.path.length && (!tokens[G.move.p] || tokens[G.move.p].moveN !== G.move.n)) return true;
+  for (const nt of npcTokens.values()) if (nt && nt.g.visible && nt.t < 1) return true;
+  return false;
+};
+const animBusy = () => isMoving();
 function toast(s, ms = 1900) { const t = $('#toast'); t.textContent = s; t.classList.remove('hidden'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hidden'), ms); }
+
+let modalDoneCb = null, newsToastCb = null, cardPopCb = null;
+const uiQueue = [];
+let uiRunning = false, shownAsk = null, lastRankRound = 0, pendingRankModal = false, shownOver = false;
+
 function openModal(html, ready) { $('#modalBox').innerHTML = html; $('#modal').classList.remove('hidden'); ready && ready($('#modalBox')); }
-function closeModal() { $('#modal').classList.add('hidden'); }
-let shownAsk = null, lastRankRound = 0, pendingRankModal = false;
+function closeModal() {
+  $('#modal').classList.add('hidden');
+  if (modalDoneCb) {
+    const cb = modalDoneCb;
+    modalDoneCb = null;
+    cb();
+  }
+}
+function dismissNewsToast() {
+  const nt = $('#newsToast');
+  clearTimeout(nt._t);
+  nt.classList.add('hidden');
+  if (newsToastCb) {
+    const cb = newsToastCb;
+    newsToastCb = null;
+    cb();
+  }
+}
+function dismissCardPop() {
+  const el = $('#cardPop');
+  clearTimeout(el._t);
+  el.classList.add('hidden');
+  if (cardPopCb) {
+    const cb = cardPopCb;
+    cardPopCb = null;
+    cb();
+  }
+}
+$('#newsToast').onclick = () => dismissNewsToast();
+$('#cardPop').onclick = () => dismissCardPop();
+
+function pumpUiQueue() {
+  if (uiRunning || !uiQueue.length) return;
+  if (isMoving()) {
+    whenWalkDone(pumpUiQueue);
+    return;
+  }
+  if (!$('#modal').classList.contains('hidden') || !$('#newsToast').classList.contains('hidden') || !$('#cardPop').classList.contains('hidden')) {
+    const tid = setTimeout(pumpUiQueue, 120);
+    walkTimers.push(tid);
+    return;
+  }
+  uiRunning = true;
+  const step = uiQueue.shift();
+  let finished = false;
+  const done = () => {
+    if (finished) return;
+    finished = true;
+    uiRunning = false;
+    setTimeout(() => {
+      pumpUiQueue();
+      if (!uiRunning && !uiQueue.length) scheduleAuto();
+    }, 40);
+  };
+  try {
+    step(done);
+  } catch (e) {
+    console.error(e);
+    done();
+  }
+}
+function enqueueUi(stepFn) {
+  uiQueue.push(stepFn);
+  pumpUiQueue();
+}
+function resetUiQueue() {
+  uiQueue.length = 0;
+  uiRunning = false;
+  modalDoneCb = null;
+  newsToastCb = null;
+  cardPopCb = null;
+  shownOver = false;
+  const nt = $('#newsToast');
+  clearTimeout(nt._t); nt.classList.add('hidden');
+  const el = $('#cardPop');
+  clearTimeout(el._t); el.classList.add('hidden');
+  clearWalkTimers();
+}
 
 // 依據新聞類型繪製鮮明 SVG 主題插畫（不含重覆 ID）
 function newsArtSVG(n) {
@@ -2599,6 +2713,24 @@ function newsArtSVG(n) {
   </svg>`;
 }
 
+function showNewsToast(latest, done) {
+  const nt = $('#newsToast');
+  nt.style.setProperty('--nc', latest.color || '#d93829');
+  nt.innerHTML = `<div class="nt-head"><span>🔴 BREAKING NEWS</span><span>第 ${latest.round} 輪・${latest.cat}</span><span class="nt-close">✕ 點擊關閉</span></div>
+    <div class="nt-main">
+      <div class="nt-art">${newsArtSVG(latest)}</div>
+      <div class="nt-content">
+        <div class="nt-title">${latest.title}</div>
+        ${latest.body && latest.body !== latest.title ? `<div class="nt-body">${latest.body}</div>` : ''}
+      </div>
+    </div>`;
+  nt.classList.remove('hidden');
+  clearTimeout(nt._t);
+  newsToastCb = done || null;
+  nt._t = setTimeout(() => dismissNewsToast(), 3400);
+  snd('news');
+}
+
 function renderNews() {
   const bar = $('#newsBar');
   const wasHidden = bar.classList.contains('hidden');
@@ -2607,32 +2739,23 @@ function renderNews() {
     if (!wasHidden) resize();
     return;
   }
-  bar.classList.remove('hidden');
-  if (wasHidden) resize();
   const latest = G.news[G.news.length - 1];
-  $('#newsTitle').textContent = `[${latest.cat}] ${latest.title}`;
-  $('#newsTicker').textContent = G.news.slice(-5, -1).reverse().map(n => `• ${n.title}`).join('   ');
-
+  const syncBar = () => {
+    bar.classList.remove('hidden');
+    if (wasHidden) resize();
+    $('#newsTitle').textContent = `[${latest.cat}] ${latest.title}`;
+    $('#newsTicker').textContent = G.news.slice(-5, -1).reverse().map(n => `• ${n.title}`).join('   ');
+  };
   if (latest.id > lastNewsId) {
     const isInitial = lastNewsId === 0;
     lastNewsId = latest.id;
-    bar.classList.remove('flash'); void bar.offsetWidth; bar.classList.add('flash');
-    if (!isInitial) {
-      const nt = $('#newsToast');
-      nt.style.setProperty('--nc', latest.color || '#d93829');
-      nt.innerHTML = `<div class="nt-head"><span>🔴 BREAKING NEWS</span><span>第 ${latest.round} 輪・${latest.cat}</span></div>
-        <div class="nt-main">
-          <div class="nt-art">${newsArtSVG(latest)}</div>
-          <div class="nt-content">
-            <div class="nt-title">${latest.title}</div>
-            ${latest.body && latest.body !== latest.title ? `<div class="nt-body">${latest.body}</div>` : ''}
-          </div>
-        </div>`;
-      nt.classList.remove('hidden');
-      clearTimeout(nt._t);
-      nt._t = setTimeout(() => nt.classList.add('hidden'), 3800);
-      snd('news');
-    }
+    whenWalkDone(() => {
+      syncBar();
+      bar.classList.remove('flash'); void bar.offsetWidth; bar.classList.add('flash');
+    });
+    if (!isInitial) enqueueUi(done => showNewsToast(latest, done));
+  } else if (!isMoving()) {
+    syncBar();
   }
 }
 
@@ -2711,39 +2834,56 @@ function renderUI() {
   $('#logBox').innerHTML = G.log.slice().reverse().map(s => `<div>${s}</div>`).join('');
   renderNews();
 
-  // 機會／命運卡片快閃
+  // 機會／命運卡片快閃（僅在非自己抽卡確認時排隊提示，避免與抽卡視窗重疊）
   if (G.card && G.card.n !== lastCard) {
     lastCard = G.card.n;
-    const c = G.card;
-    whenWalkDone(() => showCard(c));
+    if (!my || !G.ask) {
+      const c = G.card;
+      enqueueUi(done => showCard(c, done));
+    }
   }
-  // 購買／同位置蓋樓升級／抽卡／道具屋詢問
+  // 購買／同位置蓋樓升級／抽卡／道具屋詢問（一律等移動與前序彈窗結束後再依序開啟）
   const askKey = G.ask ? `${G.turn}:${G.ask.k}:${G.ask.i}:${G.ask.bought ? G.ask.bought.length : 0}` : '';
   if (G.ask && my && shownAsk !== askKey) {
     shownAsk = askKey;
     const q = G.ask;
     if (q.k === 'shop' && q.bought && q.bought.length > 0) setTimeout(() => askPrompt(q), 0);
-    else whenWalkDone(() => askPrompt(q));
+    else {
+      enqueueUi(done => {
+        if (!G || !G.ask || G.ask.k !== q.k || G.ask.i !== q.i) {
+          done();
+          return;
+        }
+        modalDoneCb = done;
+        askPrompt(q);
+      });
+    }
   }
   if (G.fx && JSON.stringify(G.fx) + G.turn !== lastFx) {
     lastFx = JSON.stringify(G.fx) + G.turn;
     const fk = G.fx.k;
     whenWalkDone(() => snd({ rent: 'pay', buy: 'cash', build: 'build', jail: 'bad', demolish: 'bad', god_good: 'god', god_bad: 'badgod', seize: 'seize' }[fk] || 'turn'));
   }
-  if (G.phase !== 'over' && G.round >= 20 && G.round % 20 === 0 && G.round !== lastRankRound && !G.ask && $('#modal').classList.contains('hidden')) {
+  if (G.phase !== 'over' && G.round >= 20 && G.round % 20 === 0 && G.round !== lastRankRound && !G.ask) {
     lastRankRound = G.round;
-    pendingRankModal = true;
     const rankRound = G.round;
-    setTimeout(() => {
-      pendingRankModal = false;
-      if (G && G.phase !== 'over' && G.round === rankRound && !G.ask && $('#modal').classList.contains('hidden')) {
-        openLeaderboardModal(rankRound, true);
-      } else {
-        scheduleAuto();
+    enqueueUi(done => {
+      if (!G || G.phase === 'over' || G.round !== rankRound || G.ask) {
+        done();
+        return;
       }
-    }, Math.min(700, Math.max(250, animDelay())));
+      modalDoneCb = done;
+      openLeaderboardModal(rankRound, true);
+    });
   }
-  if (G.phase === 'over') setTimeout(showResult, 900);
+  if (G.phase === 'over' && !shownOver) {
+    shownOver = true;
+    enqueueUi(done => {
+      if (!G || G.phase !== 'over') { done(); return; }
+      modalDoneCb = done;
+      showResult();
+    });
+  }
 }
 
 let moveAt = 0, walkTimers = [];
@@ -2751,22 +2891,27 @@ const animDelay = () => Math.max(300, moveAt + (G.move ? G.move.path.length : 0)
 function clearWalkTimers() { for (const id of walkTimers) clearTimeout(id); walkTimers.length = 0; }
 function whenWalkDone(cb) {
   const t0 = performance.now();
+  if (!isMoving()) {
+    cb();
+    return;
+  }
   const id = setTimeout(function check() {
-    const syncPending = G && G.move && G.move.path.length && tokens[G.move.p] && tokens[G.move.p].moveN !== G.move.n && (performance.now() - t0 < 2000);
-    if ((animBusy() || syncPending) && performance.now() - t0 < 7000) {
+    if (isMoving() && performance.now() - t0 < 8000) {
       const id2 = setTimeout(check, 80); walkTimers.push(id2); return;
     }
     cb();
-  }, 180);
+  }, 80);
   walkTimers.push(id);
 }
 
-function showCard(c) {
+function showCard(c, done) {
   const el = $('#cardPop');
   el.style.setProperty('--c', c.kind === 'chance' ? '#e67e22' : '#4f7fe0');
   el.innerHTML = `<h3>${c.kind === 'chance' ? '機 會' : '命 運'}</h3><p>${c.text}</p>`;
   el.classList.remove('hidden'); snd('card');
-  clearTimeout(el._t); el._t = setTimeout(() => el.classList.add('hidden'), 2400);
+  clearTimeout(el._t);
+  cardPopCb = done || null;
+  el._t = setTimeout(() => dismissCardPop(), 2400);
 }
 
 function askPrompt(q) {
@@ -3027,7 +3172,7 @@ function send(a) {
 }
 function afterChange(a) {
   if (a && a.type === 'roll' && G.dice) rollDice(G.dice.a, G.dice.b, G.dice.count);
-  if (G.move && G.move.n !== lastMoveN) { lastMoveN = G.move.n; moveAt = performance.now(); }
+  syncMoveStart();
   broadcast(); renderUI(); scheduleAuto();
 }
 
@@ -3035,12 +3180,12 @@ let autoTimer = null;
 function scheduleAuto() {
   clearTimeout(autoTimer);
   if (!G || G.phase === 'over' || NET.role === 'client') return;
-  if (pendingRankModal || !$('#modal').classList.contains('hidden')) {
-    autoTimer = setTimeout(scheduleAuto, 350);
+  if (isMoving() || uiRunning || uiQueue.length > 0 || pendingRankModal || !$('#modal').classList.contains('hidden') || !$('#newsToast').classList.contains('hidden') || !$('#cardPop').classList.contains('hidden')) {
+    autoTimer = setTimeout(scheduleAuto, 220);
     return;
   }
   const p = R.cur(G);
-  const wait = (G.phase === 'roll' ? 680 : animDelay()) + (G.card && G.phase === 'done' ? 1200 : 0);
+  const wait = G.phase === 'roll' ? 420 : 280;
   if (p.kind === 'ai') {
     autoTimer = setTimeout(() => {
       const a = R.aiAction(G);
@@ -3083,7 +3228,7 @@ function startGame(seats, rounds) {
   G = R.newGame(seats, { maxRounds: rounds });
   tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
-  buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); clearWalkTimers();
+  buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
   lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
   resetCamGoal(); syncDiceVisible(1);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
@@ -3270,12 +3415,12 @@ function openJoin() {
               closeModal();
               tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
-              buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); clearWalkTimers();
+              buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
               lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
               resetCamGoal(); syncDiceVisible();
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b, G.dice.count);
-            if (G.move && G.move.n !== lastMoveN) { lastMoveN = G.move.n; moveAt = performance.now(); }
+            syncMoveStart();
             renderUI();
           } else if (m.t === 'err') toast(m.err);
           else if (m.t === 'full') { st.textContent = m.why; toast(m.why); }
@@ -3290,4 +3435,4 @@ function openJoin() {
 resize();
 requestAnimationFrame(frame);
 openLobby();
-window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens };
+window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens, isMoving, uiQueue, showNewsToast, dismissNewsToast };
