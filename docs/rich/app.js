@@ -300,12 +300,15 @@ const TILE_ELEV = ROUTE_COORDS.map(([lon, lat, elev], i) => {
   const r = rawHeight(x, z);
   return Math.max(1.6, r > 3 ? 3 + (r - 3) * 0.72 : r) + 0.25;
 });
-const ROAD_SEGS = SEG_MODE.map((mode, i) => {
-  const j = (i + 1) % ROUTE_COORDS.length;
-  if (mode === 'ferry' || mode === 'air' || !TILE_MAIN[i] || !TILE_MAIN[j]) return null;
-  const [ax, az] = twXZ(ROUTE_COORDS[i][0], ROUTE_COORDS[i][1]), [bx, bz] = twXZ(ROUTE_COORDS[j][0], ROUTE_COORDS[j][1]);
-  return { ax, az, bx, bz, ha: TILE_ELEV[i], hb: TILE_ELEV[j] };
-}).filter(Boolean);
+const ROAD_SEGS = [];
+for (let i = 0; i < R.BOARD.length; i++) {
+  for (const j of (R.BOARD[i].next || [])) {
+    const mode = edgeMode(i, j);
+    if (mode === 'ferry' || mode === 'air' || !TILE_MAIN[i] || !TILE_MAIN[j]) continue;
+    const [ax, az] = twXZ(ROUTE_COORDS[i][0], ROUTE_COORDS[i][1]), [bx, bz] = twXZ(ROUTE_COORDS[j][0], ROUTE_COORDS[j][1]);
+    ROAD_SEGS.push({ ax, az, bx, bz, ha: TILE_ELEV[i], hb: TILE_ELEV[j] });
+  }
+}
 const PAD_R0 = 6.4, PAD_R1 = 13, ROAD_R0 = 2.4, ROAD_R1 = 8.5;
 // 最終地形高度：棋格平台與交通路線兩側整平，避免路面與棋子穿進山體
 function terrainHeight(x, z) {
@@ -4303,7 +4306,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v158</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v159</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
