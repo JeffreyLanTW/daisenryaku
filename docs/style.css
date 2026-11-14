@@ -1156,3 +1156,8 @@ html { background: #0b0f14; }
   #topbar { padding-top: calc(var(--fsgap) + env(safe-area-inset-top)); height: calc(var(--tbh) + var(--fsgap) + env(safe-area-inset-top)); }
   #app { padding-top: calc(var(--tbh) + var(--fsgap) + env(safe-area-inset-top)); }
 }
+
+/* 選單按鈕 ☰ 在所有螢幕寬度都顯示（橫向 iPad 原本被隱藏，全螢幕、曲目、主選單等選項就按不到） */
+#topbar #btnMore { display: inline-block !important; }
+/* 窄螢幕（iPad 直向）：最上列放不下時先隱藏「大戰略」字樣，讓 ☰ 留在畫面內 */
+@media (max-width: 900px) { #topbar .brand { display: none; } }
