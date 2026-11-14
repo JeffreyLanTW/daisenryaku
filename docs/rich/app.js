@@ -2673,16 +2673,13 @@ function frame(now) {
       const tk = tokens[k] || (tokens[k] = makeToken(pl));
       tk.g.visible = !pl.bankrupt;
       tk.g.scale.setScalar(k === G.cur ? 1.46 : 1.36);
-      // 玩家附身神明特效
+      // 玩家附身神明光環特效（神明本體由對應的單一 3D 神明棋子跟隨）
       if (pl.god) {
         const gCol = R.GODS[pl.god.kind].color;
         tk.godVis.visible = true;
+        tk.spirit.visible = false;
         tk.ring.material.color.set(gCol);
         tk.ring.material.emissive.set(gCol);
-        tk.spirit.material.color.set(gCol);
-        tk.spirit.material.emissive.set(gCol);
-        tk.spirit.rotation.y = now * 0.003;
-        tk.spirit.position.y = 6.2 + Math.sin(now * 0.005) * 0.35;
       } else {
         tk.godVis.visible = false;
       }
@@ -2712,20 +2709,40 @@ function frame(now) {
       }
     });
 
-    // 地圖移動 NPC 動畫（待骰子落地後再走動）
+    // 地圖神明與野狗棋子（各只有一隻：附身時跟隨玩家，離開後飛往地圖隨機位置停留）
     if (G.npcs) {
       for (const npc of G.npcs) {
         let nt = npcTokens.get(npc.id);
         if (!nt) { nt = makeNpcToken(npc); npcTokens.set(npc.id, nt); }
-        nt.g.visible = npc.attachedTo == null;
-        if (!nt.g.visible) continue;
+        if (npc.attachedTo != null) {
+          const host = tokens[npc.attachedTo], hostPl = G.players[npc.attachedTo];
+          nt.g.visible = !!(host && hostPl && !hostPl.bankrupt);
+          nt.moveN = npc.moveN || 0;
+          nt.pos = npc.pos;
+          nt.t = 1;
+          if (nt.g.visible) {
+            nt.g.scale.setScalar(0.95);
+            const yaw = host.g.rotation.y;
+            const target = new THREE.Vector3(
+              host.g.position.x - Math.sin(yaw) * 2.2 + Math.cos(yaw) * 2.1,
+              host.g.position.y + 1.35 + Math.sin(now * 0.005 + npc.id) * 0.42,
+              host.g.position.z - Math.cos(yaw) * 2.2 - Math.sin(yaw) * 2.1
+            );
+            if (nt.g.position.distanceToSquared(target) > 2500) nt.g.position.copy(target);
+            else nt.g.position.lerp(target, 0.25);
+            nt.g.rotation.y = yaw;
+          }
+          continue;
+        }
+        nt.g.visible = true;
+        nt.g.scale.setScalar(1.25);
         if (npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
         if (nt.t < 1) {
           if (!diceAnim) {
             nt.t = Math.min(1, nt.t + dt / (STEP_MS() * 1.8));
             const a = npcWorld(nt.from), b = npcWorld(nt.pos);
             nt.g.position.lerpVectors(a, b, nt.t);
-            nt.g.position.y += Math.sin(nt.t * Math.PI) * 2.2;
+            nt.g.position.y += Math.sin(nt.t * Math.PI) * (npc.kind === 'dog' ? 2.2 : 4.5);
             nt.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
           } else {
             nt.g.position.copy(npcWorld(nt.from));
@@ -2761,6 +2778,7 @@ const isMoving = () => {
   if (diceAnim) return true;
   if (tokens.some(t => t && t.path && t.path.length)) return true;
   if (G && G.move && G.move.path && G.move.path.length && (!tokens[G.move.p] || tokens[G.move.p].moveN !== G.move.n)) return true;
+  if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
   for (const nt of npcTokens.values()) if (nt && nt.g.visible && nt.t < 1) return true;
   return false;
 };

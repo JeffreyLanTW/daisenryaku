@@ -1288,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v147</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v148</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1320,6 +1320,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v148</span><span class="cl-date">2026.11.15</span><p>【環島富豪 3D 神明棋子化與跟隨特效】每位神明在場上皆只有唯一一隻 3D 棋子：附身時神明棋子會直接飛到玩家身旁跟隨行動（不再只顯示頭頂晶體），附身回合結束離開後則飛往地圖上的隨機格子停留。</p></div>
         <div class="cl-item"><span class="cl-ver">v147</span><span class="cl-date">2026.11.15</span><p>【環島富豪 3D 第 1 輪不再有神明附身】開局不再贈送請神卡與送神卡（只保留遙控骰子）；第 1 輪路過神明棋子不會被附身、也不能使用請神卡，第 2 輪起才開放。</p></div>
         <div class="cl-item"><span class="cl-ver">v146</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 神明改為棋子・預設慢速】移動速度預設改為「慢」（仍可在選單調整）。取消機會／命運／廟宇的神明降臨事件：5 位神明改以棋子形式停留在地圖隨機位置、不再巡邏移動，玩家走到或路過神明棋子即被附身，附身回合數結束後神明離開並飛往另一個隨機位置停留；野狗仍會在路上遊蕩。</p></div>
         <div class="cl-item"><span class="cl-ver">v145</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 棋盤與地形重製】地圖放大 1.8 倍；台灣本島改為連續立體地形（中央山脈、雪山、玉山、海岸山脈稜線與噪聲起伏，依高度上色：沙灘、稻田平原、丘陵、森林、岩壁、高山），加上數千棵森林、平原村落、主要河川與日月潭，路網與棋格處自動整平。56 格全部改為八角石台立體造景（都會、海岸、山林、田園、廟埕五種主題＋組別色環與角塔＋放大的地標），格子上不再有平面字，點棋格即顯示地名、價格與地主；地名浮動標籤改為預設關閉。骰子改在出發點擲出，落定停留一下才開始走。選單新增「移動速度」（慢／標準／快／極快）。</p></div>
@@ -1530,7 +1531,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v147</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v148</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
