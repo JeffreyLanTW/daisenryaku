@@ -847,7 +847,7 @@ function battleStatsMulti(d, withBtns) {
       ${withBtns ? `<button class="bs-btn" data-bs="pos" title="移到${SETTINGS.statsPos === 'tl' ? '左下' : '左上'}">⇅</button>
       <button class="bs-btn" data-bs="min" title="${SETTINGS.statsMin ? '展開' : '收合'}">${SETTINGS.statsMin ? '▸' : '▾'}</button>` : ''}</div>
     <div class="bs-body"><table class="bs-multi"><tr><th></th><th>勝率</th><th>部隊</th><th>兵力</th><th>據點</th><th>收入</th><th>資金</th></tr>
-      ${d.map(x => `<tr class="${x.out ? 'out' : ''} ${x.k === G.cur ? 'cur' : ''}"><td><span class="dot" style="background:${SIDES[x.k].color}"></span>${SIDES[x.k].name}</td>
+      ${d.map(x => `<tr class="${x.out ? 'out' : ''} ${x.k === G.cur ? 'cur' : ''}"><td><span class="dot" style="background:${SIDES[x.k].color}"></span>${G.teams && /^[A-D]$/.test(G.teams[x.k]) ? `<span class="tm">${G.teams[x.k]}</span>` : ''}${SIDES[x.k].name}</td>
         ${x.out ? '<td colspan="6">已淘汰</td>' : `<td>${Math.round(x.p * 100)}%</td><td>${x.units}</td><td>${k(x.val)}</td><td>${x.props}</td><td>+${k(x.income)}</td><td>${k(x.funds)}</td>`}</tr>`).join('')}
     </table></div>`;
 }
@@ -889,7 +889,8 @@ function refreshPanel() {
   const many = G.players.length > 2;
   $('#funds').innerHTML = G.players.map((p, k) => { const s = SIDES[k];
     if (G.out && G.out[k]) return many ? `<span class="pill out" style="--c:${s.color}"><s>${s.name}</s></span>` : '';
-    return `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${s.name} 💰${G.funds[k]}${many ? '' : ` <small>+${incomeOf(k)}</small>`} · ${G.units.filter(u => u.side === k).length}隊</span>`; }).join('');
+    const tm = G.teams && /^[A-D]$/.test(G.teams[k]) ? `<span class="tm">${G.teams[k]}</span>` : '';
+    return `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${tm}${s.name} 💰${G.funds[k]}${many ? '' : ` <small>+${incomeOf(k)}</small>`} · ${G.units.filter(u => u.side === k).length}隊</span>`; }).join('');
   $('#btnEnd').disabled = !isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy';
   const btnAlly = $('#btnAllyCtrl');
   if (btnAlly) {
@@ -1089,6 +1090,7 @@ function openBattleSettings() {
 // 各方數量對應的最小地圖（避免八國擠在小地圖上）
 const MIN_SIZE_FOR = n => n <= 2 ? 's' : n <= 4 ? 'l' : n <= 6 ? 'xl' : 'xxl';
 const DEFAULT_NATS = ['TW', 'CN', 'US', 'JP', 'KR', 'RU', 'GB', 'FR'];
+const TEAM_IDS = ['A', 'B', 'C', 'D'];
 function openNewGame() {
   const prevP = G && !G.missionId ? G.players : null;
   const prevN = G && G.nations && !G.missionId ? G.nations : null;
@@ -1101,7 +1103,8 @@ function openNewGame() {
     return `<div class="ng-side" style="--c:${SIDES[k].color}"><span class="dot" style="background:${SIDES[k].color}"></span>
       <select id="ngN${k}" class="ng-nat">${nationOptions(nat)}</select>
       <select id="ngP${k}"><option value="h">玩家</option><option value="ai" ${pp.ai ? 'selected' : ''}>電腦</option></select>
-      <select id="ngPersona${k}">${personaOptions(pp.persona || (pp.ai ? 'B' : 'L'))}</select></div>`;
+      <select id="ngPersona${k}">${personaOptions(pp.persona || (pp.ai ? 'B' : 'L'))}</select>
+      <select id="ngTeam${k}" class="ng-team" title="同盟：選同一個同盟的國家互不攻擊、共享視野，一起獲勝"><option value="">各自為戰</option>${TEAM_IDS.map(t => `<option value="${t}">同盟 ${t}</option>`).join('')}</select></div>`;
   };
   openModal(`<h2>新遊戲</h2>
     <div class="form">
@@ -1109,6 +1112,7 @@ function openNewGame() {
       <label>地圖大小<select id="ngSize">${Object.entries(SIZES).map(([k, [w, h, n]]) => `<option value="${k}">${n}（${w}×${h}）</option>`).join('')}</select></label>
       <label>地圖種子<span class="inline"><input id="ngSeed" type="number" value="${Math.floor(Math.random() * 99999)}"><button id="ngRand" type="button">🎲</button></span></label>
     </div>
+    <div class="ng-preset" id="ngPreset"><span>同盟快速設定</span><button type="button" data-tp="ffa">各自為戰</button><button type="button" data-tp="2">分兩隊</button><button type="button" data-tp="3">分三隊</button><button type="button" data-tp="1v">一國對其他所有</button></div>
     <div class="ng-sides" id="ngSides"></div>
     <div class="form">
       <label>電腦速度<select id="ngSpeed"><option value="380">極慢</option><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option><option value="10">極快</option></select></label>
@@ -1122,14 +1126,16 @@ function openNewGame() {
     const sizeOrder = Object.keys(SIZES);
     const draw = () => {
       count = +$b('#ngCount').value;
-      const keep = [...box.querySelectorAll('.ng-side')].map((el, k) => ({ n: $b('#ngN' + k).value, p: $b('#ngP' + k).value, s: $b('#ngPersona' + k).value }));
+      const keep = [...box.querySelectorAll('.ng-side')].map((el, k) => ({ n: $b('#ngN' + k).value, p: $b('#ngP' + k).value, s: $b('#ngPersona' + k).value, t: $b('#ngTeam' + k).value }));
       $b('#ngSides').innerHTML = Array.from({ length: count }, (_, k) => sideRow(k)).join('');
-      keep.forEach((v, k) => { if (k < count) { $b('#ngN' + k).value = v.n; $b('#ngP' + k).value = v.p; $b('#ngPersona' + k).value = v.s; } });
+      keep.forEach((v, k) => { if (k < count) { $b('#ngN' + k).value = v.n; $b('#ngP' + k).value = v.p; $b('#ngPersona' + k).value = v.s; $b('#ngTeam' + k).value = v.t; } });
+      $b('#ngSides').classList.toggle('no-team', count <= 2);
+      const presets = $b('#ngPreset'); if (presets) presets.classList.toggle('hidden', count <= 2);
       // 地圖太小時自動放大到建議尺寸
       const min = MIN_SIZE_FOR(count);
       if (sizeOrder.indexOf($b('#ngSize').value) < sizeOrder.indexOf(min)) $b('#ngSize').value = min;
       $b('#ngDesc').textContent = count > 2
-        ? `${count} 國混戰：各自為戰，首都被攻陷或全軍覆沒的一方退出，最後留下的一方獲勝。${count} 國建議地圖至少「${SIZES[min][2]}」。全部設為電腦即可觀戰。`
+        ? `${count} 國混戰：首都被攻陷或全軍覆沒的一方退出，最後只剩一個同盟（或一國）時獲勝。同盟的國家互不攻擊、共享視野。${count} 國建議地圖至少「${SIZES[min][2]}」。全部設為電腦即可觀戰。`
         : '兩方都選「電腦」即可觀戰；遊戲中可由右下 ⚙️ 隨時切換操作與 AI 風格。';
       cards();
       box.querySelectorAll('.ng-nat').forEach(el => { el.onchange = cards; });
@@ -1138,6 +1144,19 @@ function openNewGame() {
     $b('#ngSize').value = count === 2 ? 'm' : MIN_SIZE_FOR(count);
     draw();
     $b('#ngCount').onchange = draw;
+    // 同盟快速設定：依序分隊
+    box.querySelectorAll('[data-tp]').forEach(btn => btn.onclick = () => {
+      const tp = btn.dataset.tp;
+      for (let k = 0; k < count; k++) $b('#ngTeam' + k).value = tp === 'ffa' ? '' : tp === '1v' ? (k === 0 ? 'A' : 'B') : TEAM_IDS[k % +tp];
+      checkTeams();
+    });
+    const checkTeams = () => {
+      const t = Array.from({ length: count }, (_, k) => $b('#ngTeam' + k).value || 's' + k);
+      const one = new Set(t).size === 1;
+      $b('#ngStart').disabled = count > 2 && one;
+      $b('#ngStart').title = one ? '所有國家都在同一個同盟，沒有敵人' : '';
+    };
+    $b('#ngSides').addEventListener('change', e => { if (e.target.classList.contains('ng-team')) checkTeams(); });
     $b('#ngSpeed').value = String(SETTINGS.aiStep);
     $b('#ngRand').onclick = () => $b('#ngSeed').value = Math.floor(Math.random() * 99999);
     $b('.close').onclick = closeModal;
@@ -1154,6 +1173,8 @@ function openNewGame() {
         w, h, seed: +$b('#ngSeed').value || 1,
         nations: ks.map(k => $b('#ngN' + k).value),
         players: ks.map(k => ({ ai: $b('#ngP' + k).value === 'ai', persona: $b('#ngPersona' + k).value })),
+        // 同盟：未選的國家各自為戰
+        teams: count > 2 ? ks.map(k => $b('#ngTeam' + k).value || 's' + k) : null,
       });
     };
   });
@@ -1256,7 +1277,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v130</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v131</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1288,6 +1309,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v131</span><span class="cl-date">2026.11.14</span><p>【自由對戰同盟】三國以上可設定同盟（A–D，或各自為戰），並有「分兩隊／分三隊／一國對其他所有」快速設定：盟友互不攻擊、不搶對方據點、可以穿過彼此部隊、共享戰爭迷霧視野，最後只剩一個同盟時一起獲勝。【第五章、終章延長】第五章固守目標延長到第 22 回合、終章延長到第 24 回合，並加入後續的敵軍增援波次。</p></div>
         <div class="cl-item"><span class="cl-ver">v130</span><span class="cl-date">2026.11.14</span><p>【第四章回合延長】「跳，還是不跳」的固守目標由第 12 回合延長到第 22 回合，有足夠時間渡海反攻廈門港；第 12、16 回合各加一波敵軍增援，維持壓力。</p></div>
         <div class="cl-item"><span class="cl-ver">v129</span><span class="cl-date">2026.11.14</span><p>【八國混戰】自由對戰可選 2–8 國參戰（預設 4 國），各自為戰：首都被攻陷或全軍覆沒的一方退出，最後留下的一方獲勝；國數多時自動選用較大地圖，各方以不同陣營顏色區分，戰場資訊改為各國一覽。【戰爭迷霧】新增戰爭迷霧（新遊戲與 ⚙️ 戰場設定可開關，預設關閉）：只看得到己方部隊與據點周圍，敵軍在視野外會隱藏；偵察類單位視野較遠。電腦 AI 不受迷霧影響。</p></div>
         <div class="cl-item"><span class="cl-ver">v128</span><span class="cl-date">2026.11.14</span><p>【新遊戲：環島富豪 3D】首頁新增原創 3D 地產桌遊：擲骰繞行台灣 40 格、買地蓋樓（平房到大樓）、收過路費、機會命運卡與道具（路障、遙控骰子、免租卡、迴轉卡、拆除卡）；可對電腦、同一台輪流，或用房間代碼線上多人對戰（最多 4 人）。</p></div>
@@ -1480,7 +1502,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v130</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v131</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>

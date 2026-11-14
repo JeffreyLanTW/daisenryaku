@@ -33,8 +33,9 @@ function fogVis() {
   if (s < 0) { FOG.vis = null; FOG.side = -1; return null; }
   // 部隊位置或據點歸屬改變時才重算
   let h = s * 7919 + G.units.length;
-  for (const u of G.units) if (u.side === s) h = (h * 31 + u.x * 131 + u.y * 7 + u.id) | 0;
-  for (let i = 0; i < G.owner.length; i++) if (G.owner[i] === s) h = (h * 17 + i) | 0;
+  // 盟友共享視野
+  for (const u of G.units) if (!foe(u.side, s)) h = (h * 31 + u.x * 131 + u.y * 7 + u.id) | 0;
+  for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && !foe(G.owner[i], s)) h = (h * 17 + i) | 0;
   const key = h + '|' + G.w + 'x' + G.h;
   if (key === FOG.key && FOG.vis) return FOG.vis;
   FOG.key = key; FOG.side = s;
@@ -44,15 +45,15 @@ function fogVis() {
       for (let xx = Math.max(0, x - r - 1); xx <= Math.min(G.w - 1, x + r + 1); xx++)
         if (hexDist(x, y, xx, yy) <= r) vis[yy * G.w + xx] = 1;
   };
-  for (const u of G.units) if (u.side === s) reveal(u.x, u.y, visionOf(u));
-  for (let i = 0; i < G.owner.length; i++) if (G.owner[i] === s) { const [x, y] = ixy(i); reveal(x, y, G.terrain[i] === 'capital' ? 3 : 2); }
+  for (const u of G.units) if (!foe(u.side, s)) reveal(u.x, u.y, visionOf(u));
+  for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && !foe(G.owner[i], s)) { const [x, y] = ixy(i); reveal(x, y, G.terrain[i] === 'capital' ? 3 : 2); }
   FOG.vis = vis;
   return vis;
 }
 // 這個部隊在畫面上看得見嗎（自己人永遠看得見）
 function unitSeen(u) {
   const vis = fogVis();
-  if (!vis || u.side === FOG.side) return true;
+  if (!vis || !foe(u.side, FOG.side)) return true;
   return !!vis[idxOf(u.x, u.y)];
 }
 const tileSeen = i => { const vis = fogVis(); return !vis || !!vis[i]; };

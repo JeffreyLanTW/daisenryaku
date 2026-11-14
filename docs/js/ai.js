@@ -182,7 +182,7 @@ function getPersona(side) {
 // 終局掃蕩：敵軍只剩少數（≤4 或不到我方 15%）時，所有打得到的部隊全力追殲最後的單位
 function huntMode(s) {
   if (!G || G.missionId) return false;
-  const foes = G.units.filter(e => e.side !== s).length, mine = G.units.filter(e => e.side === s).length;
+  const foes = G.units.filter(e => foe(e.side, s)).length, mine = G.units.filter(e => e.side === s).length;
   return foes > 0 && mine >= 6 && (foes <= 4 || foes <= mine * 0.15);
 }
 function aiGoals(u, baseField) {
@@ -219,8 +219,8 @@ function aiGoals(u, baseField) {
     const cargo = u.cargo || [];
     if (!cargo.length) {
       const pGoals = new Map();
-      for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) pGoals.set(i, 0);
-      for (const e of G.units) if (e.side !== s && UNITS[e.type].cat === 'land') pGoals.set(idxOf(e.x, e.y), 2);
+      for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && notOurs(G.owner[i], s)) pGoals.set(i, 0);
+      for (const e of G.units) if (foe(e.side, s) && UNITS[e.type].cat === 'land') pGoals.set(idxOf(e.x, e.y), 2);
       const pf = pGoals.size ? distField(pGoals, 'foot') : null;
       for (const a of G.units) {
         if (a === u || a.side !== s || !canLoad(u, a)) continue;
@@ -258,10 +258,10 @@ function aiGoals(u, baseField) {
         }
       };
       for (let i = 0; i < G.owner.length; i++) {
-        if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
+        if (!TERRAIN[G.terrain[i]].prop || !notOurs(G.owner[i], s)) continue;
         addLanding(i, G.terrain[i] === 'capital' ? -6 : hasCap ? -3 : 1);
       }
-      for (const e of G.units) if (e.side !== s && UNITS[e.type].cat === 'land') addLanding(idxOf(e.x, e.y), hasCap ? 2 : -2);
+      for (const e of G.units) if (foe(e.side, s) && UNITS[e.type].cat === 'land') addLanding(idxOf(e.x, e.y), hasCap ? 2 : -2);
       for (const [i, off] of mg) addLanding(i, off - 3);
       if (goals.size) return { goals, mode: 'deliver' };
     }
@@ -270,8 +270,8 @@ function aiGoals(u, baseField) {
   if (d.engineer && persona.id === 'L') {
     // 越靠近前線的城市越優先（新基地生產的部隊不必長途行軍）
     const front = new Map();
-    for (const e of G.units) if (e.side !== s) front.set(idxOf(e.x, e.y), 0);
-    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && G.owner[i] !== s && TERRAIN[G.terrain[i]].prop) front.set(i, 0);
+    for (const e of G.units) if (foe(e.side, s)) front.set(idxOf(e.x, e.y), 0);
+    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && foe(G.owner[i], s) && TERRAIN[G.terrain[i]].prop) front.set(i, 0);
     const ff = front.size ? distField(front, 'foot') : null;
     for (const i of lanfaBuildSites(s)) add(i, (G.construct && G.construct[i] && G.construct[i].side === s ? -6 : 0) + (ff && ff[i] < Infinity ? Math.min(12, ff[i] / 3) : 6));
     if (!goals.size) G.terrain.forEach((t, i) => { if (t === 'capital' && G.owner[i] === s) add(i, 0); });
@@ -279,7 +279,7 @@ function aiGoals(u, baseField) {
   }
   if (d.capture) {
     for (let i = 0; i < G.owner.length; i++) {
-      if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
+      if (!TERRAIN[G.terrain[i]].prop || !notOurs(G.owner[i], s)) continue;
       const isCap = G.terrain[i] === 'capital';
       const isFab = G.bNation && (G.bNation[i] === 'TSMC' || G.bNation[i] === 'USCORP');
       let pri = isCap ? -5 * doc.decapitation * persona.decapitation : (isFab ? -4 * doc.decapitation : (G.owner[i] >= 0 ? -1 : Math.round(0 - (persona.captureWeight - 1) * 3)));
@@ -294,20 +294,20 @@ function aiGoals(u, baseField) {
     }
     // 藍發：每支奪城部隊分派各自的目標據點，避免擠向同一座城
     const tgt = persona.id === 'L' && G.lfAssign instanceof Map && G.lfAssign.get(u.id);
-    if (tgt !== undefined && tgt !== null && G.owner[tgt] !== s) add(tgt, -45);
+    if (tgt !== undefined && tgt !== null && notOurs(G.owner[tgt], s)) add(tgt, -45);
   }
   const hunt = huntMode(s);
   if (hunt && d.capture) {
     // 掃蕩：步兵直取敵方首都（攻陷首都即獲勝，不必追到最後一艘潛艦）
-    G.terrain.forEach((t, i) => { if (t === 'capital' && G.owner[i] >= 0 && G.owner[i] !== s) add(i, -40); });
+    G.terrain.forEach((t, i) => { if (t === 'capital' && G.owner[i] >= 0 && foe(G.owner[i], s)) add(i, -40); });
     if (goals.size) return { goals, mode: 'attack' };
   }
   if (hunt && !d.capture && !d.carry) {
     // 掃蕩：只追殲剩餘敵軍（不受圍攻、相剋與威脅過濾限制）
-    for (const e of G.units) if (e.side !== s && canHit(u.type, e)) add(idxOf(e.x, e.y), e.hp <= 4 ? -16 : -12);
+    for (const e of G.units) if (foe(e.side, s) && canHit(u.type, e)) add(idxOf(e.x, e.y), e.hp <= 4 ? -16 : -12);
     if (goals.size) return { goals, mode: 'attack' };
   }
-  for (const e of G.units) if (e.side !== s && canHit(u.type, e)) {
+  for (const e of G.units) if (foe(e.side, s) && canHit(u.type, e)) {
     // A 攻擊型：以全殲敵軍部隊為最高目標 (殲滅優先)；藍發：集火殘血致死與奪城敵軍
     let foePri = e.vip ? -6 : d.capture ? 4 : (persona.id === 'A' ? -6 : persona.id === 'B' ? -2 : 0);
     if (persona.id === 'L' && !d.capture) {
@@ -336,7 +336,7 @@ function aiGoals(u, baseField) {
   }
   if (!d.capture && d.cat !== 'air') {
     for (let i = 0; i < G.owner.length; i++) {
-      if (G.owner[i] >= 0 && G.owner[i] !== s) {
+      if (G.owner[i] >= 0 && foe(G.owner[i], s)) {
         // B 綜合型 / 藍發：持續向敵方首都與前線據點推進掩護；藍發兵力佔優時全面壓上
         const press = persona.id === 'L' && G.lfPower && G.lfPower[s] >= persona.pressRatio;
         // 圍攻：只朝敵方首都推進，其他據點交給奪城部隊
@@ -346,15 +346,15 @@ function aiGoals(u, baseField) {
       } else if (persona.id === 'L' && G.owner[i] < 0 && TERRAIN[G.terrain[i]].prop) {
         // 藍發：只有中立城市附近真的有敵軍時才派主力清除，否則交給步兵（主力停在後方中立城旁會造成大量屯兵）
         const [px, py] = ixy(i);
-        if (G.units.some(e => e.side !== s && hexDist(e.x, e.y, px, py) <= 3)) add(i, 2);
+        if (G.units.some(e => foe(e.side, s) && hexDist(e.x, e.y, px, py) <= 3)) add(i, 2);
       }
     }
   }
   for (const [i, off] of mg) add(i, off);
   // 藍發：沒有理想目標時不回基地停放（會佔住生產據點），改為支援前線：最近的敵軍與敵方據點
   if (!goals.size && persona.id === 'L') {
-    for (const e of G.units) if (e.side !== s && canHit(u.type, e)) add(idxOf(e.x, e.y), 3);
-    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && G.owner[i] !== s && TERRAIN[G.terrain[i]].prop) add(i, 4);
+    for (const e of G.units) if (foe(e.side, s) && canHit(u.type, e)) add(idxOf(e.x, e.y), 3);
+    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && foe(G.owner[i], s) && TERRAIN[G.terrain[i]].prop) add(i, 4);
   }
   if (!goals.size) for (const [i] of ownBases(s, d.cat)) add(i, 0);
   return { goals, mode: 'attack' };
@@ -406,7 +406,7 @@ async function aiAct(u, token) {
       for (let k = 0; k < field.length; k++) if (tf[k] + 4 < field[k]) field[k] = tf[k] + 4;
     }
   }
-  const enemies = G.units.filter(e => e.side !== s);
+  const enemies = G.units.filter(e => foe(e.side, s));
   const huntNow = huntMode(s);
   // 局部兵力比（價值）：以格為中心 5 格內我方 ÷ 敵方
   const lv = e => UNITS[e.type].cost * e.hp / (e.maxHp || UNITS[e.type].maxHp || 10);
@@ -446,7 +446,7 @@ async function aiAct(u, token) {
         const nearFoe = enemies.some(e => hexDist(e.x, e.y, u.x, u.y) <= 3);
         const nearProp = d.capture && neighbors(u.x, u.y).some(([nx, ny]) => {
           const pi = idxOf(nx, ny);
-          return TERRAIN[G.terrain[pi]].prop && G.owner[pi] !== s;
+          return TERRAIN[G.terrain[pi]].prop && notOurs(G.owner[pi], s);
         });
         if (!nearProp && (!nearFoe || origDist === Infinity) && (origDist === Infinity || origDist > d.move * 1.5)) {
           const bScore = (origDist === Infinity ? 450 : 200 + Math.min(200, origDist * 10)) + (d.capture ? 80 : 30);
@@ -473,7 +473,7 @@ async function aiAct(u, token) {
     if (t.build && G.owner[i] === s && d.cat !== 'air') base -= persona.id === 'L' ? 95 : 45;
     // 藍發：油滿血滿的飛機不佔用生產據點（機場、首都），讓出來生產
     if (persona.id === 'L' && t.build && G.owner[i] === s && d.cat === 'air' && mode !== 'retreat' && u.fuel - v.cost >= d.fuel * 0.6 && u.hp >= (u.maxHp || d.maxHp || 10) - 1) base -= 600;
-    if (t.prop && G.owner[i] !== s && !d.capture && !(d.carry && d.carry.runway && (u.cargo || []).length)) base -= 30;
+    if (t.prop && notOurs(G.owner[i], s) && !d.capture && !(d.carry && d.carry.runway && (u.cargo || []).length)) base -= 30;
     if (mode === 'deliver' && (u.cargo || []).length) {
       const c0 = u.cargo[0];
       const canDropHere = (!d.carry.runway || t.prop) && (d.cat !== 'air' || moveCost(G.terrain[i], UNITS[c0.type].mt) !== Infinity)
@@ -508,7 +508,7 @@ async function aiAct(u, token) {
       const going = G.construct && G.construct[i] && G.construct[i].side === s;
       if (opts.includes(bt) && (going || G.funds[s] >= BASE_TYPES[bt].cost)) consider(base + 3000 + (going ? 500 : 0), { kind: 'build', type: bt });
     }
-    if (d.capture && t.prop && G.owner[i] !== s) {
+    if (d.capture && t.prop && notOurs(G.owner[i], s)) {
       let cs = (persona.id === 'L' ? 1400 : 350) + (G.owner[i] >= 0 ? (persona.id === 'L' ? 350 : 120) : (persona.id === 'L' ? 250 : 0)) + (G.terrain[i] === 'capital' ? (3000 * persona.decapitation) : 0);
       const c = G.capture[i];
       if (c && c.pts < CAPTURE_POINTS) cs += (persona.id === 'L' ? 1500 : 400) + (CAPTURE_POINTS - c.pts) * 20;
@@ -530,7 +530,7 @@ async function aiAct(u, token) {
           if (G.capture[idxOf(e.x, e.y)]) val += 500; // 保城殲滅奪城敵軍
           if (UNITS[e.type].capture && G.caps && G.caps[s] >= 0 && hexDist(e.x, e.y, ...ixy(G.caps[s])) <= 3) val += 700; // 首都防衛
           const ei = idxOf(e.x, e.y);
-          if (G.terrain[ei] === 'capital' && G.owner[ei] !== s) val += f.dmg >= e.hp ? 900 : 250; // 清出敵方首都讓步兵進佔
+          if (G.terrain[ei] === 'capital' && notOurs(G.owner[ei], s)) val += f.dmg >= e.hp ? 900 : 250; // 清出敵方首都讓步兵進佔
         } else {
           if (G.capture[idxOf(e.x, e.y)]) val += 250;
         }
@@ -596,14 +596,14 @@ async function aiAct(u, token) {
 
 function aiProduce(s) {
   if (getPersona(s).id === 'L') return lanfaProduce(s);
-  const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => u.side !== s);
+  const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => foe(u.side, s));
   const cnt = k => G.units.filter(u => u.side === s && UNITS[u.type].base === k).length;
   const ecls = c => foes.filter(u => UNITS[u.type].cls === c).length;
   const enemyAir = ecls('air'), enemyHard = ecls('hard'), enemySoft = ecls('soft'), enemyShip = ecls('ship');
   const capturers = mine.filter(u => UNITS[u.type].capture || (u.cargo || []).some(c => UNITS[c.type].capture)).length;
   let openProps = 0;
   const propGoals = new Map();
-  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) { openProps++; propGoals.set(i, 0); }
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && notOurs(G.owner[i], s)) { openProps++; propGoals.set(i, 0); }
   for (const e of foes) if (UNITS[e.type].cat === 'land') propGoals.set(idxOf(e.x, e.y), 2);
   const footField = propGoals.size ? distField(propGoals, 'foot') : null;
   const seaGap = footField ? mine.some(u => UNITS[u.type].cat === 'land' && footField[idxOf(u.x, u.y)] === Infinity) : false;
@@ -715,7 +715,7 @@ function aiProduce(s) {
 // ===== 藍發風格：工兵建設基地 =====
 // 適合建基地的城市：己方、非首都、6 格內沒有敵軍
 function lanfaBuildSites(s) {
-  const foes = G.units.filter(e => e.side !== s);
+  const foes = G.units.filter(e => foe(e.side, s));
   const out = [];
   for (let i = 0; i < G.owner.length; i++) {
     if (G.terrain[i] !== 'city' || G.owner[i] !== s || G.capture[i]) continue;
@@ -729,7 +729,7 @@ function lanfaBuildSites(s) {
 function lanfaBaseType(s, i) {
   const own = t => G.owner.filter((o, k) => o === s && G.terrain[k] === t).length;
   const coastal = neighbors(...ixy(i)).some(([nx, ny]) => G.terrain[idxOf(nx, ny)] === 'sea');
-  const enemyShip = G.units.some(e => e.side !== s && UNITS[e.type].cls === 'ship');
+  const enemyShip = G.units.some(e => foe(e.side, s) && UNITS[e.type].cls === 'ship');
   const c = G.construct && G.construct[i];
   if (c && c.side === s) return c.type;
   if (!own('airport')) return 'airport';
@@ -759,13 +759,13 @@ function lanfaAssign(s) {
   G.lfPower = G.lfPower || [1, 1];
   // 開局兵力相近時比值容易因一次生產而跳動：第 6 回合後、比值 1.4 以上且領先 2500 以上才轉入壓上
   // 三方以上：和最強的對手比
-  const mv = val(s), ev = Math.max(...G.players.map((p, k) => k === s || (G.out && G.out[k]) ? 0 : val(k)));
+  const mv = val(s), ev = Math.max(...G.players.map((p, k) => !foe(k, s) || (G.out && G.out[k]) ? 0 : val(k)));
   const P = AI_PERSONAS.L;
   G.lfPower[s] = G.turn >= P.pressTurn && mv - ev >= P.pressLead ? mv / Math.max(1, ev) : Math.min(P.pressRatio - 0.01, mv / Math.max(1, ev));
   const press = G.lfPower[s] >= P.pressRatio;
   const caps = G.units.filter(u => u.side === s && UNITS[u.type].capture && !u.vip);
   const props = [];
-  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) props.push(i);
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && notOurs(G.owner[i], s)) props.push(i);
   const pairs = [];
   for (const u of caps) {
     const df = distField(new Map([[idxOf(u.x, u.y), 0]]), UNITS[u.type].mt);
@@ -803,7 +803,7 @@ function lanfaAssign(s) {
   // 最近的敵方首都（三方以上時不會繞遠路打地圖另一邊）
   const myCap = G.caps && G.caps[s] >= 0 ? ixy(G.caps[s]) : null;
   let capD = Infinity;
-  for (let i = 0; i < G.owner.length; i++) if (G.terrain[i] === 'capital' && G.owner[i] >= 0 && G.owner[i] !== s) {
+  for (let i = 0; i < G.owner.length; i++) if (G.terrain[i] === 'capital' && G.owner[i] >= 0 && foe(G.owner[i], s)) {
     const d = myCap ? hexDist(...ixy(i), ...myCap) : 0;
     if (d < capD) { capD = d; cap = i; }
   }
@@ -841,7 +841,7 @@ function lanfaArmy(list) {
   return v;
 }
 function lanfaProduce(s) {
-  const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => u.side !== s);
+  const mine = G.units.filter(u => u.side === s), foes = G.units.filter(u => foe(u.side, s));
   const cnt = b => mine.filter(u => UNITS[u.type].base === b).length;
   const E = lanfaArmy(foes), Etot = E.reduce((a, b) => a + b, 0) || 1;
   // 潛艦只有反潛部隊打得到：另外計算，評分時只算給具反潛能力的兵種
@@ -857,7 +857,7 @@ function lanfaProduce(s) {
   let neutral = 0, enemyProps = 0;
   const propGoals = new Map();
   for (let i = 0; i < G.owner.length; i++) {
-    if (!TERRAIN[G.terrain[i]].prop || G.owner[i] === s) continue;
+    if (!TERRAIN[G.terrain[i]].prop || !notOurs(G.owner[i], s)) continue;
     if (G.owner[i] < 0) neutral++; else enemyProps++;
     propGoals.set(i, 0);
   }
@@ -920,7 +920,7 @@ function lanfaProduce(s) {
     const df = distField(new Map([[site, 0]]), 'sea');
     let n = 0;
     for (let i = 0; i < G.owner.length; i++) {
-      if (!TERRAIN[G.terrain[i]].prop || G.owner[i] < 0 || G.owner[i] === s) continue;
+      if (!TERRAIN[G.terrain[i]].prop || G.owner[i] < 0 || !foe(G.owner[i], s)) continue;
       if (neighbors(...ixy(i)).some(([nx, ny]) => df[idxOf(nx, ny)] < Infinity)) n++;
     }
     coastCache.set(site, n);
@@ -990,7 +990,7 @@ function lanfaProduce(s) {
   if (rearStop) {
     const fg = new Map();
     for (const e of foes) if (UNITS[e.type].cat === 'land') fg.set(idxOf(e.x, e.y), 0);
-    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && G.owner[i] !== s && TERRAIN[G.terrain[i]].prop) fg.set(i, 0);
+    for (let i = 0; i < G.owner.length; i++) if (G.owner[i] >= 0 && foe(G.owner[i], s) && TERRAIN[G.terrain[i]].prop) fg.set(i, 0);
     frontField = fg.size ? distField(fg, 'tread') : null;
   }
   // 最靠前線的生產據點距離：最前方的據點永遠可以生產，只停後方
@@ -1076,12 +1076,12 @@ function lanfaProduce(s) {
 function aiUnload(t) {
   if (!t.cargo || !t.cargo.length) return;
   const s = t.side, td = UNITS[t.type];
-  const nearFoe = G.units.some(e => e.side !== s && UNITS[e.type].cat === 'land' && hexDist(e.x, e.y, t.x, t.y) <= 5);
-  const nearProp = G.owner.some((o, i) => TERRAIN[G.terrain[i]].prop && o !== s && hexDist(...ixy(i), t.x, t.y) <= 4);
+  const nearFoe = G.units.some(e => foe(e.side, s) && UNITS[e.type].cat === 'land' && hexDist(e.x, e.y, t.x, t.y) <= 5);
+  const nearProp = G.owner.some((o, i) => TERRAIN[G.terrain[i]].prop && notOurs(o, s) && hexDist(...ixy(i), t.x, t.y) <= 4);
   if (!nearFoe && !nearProp && td.cat !== 'land') return;
   const pGoals = new Map();
-  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && G.owner[i] !== s) pGoals.set(i, 0);
-  for (const e of G.units) if (e.side !== s && UNITS[e.type].cat === 'land') pGoals.set(idxOf(e.x, e.y), 2);
+  for (let i = 0; i < G.owner.length; i++) if (TERRAIN[G.terrain[i]].prop && notOurs(G.owner[i], s)) pGoals.set(i, 0);
+  for (const e of G.units) if (foe(e.side, s) && UNITS[e.type].cat === 'land') pGoals.set(idxOf(e.x, e.y), 2);
   const pf = pGoals.size ? distField(pGoals, 'foot') : null;
   for (const c of [...t.cargo]) {
     // 優先卸載在能透過陸路抵達敵方據點或敵方陸軍的陸地格（pf[i] < Infinity），避免把步兵卸回原本的出發島嶼！

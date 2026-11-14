@@ -313,7 +313,7 @@ Object.assign(MISSIONS, {
     ],
     win: [
       { id: 'sky', type: 'destroyTag', tag: 'flagship', text: '擊沉敵航艦戰鬥群「天樞」' },
-      { id: 'sky', type: 'survive', turn: 14, text: '或確保制空權到第 14 回合結束' },
+      { id: 'sky', type: 'survive', turn: 22, text: '或確保制空權到第 22 回合結束' },
     ],
     lose: [
       { type: 'hq', text: '台北失守' },
@@ -324,7 +324,9 @@ Object.assign(MISSIONS, {
       { turn: 2, when: f => !f.leap, lines: [["林上校","上次保存下來的防空部隊全部就位，本島上空很安全。"]] },
       { turn: 4, lines: [["許中尉","對岸第二批戰機起飛了。"]], spawn: [[1,"fighter",1,11], [1,"attacker",5,6]] },
       { turn: 6, lines: [["佐藤一佐","增派一艘護衛艦南下。"]], spawn: [[0,"destroyer",44,10,{"ally":"JP"}]] },
-      { turn: 8, lines: [["周上將","他們把轟炸機全放出來了。這是最後一搏。"]], spawn: [[1,"bomber",1,8], [1,"bomber",3,12], [1,"lst",11,14,{"load":["tank","tank"]}]] },
+      { turn: 8, lines: [["周上將","他們把轟炸機全放出來了。"]], spawn: [[1,"bomber",1,8], [1,"bomber",3,12], [1,"lst",11,14,{"load":["tank","tank"]}]] },
+      { turn: 13, lines: [["許中尉","「天樞」的護航艦隊補上來了，對岸還有第二批戰機。"]], spawn: [[1,"destroyer",6,11,{"tag":"flagship"}], [1,"fighter",1,11], [1,"fighter",5,5]] },
+      { turn: 18, lines: [["周上將","這是他們最後一搏，撐住。"]], spawn: [[1,"bomber",1,7], [1,"lst",11,18,{"load":["tank","marine"]}], [1,"lst",12,24,{"load":["tank","marine"]}]] },
     ],
     next: () => ({ to: 's6', note: '「天樞」沉了，敵人失去制海權。前線的將領都在問同一句話：要不要一口氣打到對岸去？' }),
   },
@@ -411,10 +413,10 @@ Object.assign(MISSIONS, {
       ['周上將', '我們贏面很大。所以我要先講最難聽的話：人在最順的時候，最容易做出後悔一輩子的決定。'],
       ['林上校', '前線很多人想一路打到福州。老實說，我也想過。'],
       ['陳士官長', '長官，我當兵二十五年，只學會一件事：贏了就回家。'],
-      ['周上將', '守住台灣 14 個回合，對岸就會回到談判桌。你也可以選擇渡海攻下福州——那樣也算贏，只是代價你要自己想清楚。'],
+      ['周上將', '守住台灣 24 個回合，對岸就會回到談判桌。你也可以選擇渡海攻下福州——那樣也算贏，只是代價你要自己想清楚。'],
     ],
     win: [
-      { id: 'restraint', type: 'survive', turn: 14, text: '見好就收：守住台灣到第 14 回合結束' },
+      { id: 'restraint', type: 'survive', turn: 24, text: '見好就收：守住台灣到第 24 回合結束' },
       { id: 'conquer', type: 'capture', at: [26,4], text: '或：渡海攻下福州' },
     ],
     lose: [
@@ -427,15 +429,17 @@ Object.assign(MISSIONS, {
       { turn: 6, lines: [["林上校","第二波兩棲突擊！"]], spawn: [[1,"lst",41,22,{"load":["tank","tank"]}], [1,"lst",34,42,{"load":["tank","tank"]}], [1,"lst",34,57,{"load":["tank","marine"]}], [1,"marine",35,53]] },
       { turn: 8, lines: [["許中尉","對岸的轟炸機又升空了。這次我們有準備。"]], spawn: [[1,"bomber",27,6], [1,"fighter",22,14]] },
       { turn: 10, lines: [["林上校","這應該是他們最後的登陸部隊。"]], spawn: [[1,"marine",38,31], [1,"marine",37,35], [1,"lst",39,29,{"load":["tank","inf"]}]] },
-      { turn: 12, lines: [["敵軍指揮官","（截收的通訊）……各部隊停止前進，原地固守。重複，停止前進。"],["周上將","他們打不動了。福州就在對面——追，還是收？你決定。"]] },
-      { turn: 14, lines: [["哈里斯上將","華府剛來電：對岸透過第三國表示願意停火。"],["王記者","最後一個回合了。不管結果如何，我會照實寫下來。"]] },
+      { turn: 14, lines: [["林上校","對岸又集結了一批登陸艦，南北兩路。"]], spawn: [[1,"lst",39,20,{"load":["tank","marine"]}], [1,"lst",33,47,{"load":["tank","marine"]}], [1,"destroyer",30,31]] },
+      { turn: 18, lines: [["許中尉","轟炸機和戰機一起過來了。"]], spawn: [[1,"bomber",26,8], [1,"fighter",22,13], [1,"fighter",18,22]] },
+      { turn: 21, lines: [["敵軍指揮官","（截收的通訊）……各部隊停止前進，原地固守。重複，停止前進。"],["周上將","他們打不動了。福州就在對面——追，還是收？你決定。"]] },
+      { turn: 24, lines: [["哈里斯上將","華府剛來電：對岸透過第三國表示願意停火。"],["王記者","最後一個回合了。不管結果如何，我會照實寫下來。"]] },
     ],
     next: (r, f) => {
       if (r.obj === 'conquer') return { to: 'S2', note: '福州陷落，全世界都在看。你贏了——然後呢？' };
       const merits = ['hualien', 'offshore', 'port', 'penghu', 'raid'].filter(k => f[k]).length;
       return merits >= 4
         ? { to: 'S0', note: `每一步都走得剛剛好（額外目標 ${merits}/5）。` }
-        : { to: 'S1', note: `十四個回合過去，對岸回到了談判桌。（額外目標 ${merits}/5，達成 4 項可解鎖真結局）` };
+        : { to: 'S1', note: `二十四個回合過去，對岸回到了談判桌。（額外目標 ${merits}/5，達成 4 項可解鎖真結局）` };
     },
     onLose: () => ({ to: 'S3', note: '台北失守了，但抵抗沒有結束。' }),
   },

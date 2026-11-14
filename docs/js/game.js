@@ -5,6 +5,11 @@ let G = null;          // 目前遊戲狀態（可直接 JSON 存檔）
 let gameToken = 0;     // 開新局時遞增，用來中止進行中的電腦回合
 
 // odd-r 六角格座標（奇數列向右偏半格）
+// ----- 陣營同盟（自由對戰）：G.teams[side] 相同的各方互為盟友 -----
+const teamOf = s => (typeof G !== 'undefined' && G && G.teams && G.teams[s] != null) ? G.teams[s] : 's' + s;
+const foe = (a, b) => a !== b && teamOf(a) !== teamOf(b);
+// 據點對 s 來說是否「不是自己人的」（中立或敵方，可以去佔領）
+const notOurs = (o, s) => o < 0 || foe(o, s);
 const NB_EVEN = [[1, 0], [-1, 0], [0, -1], [-1, -1], [0, 1], [-1, 1]];
 const NB_ODD = [[1, 0], [-1, 0], [1, -1], [0, -1], [1, 1], [0, 1]];
 
@@ -91,7 +96,7 @@ function computeReach(u) {
   if (d.cat !== 'air') {
     zoc = new Uint8Array(W * G.h);
     for (const e of G.units) {
-      if (e.hp <= 0 || e.side === u.side || UNITS[e.type].cat === 'air') continue;
+      if (e.hp <= 0 || !foe(e.side, u.side) || UNITS[e.type].cat === 'air') continue;
       for (const [nx, ny] of neighbors(e.x, e.y)) zoc[ny * W + nx] = 1;
     }
   }
@@ -112,7 +117,7 @@ function computeReach(u) {
       const c = moveCost(G.terrain[ni], d.mt);
       if (c === Infinity) continue;
       const o = occ[ni];
-      if (o && o.side !== u.side) continue;
+      if (o && foe(o.side, u.side)) continue;
       const nc = Math.round((cc + c) * 100) / 100;
       if (nc > maxMove + 1e-6) continue;
       const ex = dist.get(ni);
@@ -147,7 +152,7 @@ function orderPath(u, target) {
       const ni = ny * W + nx, c = moveCost(G.terrain[ni], d.mt);
       if (c === Infinity) continue;
       const o = occ[ni];
-      if (o && o.side !== u.side) continue;
+      if (o && foe(o.side, u.side)) continue;
       const nd = Math.round((dist[cur] + c) * 100) / 100;
       if (nd < dist[ni] - 1e-6) { dist[ni] = nd; prev[ni] = cur; open.push(nd, ni); }
     }
@@ -278,7 +283,7 @@ function canHit(attType, def) {
 function targetsFrom(u, x, y) {
   const d = UNITS[u.type], out = [];
   for (const e of G.units) {
-    if (e.hp <= 0 || e.side === u.side) continue;
+    if (e.hp <= 0 || !foe(e.side, u.side)) continue;
     const dd = hexDist(x, y, e.x, e.y);
     if (dd >= d.range[0] && dd <= d.range[1] && canHit(u.type, e)) out.push(e);
   }
@@ -444,7 +449,7 @@ function removeDead() {
 function canCapture(u) {
   if (!UNITS[u.type].capture) return false;
   const i = idxOf(u.x, u.y);
-  return !!TERRAIN[G.terrain[i]].prop && G.owner[i] !== u.side;
+  return !!TERRAIN[G.terrain[i]].prop && notOurs(G.owner[i], u.side);
 }
 function capturePointsLeft(u) {
   const c = G.capture[idxOf(u.x, u.y)];
@@ -718,7 +723,11 @@ function eliminate(s, by, reason) {
   for (let i = 0; i < G.owner.length; i++) if (G.owner[i] === s) G.owner[i] = by != null && G.terrain[i] === 'capital' ? by : -1;
   addLog(`${SIDES[s].name}${reason}，退出戰局`, s);
   const alive = G.players.map((p, k) => k).filter(k => !G.out[k]);
-  if (alive.length === 1) { G.winner = alive[0]; G.winReason = `${SIDES[alive[0]].name}擊敗所有對手`; }
+  const teams = new Set(alive.map(teamOf));
+  if (teams.size === 1) {
+    G.winner = alive[0];
+    G.winReason = alive.length > 1 ? `${alive.map(k => SIDES[k].name).join('、')} 同盟擊敗所有對手` : `${SIDES[alive[0]].name}擊敗所有對手`;
+  }
 }
 function checkVictory() {
   if (G.winner != null) return;
@@ -760,6 +769,7 @@ function initState(m, opts) {
     rules: Object.assign({ engineer: typeof SETTINGS === 'undefined' || SETTINGS.engineer !== false }, opts.rules || {}),
     stats: { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 },
     airFuelCrashCount: new Array(players.length).fill(0), out: new Array(players.length).fill(false),
+    teams: opts.teams && players.length > 2 ? opts.teams.slice() : null,
   };
   applyNations(G.nations, G.allies);
   for (let i = 0; i < G.owner.length; i++) {
