@@ -2705,7 +2705,7 @@ addEventListener('resize', resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
 
 // ---------- 每幀動畫 ----------
-let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0, lastBiteN = 0, lastHospitalN = 0, lastBankruptN = 0;
+let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0, lastBiteN = 0, lastHospitalN = 0, lastBankruptN = 0, lastGodFxN = 0;
 function syncMoveStart() {
   if (!G || !G.move || !G.move.path || !G.move.path.length) return;
   if (G.move.n !== lastMoveN) {
@@ -2936,6 +2936,95 @@ function stepBankruptFx(now) {
   }
 }
 
+// ---------- 神明附身特效（聖光柱＋旋轉法陣＋環繞靈珠＋神明降臨橫幅）----------
+let godAnim = null, godFxGroup = null, godFxPillar = null, godFxRing = null, godFxOrbs = [], godBanner = null;
+function ensureGodFx() {
+  if (!godFxGroup) {
+    godFxGroup = new THREE.Group();
+    godFxPillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.5, 2.5, 11, 16, 1, true),
+      new THREE.MeshBasicMaterial({ color: '#fde047', transparent: true, opacity: 0.42, side: THREE.DoubleSide })
+    );
+    godFxPillar.position.y = 5.5;
+    godFxRing = new THREE.Mesh(
+      new THREE.TorusGeometry(3.0, 0.24, 8, 24),
+      new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#ca8a04', transparent: true, opacity: 0.92 })
+    );
+    godFxRing.rotation.x = Math.PI / 2;
+    godFxGroup.add(godFxPillar, godFxRing);
+    godFxOrbs = [];
+    for (let i = 0; i < 6; i++) {
+      const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.45, 8, 8),
+        new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#eab308' })
+      );
+      godFxOrbs.push(orb);
+      godFxGroup.add(orb);
+    }
+    godFxGroup.visible = false;
+    scene.add(godFxGroup);
+  }
+  if (!godBanner) {
+    godBanner = document.createElement('div');
+    godBanner.className = 'god-fx hidden';
+    document.querySelector('main').appendChild(godBanner);
+  }
+}
+function clearGodFx() {
+  if (godAnim) {
+    const tk = tokens[godAnim.p];
+    if (tk) tk.g.rotation.z = 0;
+  }
+  godAnim = null;
+  if (godFxGroup) godFxGroup.visible = false;
+  if (godBanner) godBanner.classList.add('hidden');
+}
+function startGodAttachFx(pId, atPos, kind, now) {
+  ensureGodFx();
+  const gInfo = R.GODS[kind] || { name: '神明', icon: '✨', color: '#fde047', good: true, turns: 5 };
+  const dur = 1250 / Math.sqrt(SPEED);
+  godAnim = { t0: now, dur, p: pId, at: atPos, kind };
+  const wp = tilePos(atPos);
+  godFxGroup.position.set(wp.x, wp.y + 0.35, wp.z);
+  godFxGroup.visible = true;
+  godFxPillar.material.color.set(gInfo.color);
+  godFxRing.material.color.set(gInfo.color);
+  godFxRing.material.emissive.set(gInfo.color);
+  for (const orb of godFxOrbs) {
+    orb.material.color.set(gInfo.color);
+    orb.material.emissive.set(gInfo.color);
+  }
+  const pl = G && G.players[pId];
+  godBanner.className = `god-fx${gInfo.good ? '' : ' bad'}`;
+  godBanner.textContent = `${gInfo.icon} ${gInfo.name} 附身 ${pl ? pl.name : '玩家'}！（${gInfo.turns} 回合）`;
+  godBanner.classList.remove('hidden');
+  snd(gInfo.good ? 'god' : 'badgod');
+}
+function stepGodAttachFx(now) {
+  if (!godAnim) return;
+  const gp = (now - godAnim.t0) / godAnim.dur;
+  if (gp >= 1) {
+    clearGodFx();
+    return;
+  }
+  const fade = gp < 0.8 ? 1 : Math.max(0, (1 - gp) * 5);
+  if (godFxPillar) {
+    godFxPillar.scale.set(1 + Math.sin(gp * Math.PI) * 0.45, 1, 1 + Math.sin(gp * Math.PI) * 0.45);
+    godFxPillar.material.opacity = 0.45 * fade;
+  }
+  if (godFxRing) {
+    godFxRing.scale.setScalar(0.6 + Math.sin(gp * Math.PI) * 0.9);
+    godFxRing.rotation.z = gp * Math.PI * 4;
+    godFxRing.material.opacity = 0.92 * fade;
+  }
+  godFxOrbs.forEach((orb, idx) => {
+    const a = gp * Math.PI * 5 + (idx / godFxOrbs.length) * Math.PI * 2;
+    const r = 2.6 + Math.sin(gp * Math.PI) * 1.1;
+    orb.position.set(Math.cos(a) * r, 0.8 + gp * 7.2, Math.sin(a) * r);
+    orb.scale.setScalar(Math.max(0.05, fade * (0.8 + Math.sin(gp * Math.PI * 3 + idx) * 0.35)));
+  });
+}
+
 let lastFrameAt = 0;
 function frame(now) {
   requestAnimationFrame(frame);
@@ -2960,6 +3049,10 @@ function frame(now) {
     if (G.bankruptFx && G.bankruptFx.n !== lastBankruptN && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !tokens.some(t => t && t.path && t.path.length)) {
       lastBankruptN = G.bankruptFx.n;
       startBankruptFx(G.bankruptFx.p, G.bankruptFx.at, now);
+    }
+    if (G.godFx && G.godFx.n !== lastGodFxN && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !godAnim && !tokens.some(t => t && t.path && t.path.length)) {
+      lastGodFxN = G.godFx.n;
+      startGodAttachFx(G.godFx.p, G.godFx.at, G.godFx.kind, now);
     }
     if (!isMoving() || !buildKey) syncBuildings();
     for (const ah of activeHouses) {
@@ -3133,6 +3226,7 @@ function frame(now) {
     const activeFxPos = (biteAnim && biteBurst && biteBurst.visible) ? biteBurst.position
       : (ambAnim && ambGroup && ambGroup.visible) ? ambGroup.position
       : (bankruptAnim && bankruptGroup && bankruptGroup.visible) ? bankruptGroup.position
+      : (godAnim && godFxGroup && godFxGroup.visible) ? godFxGroup.position
       : movingDogPos;
     if (activeFxPos) {
       wasFollowingFx = true;
@@ -3160,6 +3254,7 @@ function frame(now) {
   stepDogBite(now);
   stepAmbulance(now);
   stepBankruptFx(now);
+  stepGodAttachFx(now);
   updateCamera();
   renderer.render(scene, camera);
 }
@@ -3167,12 +3262,13 @@ function frame(now) {
 // ============================================================ 介面與 Breaking News（移動後依序不重疊觸發）
 const mine = pid => NET.role === 'local' ? G.players[pid].kind !== 'ai' : NET.myIds.has(pid);
 const isMoving = () => {
-  if (diceAnim || biteAnim || ambAnim || bankruptAnim) return true;
+  if (diceAnim || biteAnim || ambAnim || bankruptAnim || godAnim) return true;
   if (tokens.some(t => t && t.path && t.path.length)) return true;
   if (G && G.move && G.move.path && G.move.path.length && (!tokens[G.move.p] || tokens[G.move.p].moveN !== G.move.n)) return true;
   if (G && G.biteFx && G.biteFx.n !== lastBiteN) return true;
   if (G && G.hospital && G.hospital.n !== lastHospitalN) return true;
   if (G && G.bankruptFx && G.bankruptFx.n !== lastBankruptN) return true;
+  if (G && G.godFx && G.godFx.n !== lastGodFxN) return true;
   if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
   for (const nt of npcTokens.values()) if (nt && nt.g.visible && nt.t < 1) return true;
   return false;
@@ -3899,7 +3995,7 @@ function startGame(seats, rounds) {
   tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
   buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-  lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+  lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
   resetCamGoal(); syncDiceVisible(1);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
@@ -3927,7 +4023,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v154</span></h2><div class="sub">原創 3D 台灣地產桌遊：64 格全台灣與離島地圖（去金門途中有海峽賭場）、神明附身、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v155</span></h2><div class="sub">原創 3D 台灣地產桌遊：64 格全台灣與離島地圖（去金門途中有海峽賭場）、神明附身、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
@@ -4085,7 +4181,7 @@ function openJoin() {
               tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
               buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-              lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+              lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
               resetCamGoal(); syncDiceVisible();
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b, G.dice.count);
@@ -4104,4 +4200,4 @@ function openJoin() {
 resize();
 requestAnimationFrame(frame);
 openLobby();
-window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens, isMoving, isBiting: () => !!biteAnim, isAmbulance: () => !!ambAnim, isBankruptFx: () => !!bankruptAnim, uiQueue, showNewsToast, dismissNewsToast };
+window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens, isMoving, isBiting: () => !!biteAnim, isAmbulance: () => !!ambAnim, isBankruptFx: () => !!bankruptAnim, isGodFx: () => !!godAnim, uiQueue, showNewsToast, dismissNewsToast };

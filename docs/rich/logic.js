@@ -232,6 +232,8 @@
     const npc = (G.npcs || []).find(n => n.kind === kind);
     if (npc) { npc.attachedTo = p.id; npc.pos = p.pos; }
     p.god = { kind, turns: gInfo.turns, fresh: G.cur === p.id && G.phase !== 'roll' };
+    G.fxSeq = (G.fxSeq || 0) + 1;
+    G.godFx = { p: p.id, at: p.pos, kind, n: G.fxSeq };
     G.fx = { k: gInfo.good ? 'god_good' : 'god_bad', p: p.id, god: kind };
     log(G, `${gInfo.icon} ${reason}！${gInfo.name} 附身在 ${p.name} 身上（${gInfo.turns} 回合）`);
     pushNews(G, gInfo.good ? '神明附身' : '噩耗警報', `${gInfo.icon} ${p.name} 被「${gInfo.name}」附身（${gInfo.turns} 回合）！`, gInfo.desc, gInfo.color);
@@ -336,13 +338,13 @@
         break;
       }
       if (b >= 0) G.blocks.splice(b, 1);
-      // 路遇地圖 NPC（神明或野狗）
-      const hitNpc = (G.npcs || []).find(n => n.attachedTo == null && n.pos === p.pos);
-      if (hitNpc) {
-        const wasDog = hitNpc.kind === 'dog', atPos = p.pos;
-        const stopWalk = encounterNpc(G, p, hitNpc);
+      // 路遇野狗（經過或踩到皆會被咬；神明改為只有停在該格時才附身）
+      const hitDog = (G.npcs || []).find(n => n.attachedTo == null && n.kind === 'dog' && n.pos === p.pos);
+      if (hitDog) {
+        const atPos = p.pos;
+        const stopWalk = encounterNpc(G, p, hitDog);
         if (stopWalk) {
-          if (wasDog) bite = { at: atPos, npcId: hitNpc.id };
+          bite = { at: atPos, npcId: hitDog.id };
           if (p.pos !== path[path.length - 1]) path.push(p.pos);
           interrupted = true;
           break;
@@ -364,6 +366,8 @@
 
   // ----- 抵達格子 -----
   function arrive(G, p) {
+    const hitGod = (G.npcs || []).find(n => n.attachedTo == null && n.kind !== 'dog' && n.pos === p.pos);
+    if (hitGod) encounterNpc(G, p, hitGod);
     const i = p.pos, t = BOARD[i], s = G.tiles[i];
     if (t.type === 'land' || t.type === 'station') {
       if (s.owner == null) {
