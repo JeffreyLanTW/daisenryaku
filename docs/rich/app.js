@@ -38,8 +38,8 @@ function snd(kind) {
 }
 ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { if (SND.ctx && SND.ctx.state === 'suspended') SND.ctx.resume(); }, { passive: true }));
 
-// ============================================================ 3D 場景與 56 格台灣島內環島座標
-const TILE_SIZE = 6.0;
+// ============================================================ 3D 場景與 56 格真實台灣地理棋盤
+const TILE_SIZE = 5.4;
 const canvas = $('#gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
@@ -48,97 +48,143 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#071a2d');
-scene.fog = new THREE.Fog('#071a2d', 420, 960);
+scene.background = new THREE.Color('#061829');
+scene.fog = new THREE.Fog('#061829', 640, 1550);
 
-const camera = new THREE.PerspectiveCamera(42, 1, 1, 2400);
-scene.add(new THREE.HemisphereLight('#f2f8ff', '#2c4234', 1.25));
-const sun = new THREE.DirectionalLight('#fff4df', 2.35);
-sun.position.set(-90, 175, 110);
+const camera = new THREE.PerspectiveCamera(42, 1, 1, 3600);
+scene.add(new THREE.HemisphereLight('#f2f8ff', '#294032', 1.25));
+const sun = new THREE.DirectionalLight('#fff4df', 2.3);
+sun.position.set(-140, 260, 160);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -130, right: 105, top: 140, bottom: -140, near: 10, far: 540 });
+Object.assign(sun.shadow.camera, { left: -320, right: 200, top: 260, bottom: -260, near: 10, far: 820 });
 scene.add(sun);
 
-// 40 點台灣本島精細海岸線 [lon, lat]
-const TW_POLY = [
-  [121.53, 25.32], [121.70, 25.25], [121.88, 25.15], [122.02, 25.00],
-  [121.88, 24.84], [121.86, 24.64], [121.88, 24.46], [121.76, 24.26],
-  [121.66, 24.06], [121.64, 23.90], [121.58, 23.66], [121.52, 23.42],
-  [121.42, 23.10], [121.26, 22.86], [121.16, 22.68], [121.04, 22.46],
-  [120.95, 22.24], [120.92, 22.02], [120.88, 21.86], [120.72, 21.90],
-  [120.66, 22.08], [120.60, 22.28], [120.50, 22.42], [120.36, 22.52],
-  [120.22, 22.64], [120.14, 22.84], [120.06, 23.04], [120.02, 23.24],
-  [120.06, 23.44], [120.10, 23.64], [120.12, 23.86], [120.26, 24.06],
-  [120.42, 24.26], [120.54, 24.44], [120.66, 24.62], [120.82, 24.82],
-  [120.96, 24.98], [121.14, 25.12], [121.34, 25.22], [121.44, 25.28],
-];
-const twXZ = (lon, lat) => [(lon - 121.0) * 68, -(lat - 23.62) * 62];
+// 依北緯 23.62° 真實經緯度比例投影（LAT_SCALE / LON_SCALE = 1 / cos(23.62°) ≈ 1.093）
+const LON0 = 120.95, LAT0 = 23.62, LON_SCALE = 96, LAT_SCALE = 105;
+const twXZ = (lon, lat) => [(lon - LON0) * LON_SCALE, -(lat - LAT0) * LAT_SCALE];
 
-// 56 格直接落於台灣本島／離島地理路徑上 [lon, lat, 地形高程]（完全廢除方形外框）
-const ROUTE_COORDS = [
-  // 0..11：南台灣鵝鑾鼻 → 屏東・高雄・台南・嘉義（順時針北上）
-  [120.84, 21.92, 1.5], // 0 起點（鵝鑾鼻）
-  [120.73, 22.04, 1.5], // 1 墾丁
-  [120.68, 22.19, 1.5], // 2 恆春
-  [120.61, 22.34, 1.5], // 3 命運
-  [120.49, 22.51, 1.5], // 4 屏東
-  [120.34, 22.63, 1.5], // 5 高鐵左營
-  [120.20, 22.74, 1.5], // 6 高雄
-  [120.24, 22.91, 1.5], // 7 台南
-  [120.10, 23.02, 1.5], // 8 機會
-  [120.11, 23.18, 1.5], // 9 安平
-  [120.26, 23.29, 1.5], // 10 道具屋
-  [120.42, 23.41, 1.5], // 11 嘉義
-  // 12..27：阿里山・雲嘉・澎湖跨海・彰化鹿港・日月潭・中彰投苗竹
-  [120.59, 23.45, 1.8], // 12 監獄
-  [120.77, 23.56, 2.4], // 13 阿里山
-  [120.45, 23.62, 1.5], // 14 雲林
-  [120.18, 23.65, 1.5], // 15 北港廟宇
-  [119.74, 23.70, 1.5], // 16 澎湖（外海群島）
-  [120.21, 23.91, 1.5], // 17 彰化
-  [120.38, 24.06, 1.5], // 18 鹿港
-  [120.53, 24.02, 1.5], // 19 台中高鐵
-  [120.88, 23.80, 2.1], // 20 日月潭
-  [120.99, 23.96, 1.8], // 21 醫院
-  [120.76, 24.08, 1.6], // 22 南投
-  [120.64, 24.23, 1.5], // 23 台中
-  [120.49, 24.32, 1.5], // 24 機會
-  [120.78, 24.46, 1.6], // 25 苗栗
-  [120.92, 24.64, 1.5], // 26 新竹
-  [120.86, 24.80, 1.5], // 27 命運
-  // 28..39：雪霸公園・竹科・桃園機場・金門外海・大台北都會區
-  [121.08, 24.52, 2.1], // 28 國家公園
-  [121.09, 24.75, 1.5], // 29 竹科
-  [121.22, 24.90, 1.5], // 30 桃園
-  [121.13, 25.06, 1.5], // 31 桃園機場
-  [120.62, 25.24, 1.5], // 32 金門（西北外海）
-  [121.38, 25.21, 1.5], // 33 淡水
-  [121.34, 25.03, 1.5], // 34 道具屋
-  [121.48, 24.85, 1.6], // 35 新北
-  [121.52, 25.02, 1.5], // 36 行天宮
-  [121.55, 25.22, 1.7], // 37 機會
-  [121.70, 25.19, 1.5], // 38 台北
-  [121.66, 24.99, 1.5], // 39 信義區
-  // 40..55：基隆港・九份・宜蘭・太魯閣・花蓮・台東・綠島蘭嶼南迴
-  [121.82, 25.14, 1.5], // 40 入獄
-  [121.95, 25.01, 1.5], // 41 基隆港
-  [121.83, 24.87, 1.7], // 42 九份
-  [121.68, 24.81, 1.5], // 43 國稅局
-  [121.78, 24.63, 1.5], // 44 宜蘭
-  [121.66, 24.47, 1.5], // 45 羅東
-  [121.76, 24.30, 1.5], // 46 命運
-  [121.42, 24.22, 1.9], // 47 迎神殿
-  [121.58, 24.06, 1.7], // 48 太魯閣
-  [121.54, 23.86, 1.5], // 49 花蓮
-  [121.38, 23.62, 1.6], // 50 道具屋
-  [121.26, 23.16, 1.5], // 51 台東
-  [121.14, 22.84, 1.5], // 52 機會
-  [121.64, 22.80, 1.5], // 53 綠島（東南外海）
-  [121.68, 22.14, 1.5], // 54 蘭嶼（東南外海）
-  [120.94, 22.28, 1.5], // 55 命運
+// 86 點高精度真實台灣本島海岸線 [lon, lat]
+const TW_POLY = [
+  // 北海岸：富貴角 -> 石門 -> 金山 -> 野柳岬 -> 基隆灣 -> 鼻頭角 -> 三貂角
+  [121.535, 25.298], [121.59, 25.285], [121.645, 25.235], [121.692, 25.212], [121.702, 25.185],
+  [121.745, 25.158], [121.785, 25.152], [121.855, 25.132], [121.922, 25.128], [121.995, 25.012],
+  // 東北／宜蘭灣／蘇花斷崖／花蓮：福隆 -> 頭城 -> 五結 -> 蘇澳 -> 東澳 -> 南澳 -> 和平 -> 清水斷崖 -> 七星潭 -> 花蓮
+  [121.935, 24.985], [121.865, 24.912], [121.835, 24.835], [121.825, 24.755], [121.838, 24.675],
+  [121.868, 24.592], [121.858, 24.515], [121.825, 24.445], [121.792, 24.362], [121.748, 24.285],
+  [121.692, 24.185], [121.638, 24.085], [121.632, 24.015], [121.612, 23.955], [121.585, 23.865],
+  // 花東海岸山脈東岸：磯崎 -> 豐濱 -> 長濱 -> 三仙台 -> 成功 -> 都蘭灣 -> 台東 -> 知本 -> 太麻里 -> 大武 -> 旭海 -> 鵝鑾鼻
+  [121.555, 23.755], [121.525, 23.625], [121.505, 23.485], [121.465, 23.335], [121.415, 23.165],
+  [121.375, 23.095], [121.315, 22.975], [121.225, 22.875], [121.158, 22.755], [121.055, 22.645],
+  [121.015, 22.555], [120.955, 22.435], [120.915, 22.335], [120.895, 22.215], [120.892, 22.105],
+  [120.865, 21.985], [120.858, 21.898],
+  // 南灣／恆春／高屏／嘉南平原西海岸：鵝鑾鼻 -> 南灣 -> 貓鼻頭 -> 車城 -> 枋寮 -> 東港大鵬灣 -> 旗津高雄港 -> 安平 -> 七股極西沙洲
+  [120.805, 21.935], [120.762, 21.952], [120.735, 21.922], [120.708, 21.958], [120.695, 22.055],
+  [120.682, 22.155], [120.635, 22.275], [120.575, 22.365], [120.475, 22.455], [120.415, 22.495],
+  [120.335, 22.535], [120.265, 22.605], [120.245, 22.695], [120.205, 22.795], [120.175, 22.915],
+  [120.135, 22.992], [120.092, 23.065], [120.042, 23.135], [120.032, 23.185], [120.068, 23.255],
+  // 雲彰中苗竹桃西海岸：布袋 -> 麥寮濁水溪口 -> 鹿港 -> 台中港 -> 通霄 -> 新竹南寮 -> 觀音 -> 淡水河口 -> 富貴角
+  [120.105, 23.335], [120.132, 23.435], [120.145, 23.545], [120.175, 23.665], [120.215, 23.785],
+  [120.285, 23.885], [120.355, 23.985], [120.412, 24.085], [120.465, 24.195], [120.515, 24.295],
+  [120.565, 24.395], [120.635, 24.475], [120.685, 24.555], [120.765, 24.635], [120.865, 24.745],
+  [120.925, 24.835], [120.985, 24.925], [121.055, 25.005], [121.145, 25.065], [121.235, 25.115],
+  [121.325, 25.155], [121.395, 25.165], [121.435, 25.205], [121.485, 25.265],
 ];
-const SEA_SEGMENTS = new Set([15, 16, 31, 32, 52, 53, 54]); // 跨海橋樑／航道區段
+
+// 真實離島與海峽對岸多邊形（澎湖、金門、馬祖、小琉球、龜山島、綠島、蘭嶼、與那國、閩東南沿岸）
+const OFFSHORE_POLYS = [
+  // 澎湖馬公本島、白沙、西嶼、望安、七美
+  { poly: [[119.53, 23.52], [119.63, 23.51], [119.67, 23.58], [119.62, 23.62], [119.55, 23.59]], elev: 0.78, col: '#4a9352' },
+  { poly: [[119.56, 23.63], [119.62, 23.63], [119.61, 23.69], [119.54, 23.68]], elev: 0.72, col: '#4e9656' },
+  { poly: [[119.47, 23.56], [119.52, 23.57], [119.53, 23.66], [119.48, 23.64]], elev: 0.72, col: '#4e9656' },
+  { poly: [[119.48, 23.34], [119.53, 23.34], [119.54, 23.40], [119.48, 23.39]], elev: 0.65, col: '#468c4e' },
+  { poly: [[119.40, 23.19], [119.45, 23.19], [119.45, 23.23], [119.40, 23.22]], elev: 0.65, col: '#468c4e' },
+  // 大金門（經典東西雙瓣輪廓）與小金門（烈嶼）
+  { poly: [[118.29, 24.42], [118.36, 24.40], [118.42, 24.41], [118.49, 24.44], [118.49, 24.50], [118.43, 24.51], [118.38, 24.47], [118.31, 24.49], [118.27, 24.46]], elev: 0.85, col: '#4f9152' },
+  { poly: [[118.21, 24.40], [118.26, 24.40], [118.27, 24.45], [118.22, 24.45]], elev: 0.72, col: '#4f9152' },
+  // 馬祖列島（南竿＋北竿＋東引）
+  { poly: [[119.89, 26.13], [119.97, 26.13], [119.97, 26.18], [119.89, 26.17]], elev: 0.75, col: '#418952', lh: true },
+  { poly: [[119.96, 26.20], [120.03, 26.21], [120.03, 26.25], [119.96, 26.24]], elev: 0.70, col: '#418952' },
+  // 小琉球、龜山島、綠島、蘭嶼、與那國島
+  { poly: [[120.35, 22.32], [120.39, 22.32], [120.39, 22.36], [120.35, 22.35]], elev: 0.68, col: '#4b9b59' },
+  { poly: [[121.93, 24.83], [121.98, 24.83], [121.97, 24.86], [121.93, 24.85]], elev: 0.95, col: '#3d7d47' },
+  { poly: [[121.46, 22.63], [121.52, 22.63], [121.53, 22.69], [121.47, 22.69]], elev: 0.85, col: '#3b9250' },
+  { poly: [[121.50, 22.00], [121.58, 22.01], [121.59, 22.09], [121.51, 22.08]], elev: 0.90, col: '#338347' },
+  { poly: [[122.93, 24.42], [123.04, 24.43], [123.05, 24.48], [122.94, 24.47]], elev: 0.70, col: '#3b7b52' },
+];
+
+// 海峽西側閩東南沿岸真實輪廓（參考大戰略 geo.js / maps.js，呈現台海完整相對地理）
+const FUJIAN_POLY = [
+  [117.10, 21.80], [117.15, 23.45], [117.45, 23.72], [117.82, 24.04], [118.04, 24.38], [118.12, 24.54],
+  [118.35, 24.58], [118.65, 24.65], [118.74, 24.88], [119.02, 25.04], [119.16, 25.25], [119.50, 25.48],
+  [119.54, 25.72], [119.65, 26.02], [119.62, 26.28], [119.88, 26.44], [120.12, 26.80], [120.38, 27.10],
+  [117.10, 27.10],
+];
+
+// 56 格真實世界台灣經緯度座標 [lon, lat, 地形高程]（嚴格對應 logic.js 順時針環島序）
+const ROUTE_COORDS = [
+  // 0..11 南台灣・高屏嘉南（鵝鑾鼻起點 → 高雄台南安平嘉義）
+  [120.85, 21.92, 1.5], // 0 起點（鵝鑾鼻）
+  [120.76, 21.97, 1.5], // 1 墾丁
+  [120.71, 22.07, 1.5], // 2 恆春
+  [120.67, 22.25, 1.5], // 3 命運（枋山海岸）
+  [120.51, 22.58, 1.5], // 4 屏東
+  [120.29, 22.61, 1.5], // 5 高雄（高雄港 85 大樓）
+  [120.30, 22.72, 1.5], // 6 高鐵左營
+  [120.23, 22.94, 1.5], // 7 台南（赤崁樓）
+  [120.14, 23.04, 1.5], // 8 安平（安平古堡）
+  [120.15, 23.18, 1.5], // 9 機會（七股潟湖）
+  [120.30, 23.31, 1.5], // 10 道具屋（關子嶺）
+  [120.45, 23.47, 1.5], // 11 嘉義（北回歸線）
+  // 12..24 阿里山・雲林北港・澎湖群島・鹿港彰化南投日月潭台中
+  [120.59, 23.43, 1.7], // 12 監獄
+  [120.81, 23.51, 2.5], // 13 阿里山
+  [120.49, 23.71, 1.5], // 14 雲林
+  [120.30, 23.58, 1.5], // 15 北港廟宇（北港朝天宮）
+  [119.58, 23.58, 1.5], // 16 澎湖（馬公真實經緯度）
+  [120.42, 24.04, 1.5], // 17 鹿港（彰化海線）
+  [120.55, 23.99, 1.5], // 18 彰化
+  [120.70, 23.87, 1.6], // 19 南投
+  [120.92, 23.86, 2.2], // 20 日月潭
+  [120.95, 23.98, 1.9], // 21 醫院（埔里山地醫療站）
+  [120.63, 24.10, 1.5], // 22 台中高鐵（烏日）
+  [120.70, 24.20, 1.5], // 23 台中
+  [120.58, 24.32, 1.5], // 24 機會（大甲／高美）
+  // 25..39 桃竹苗・跨海金門・大台北都會區
+  [120.81, 24.54, 1.6], // 25 苗栗
+  [121.03, 24.75, 1.6], // 26 竹科
+  [120.94, 24.83, 1.5], // 27 新竹
+  [121.11, 24.89, 1.5], // 28 命運（湖口台地）
+  [121.30, 24.97, 1.5], // 29 桃園
+  [118.38, 24.45, 1.5], // 30 金門（真實海峽金門座標）
+  [121.22, 25.07, 1.5], // 31 桃園機場
+  [121.33, 25.13, 1.5], // 32 道具屋（林口／八里）
+  [121.44, 25.21, 1.5], // 33 淡水
+  [121.56, 25.25, 2.0], // 34 國家公園（陽明山／富貴角）
+  [121.55, 25.15, 1.5], // 35 行天宮
+  [121.41, 25.00, 1.5], // 36 新北（板橋）
+  [121.50, 25.05, 1.5], // 37 台北（中正紀念堂）
+  [121.59, 25.00, 1.5], // 38 信義區（台北 101）
+  [121.69, 25.05, 1.5], // 39 機會（汐止）
+  // 40..55 基隆九份・宜花東・綠島蘭嶼南迴
+  [121.77, 25.14, 1.5], // 40 基隆港
+  [121.90, 25.11, 1.5], // 41 入獄（東北角三貂角）
+  [121.86, 25.01, 1.7], // 42 九份
+  [121.81, 24.89, 1.5], // 43 國稅局（頭城）
+  [121.76, 24.75, 1.5], // 44 宜蘭
+  [121.78, 24.64, 1.5], // 45 羅東
+  [121.82, 24.51, 1.5], // 46 命運（蘇花北段）
+  [121.76, 24.36, 1.8], // 47 迎神殿（南澳）
+  [121.60, 24.16, 1.8], // 48 太魯閣
+  [121.59, 23.98, 1.5], // 49 花蓮
+  [121.43, 23.66, 1.6], // 50 道具屋（花東縱谷瑞穗）
+  [121.28, 23.14, 1.5], // 51 機會（池上／東河）
+  [121.15, 22.77, 1.5], // 52 台東
+  [121.50, 22.66, 1.5], // 53 綠島（真實座標）
+  [121.55, 22.05, 1.5], // 54 蘭嶼（真實座標）
+  [120.88, 22.14, 1.5], // 55 命運（旭海南迴）
+];
+const SEA_SEGMENTS = new Set([15, 16, 29, 30, 52, 53, 54]); // 跨海橋樑與台海離島航段
 const TILE_PTS = ROUTE_COORDS.map(([lon, lat, elev]) => {
   const [x, z] = twXZ(lon, lat);
   return new THREE.Vector3(x, elev, z);
@@ -213,75 +259,338 @@ function palmTree(scale = 1) {
   return g;
 }
 
-// ---------- 3D 立體台灣本島、山脈、河川、離島與環島公路 ----------
-function buildIslandBase(x, z, rx, rz, color = '#388e4b', hasLighthouse = false) {
+// ---------- 3D 立體真實台灣地理地形、分層設色地貌、山脈水系、離島群與海峽網格 ----------
+function makeShapeXZ(poly) {
+  const s = new THREE.Shape();
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  poly.forEach(([lon, lat], k) => {
+    const [x, z] = twXZ(lon, lat);
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+    if (k === 0) s.moveTo(x, -z); else s.lineTo(x, -z);
+  });
+  s.closePath();
+  return { shape: s, minX, maxX, minZ, maxZ };
+}
+
+function applyPlanarUV(geo, minX, maxX, minZ, maxZ) {
+  const pos = geo.attributes.position, uv = geo.attributes.uv;
+  const dx = Math.max(1, maxX - minX), dz = Math.max(1, maxZ - minZ);
+  for (let i = 0; i < pos.count; i++) {
+    const vx = pos.getX(i), vy = pos.getY(i);
+    uv.setXY(i, (vx - minX) / dx, (vy + maxZ) / dz);
+  }
+  uv.needsUpdate = true;
+}
+
+function makeTaiwanReliefTex(minX, maxX, minZ, maxZ) {
+  return canvasTex(1024, 2048, (c, w, h) => {
+    const pxOf = (lon, lat) => {
+      const [x, z] = twXZ(lon, lat);
+      return [((x - minX) / (maxX - minX)) * w, ((z - minZ) / (maxZ - minZ)) * h];
+    };
+    const drawPolyPath = poly => {
+      c.beginPath();
+      poly.forEach(([lon, lat], i) => {
+        const [px, py] = pxOf(lon, lat);
+        if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      });
+      c.closePath();
+    };
+    const strokeChain = (pts, width, color, dash = []) => {
+      c.save();
+      c.strokeStyle = color; c.lineWidth = width; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.setLineDash(dash);
+      c.beginPath();
+      pts.forEach(([lon, lat], i) => {
+        const [px, py] = pxOf(lon, lat);
+        if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      });
+      c.stroke();
+      c.restore();
+    };
+
+    // 底層沿海沖積平原漸層
+    const bg = c.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#549b54');
+    bg.addColorStop(0.5, '#68ad5a');
+    bg.addColorStop(1, '#589b4f');
+    c.fillStyle = bg; c.fillRect(0, 0, w, h);
+
+    c.save();
+    drawPolyPath(TW_POLY);
+    c.clip();
+
+    // 西部大平原與盆地（台北盆地、嘉南平原、屏東平原）
+    c.save();
+    c.filter = 'blur(18px)';
+    for (const [lon, lat, rx, ry, col] of [
+      [121.52, 25.05, 58, 42, '#7bc269'], // 台北盆地
+      [121.22, 24.92, 66, 52, '#71b761'], // 桃園台地
+      [120.62, 24.10, 74, 88, '#7cc268'], // 台中彰化平原
+      [120.30, 23.38, 92, 185, '#82c86b'], // 雲嘉南大平原
+      [120.52, 22.62, 68, 98, '#7cc267'], // 高屏溪沖積平原
+      [121.74, 24.72, 46, 48, '#7bc46c'], // 蘭陽平原
+    ]) {
+      const [px, py] = pxOf(lon, lat);
+      c.fillStyle = col;
+      c.beginPath(); c.ellipse(px, py, rx, ry, 0.12, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+
+    // 分層設色等高線山脈帶（淺山林地 → 亞高山 → 高山裸岩與雪嶺）
+    const ranges = [
+      [[121.64, 24.92], [121.40, 24.64], [121.26, 24.38], [121.15, 24.04], [121.09, 23.72], [121.05, 23.45], [120.98, 23.12], [120.88, 22.74], [120.80, 22.26]],
+      [[121.38, 24.90], [121.22, 24.62], [121.06, 24.36]], // 雪山山脈
+      [[120.92, 23.82], [120.82, 23.52], [120.72, 23.22]], // 阿里山脈
+      [[121.52, 23.84], [121.42, 23.52], [121.28, 23.08]], // 海岸山脈
+    ];
+    c.save();
+    c.filter = 'blur(20px)';
+    for (const r of ranges) strokeChain(r, 170, 'rgba(44, 102, 54, 0.85)');
+    c.filter = 'blur(14px)';
+    for (const r of ranges.slice(0, 3)) strokeChain(r, 102, 'rgba(116, 124, 68, 0.88)');
+    c.filter = 'blur(9px)';
+    strokeChain(ranges[0], 56, 'rgba(158, 134, 84, 0.92)');
+    strokeChain([[121.26, 24.38], [121.12, 23.86], [121.06, 23.46], [120.98, 23.16]], 24, 'rgba(208, 192, 156, 0.85)');
+    c.restore();
+
+    // 花東縱谷青翠狹長谷地
+    strokeChain([[121.56, 23.95], [121.42, 23.62], [121.28, 23.24], [121.14, 22.82]], 26, 'rgba(110, 186, 98, 0.9)');
+
+    // 主要真實河川水系（河床邊框＋湛藍河道）
+    const rivers = [
+      [[121.28, 24.78], [121.44, 24.98], [121.48, 25.06], [121.42, 25.18]], // 淡水河・大漢溪
+      [[121.72, 25.08], [121.58, 25.07], [121.48, 25.09]], // 基隆河
+      [[121.24, 24.25], [120.82, 24.26], [120.54, 24.30]], // 大甲溪
+      [[121.16, 24.10], [120.78, 23.82], [120.44, 23.80], [120.21, 23.84]], // 濁水溪
+      [[120.66, 23.34], [120.42, 23.18], [120.08, 23.08]], // 曾文溪
+      [[120.88, 23.18], [120.62, 22.88], [120.42, 22.62], [120.38, 22.48]], // 高屏溪
+      [[121.45, 24.48], [121.68, 24.68], [121.82, 24.71]], // 蘭陽溪
+      [[121.42, 23.70], [121.58, 23.93]], // 花蓮溪
+      [[121.28, 23.36], [121.39, 23.48], [121.50, 23.46]], // 秀姑巒溪
+      [[121.14, 23.12], [121.16, 22.77]], // 卑南溪
+    ];
+    for (const rv of rivers) strokeChain(rv, 11, '#266b8e');
+    for (const rv of rivers) strokeChain(rv, 6.5, '#38bdf8');
+
+    // 北回歸線 23.5°N 穿越台灣本島金色虛線（嘉義水上 → 玉山 → 瑞穗）
+    strokeChain([[119.95, 23.5], [121.65, 23.5]], 3.5, 'rgba(250, 204, 21, 0.72)', [12, 9]);
+
+    // 地圖地理注記（山脈、平原、主要溪流名稱）
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const labels = [
+      ['中央山脈', 121.12, 23.68, 'rgba(255,250,224,0.85)', 24, -1.28],
+      ['雪山山脈', 121.22, 24.55, 'rgba(255,250,224,0.78)', 20, -1.0],
+      ['玉山 3952m', 121.02, 23.46, '#fef08a', 20, 0],
+      ['嘉南平原', 120.32, 23.22, 'rgba(255,255,255,0.78)', 24, 0],
+      ['花東縱谷', 121.38, 23.56, 'rgba(255,255,255,0.78)', 20, -1.2],
+      ['濁水溪', 120.48, 23.85, '#bae6fd', 18, -0.05],
+      ['淡水河', 121.41, 25.13, '#bae6fd', 18, -0.6],
+    ];
+    for (const [txt, lon, lat, col, size, rot] of labels) {
+      const [px, py] = pxOf(lon, lat);
+      c.save();
+      c.translate(px, py); c.rotate(rot);
+      c.font = `800 ${size}px "PingFang TC","Noto Sans TC",sans-serif`;
+      c.strokeStyle = 'rgba(10, 22, 14, 0.65)'; c.lineWidth = 4; c.strokeText(txt, 0, 0);
+      c.fillStyle = col; c.fillText(txt, 0, 0);
+      c.restore();
+    }
+    c.restore();
+  });
+}
+
+function buildIslandPoly(poly, elev = 0.8, color = '#3c8e4d', withLighthouse = false, opts = {}) {
   const g = new THREE.Group();
-  const reef = new THREE.Mesh(new THREE.CylinderGeometry(rx + 3.4, rx + 4.4, 0.35, 18), new THREE.MeshStandardMaterial({ color: '#1b7a9c', roughness: 0.45 }));
-  reef.scale.set(1, 1, rz / rx); reef.position.y = -0.05;
-  const sand = new THREE.Mesh(new THREE.CylinderGeometry(rx + 1.4, rx + 2.1, 0.55, 14), new THREE.MeshStandardMaterial({ color: '#d7c38a', roughness: 0.9 }));
-  sand.scale.set(1, 1, rz / rx); sand.position.y = 0.25;
-  const turf = new THREE.Mesh(new THREE.CylinderGeometry(rx, rx * 1.06, 0.85, 12), new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.85 }));
-  turf.scale.set(1, 1, rz / rx); turf.position.y = 0.85; turf.castShadow = true; turf.receiveShadow = true;
-  g.add(reef, sand, turf);
-  if (hasLighthouse) {
-    const lh = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.65, 2.8, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
-    lh.position.set(rx * 0.45, 2.6, -rz * 0.25); lh.castShadow = true;
-    const top = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 8), new THREE.MeshStandardMaterial({ color: '#ffe066', emissive: '#f1c40f' }));
-    top.position.set(rx * 0.45, 4.1, -rz * 0.25);
+  const { shape } = makeShapeXZ(poly);
+  const { shelfSize = 3.2, surfSize = 1.5, beachSize = 0.6, skipSurf = false } = opts;
+
+  if (!skipSurf) {
+    const shelf = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(shape, { depth: 0.25, bevelEnabled: true, bevelThickness: 0.14, bevelSize: shelfSize, bevelSegments: 1 }),
+      new THREE.MeshStandardMaterial({ color: '#0d4e73', roughness: 0.45 })
+    );
+    shelf.rotation.x = -Math.PI / 2; shelf.position.y = -0.45; shelf.receiveShadow = true;
+    const surf = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(shape, { depth: 0.32, bevelEnabled: true, bevelThickness: 0.14, bevelSize: surfSize, bevelSegments: 1 }),
+      new THREE.MeshStandardMaterial({ color: '#2190ad', roughness: 0.45 })
+    );
+    surf.rotation.x = -Math.PI / 2; surf.position.y = -0.22; surf.receiveShadow = true;
+    g.add(shelf, surf);
+  }
+
+  const beach = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: true, bevelThickness: 0.16, bevelSize: beachSize, bevelSegments: 1 }),
+    new THREE.MeshStandardMaterial({ color: '#d7c38a', roughness: 0.92 })
+  );
+  beach.rotation.x = -Math.PI / 2; beach.position.y = 0.04; beach.receiveShadow = true;
+
+  const turf = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(shape, { depth: elev, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.22, bevelSegments: 1 }),
+    new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.85 })
+  );
+  turf.rotation.x = -Math.PI / 2; turf.position.y = 0.22; turf.castShadow = true; turf.receiveShadow = true;
+  g.add(beach, turf);
+
+  if (withLighthouse) {
+    let cx = 0, cz = 0;
+    for (const [lon, lat] of poly) { const [x, z] = twXZ(lon, lat); cx += x; cz += z; }
+    cx /= poly.length; cz /= poly.length;
+    const lh = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.58, 2.8, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
+    lh.position.set(cx, elev + 1.6, cz); lh.castShadow = true;
+    const top = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 8), new THREE.MeshStandardMaterial({ color: '#ffe066', emissive: '#f1c40f' }));
+    top.position.set(cx, elev + 3.1, cz);
     g.add(lh, top);
   }
-  g.position.set(x, 0, z);
   return g;
+}
+
+function buildWorldSeaGrid() {
+  // 海面真實地圖經緯度網格、北回歸線、海域名稱與指北羅盤（覆蓋 117°E–123.5°E, 21°N–26.8°N）
+  const minX = -380, maxX = 240, minZ = -340, maxZ = 280;
+  const W = maxX - minX, H = maxZ - minZ;
+  const tex = canvasTex(2048, 2048, (c, cw, ch) => {
+    const cxOf = (lon, lat) => {
+      const [x, z] = twXZ(lon, lat);
+      return [((x - minX) / W) * cw, ((z - minZ) / H) * ch];
+    };
+    c.clearRect(0, 0, cw, ch);
+
+    // 1° 經緯度座標網格線
+    c.lineWidth = 1.6; c.strokeStyle = 'rgba(125, 211, 252, 0.16)';
+    c.font = '700 22px "SF Pro TC","PingFang TC",sans-serif';
+    c.fillStyle = 'rgba(125, 211, 252, 0.45)';
+    for (let lon = 117; lon <= 123; lon++) {
+      const [px] = cxOf(lon, LAT0);
+      c.beginPath(); c.moveTo(px, 0); c.lineTo(px, ch); c.stroke();
+      c.fillText(`${lon}°E`, px + 8, ch - 36);
+      c.fillText(`${lon}°E`, px + 8, 28);
+    }
+    for (let lat = 21; lat <= 26; lat++) {
+      const [, py] = cxOf(LON0, lat);
+      c.beginPath(); c.moveTo(0, py); c.lineTo(cw, py); c.stroke();
+      c.fillText(`${lat}°N`, 22, py - 8);
+      c.fillText(`${lat}°N`, cw - 72, py - 8);
+    }
+
+    // 北回歸線 23.5°N（穿越台海與太平洋的金黃虛線）
+    const [, tropy] = cxOf(LON0, 23.5);
+    c.save();
+    c.setLineDash([18, 12]); c.lineWidth = 3.2; c.strokeStyle = 'rgba(250, 204, 21, 0.6)';
+    c.beginPath(); c.moveTo(0, tropy); c.lineTo(cw, tropy); c.stroke();
+    c.fillStyle = 'rgba(254, 240, 138, 0.85)';
+    c.font = '800 24px "PingFang TC","Noto Sans TC",sans-serif';
+    c.fillText('☀ 北回歸線 Tropic of Cancer  23.5°N', cw * 0.67, tropy - 12);
+    c.restore();
+
+    // 真實海域名稱標註
+    const seas = [
+      ['台灣海峽', 'TAIWAN STRAIT', 119.35, 24.30, -0.35],
+      ['太 平 洋', 'PACIFIC OCEAN', 122.45, 23.25, 0],
+      ['巴士海峽', 'BASHI CHANNEL', 120.75, 21.35, 0],
+      ['東  海', 'EAST CHINA SEA', 121.30, 25.95, 0],
+      ['中國福建沿海', 'FUJIAN COAST', 117.75, 25.55, 0],
+    ];
+    for (const [zh, en, lon, lat, rot] of seas) {
+      const [px, py] = cxOf(lon, lat);
+      c.save(); c.translate(px, py); c.rotate(rot);
+      c.textAlign = 'center';
+      c.font = '900 44px "PingFang TC","Noto Sans TC",sans-serif';
+      c.fillStyle = 'rgba(147, 197, 253, 0.36)'; c.fillText(zh, 0, 0);
+      c.font = '700 20px "SF Pro TC","Noto Sans TC",sans-serif';
+      c.fillStyle = 'rgba(147, 197, 253, 0.28)'; c.fillText(en, 0, 32);
+      c.restore();
+    }
+
+    // 東南角指北羅盤與地圖徽章
+    const [rx, ry] = cxOf(122.55, 21.65);
+    c.save(); c.translate(rx, ry);
+    c.strokeStyle = 'rgba(250, 204, 21, 0.65)'; c.lineWidth = 3;
+    c.beginPath(); c.arc(0, 0, 74, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(0, 0, 56, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = 'rgba(250, 204, 21, 0.78)';
+    c.beginPath(); c.moveTo(0, -82); c.lineTo(14, -14); c.lineTo(0, -24); c.lineTo(-14, -14); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(186, 230, 253, 0.5)';
+    for (const ang of [Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      c.save(); c.rotate(ang);
+      c.beginPath(); c.moveTo(0, -68); c.lineTo(10, -14); c.lineTo(-10, -14); c.closePath(); c.fill();
+      c.restore();
+    }
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#fde047'; c.font = '900 32px "PingFang TC",sans-serif';
+    c.fillText('N', 0, -104);
+    c.fillStyle = 'rgba(224, 242, 254, 0.7)'; c.font = '700 22px "PingFang TC",sans-serif';
+    c.fillText('S', 0, 94); c.fillText('E', 96, 0); c.fillText('W', -96, 0);
+    c.fillStyle = 'rgba(255, 218, 110, 0.85)'; c.font = '900 40px "PingFang TC","Noto Sans TC",sans-serif';
+    c.fillText('環島富豪 3D', 0, 145);
+    c.fillStyle = 'rgba(175, 225, 255, 0.72)'; c.font = '700 18px "PingFang TC",sans-serif';
+    c.fillText('REAL WORLD TAIWAN ATLAS', 0, 180);
+    c.restore();
+  });
+
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, H),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+  );
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.set((minX + maxX) / 2, -0.18, (minZ + maxZ) / 2);
+  return plane;
 }
 
 function makeBridgeSegment(a, b, isSea) {
   const g = new THREE.Group();
   const dir = new THREE.Vector3().subVectors(b, a);
   const len = dir.length();
+  const hLen = Math.max(0.01, Math.hypot(dir.x, dir.z));
   const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
   const yaw = Math.atan2(dir.x, dir.z);
+  const pitch = Math.atan2(dir.y, hLen);
 
   if (isSea) {
-    // 跨海大橋（雙橋塔＋紅白斜張鋼纜＋橋面）
+    // 跨海大橋／台海航橋（依距離自動配置橋塔數，呈現澎湖・金門・綠島蘭嶼海峽通道）
     const deckY = 1.15;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.36, len), new THREE.MeshStandardMaterial({ color: '#cbd5e1', roughness: 0.5 }));
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.36, hLen), new THREE.MeshStandardMaterial({ color: '#cbd5e1', roughness: 0.5 }));
     deck.position.set(mid.x, deckY, mid.z); deck.rotation.y = yaw; deck.castShadow = true; deck.receiveShadow = true;
     g.add(deck);
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.38, len * 0.94), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0c4a6e' }));
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.38, hLen * 0.96), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0c4a6e' }));
     stripe.position.set(mid.x, deckY + 0.02, mid.z); stripe.rotation.y = yaw;
     g.add(stripe);
 
     const pylonM = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.35 });
     const archM = new THREE.MeshStandardMaterial({ color: '#e63946', roughness: 0.45 });
-    for (const frac of [0.34, 0.66]) {
+    const pylonCount = hLen > 50 ? Math.min(7, Math.max(2, Math.floor(hLen / 38))) : 2;
+    for (let n = 1; n <= pylonCount; n++) {
+      const frac = n / (pylonCount + 1);
       const p = new THREE.Vector3().lerpVectors(a, b, frac);
       const pylon = new THREE.Group();
-      for (const s of [-0.95, 0.95]) {
+      for (const s of [-0.92, 0.92]) {
         const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 5.2, 8), pylonM);
         leg.position.set(s, 2.3, 0); pylon.add(leg);
         const pier = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.46, 1.4, 8), new THREE.MeshStandardMaterial({ color: '#64748b' }));
         pier.position.set(s, 0.2, 0); pylon.add(pier);
       }
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.35, 0.35), archM);
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.35, 0.35), archM);
       beam.position.y = 4.4; pylon.add(beam);
       pylon.position.set(p.x, 0, p.z); pylon.rotation.y = yaw;
       pylon.traverse(o => { if (o.isMesh) o.castShadow = true; });
       g.add(pylon);
     }
   } else {
-    // 環島雙線柏油公路＋金色中央虛線（貼齊地表與台地不陷入地形）
-    const roadY = Math.max(1.44, (a.y + b.y) * 0.5 - 0.02);
-    const road = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.22, len), new THREE.MeshStandardMaterial({ color: '#374151', roughness: 0.9 }));
-    road.position.set(mid.x, roadY, mid.z); road.rotation.y = yaw; road.receiveShadow = true;
+    // 環島公路（依坡度傾斜爬升山地路段＋金色中央標線）
+    const roadY = (a.y + b.y) * 0.5 - 0.05;
+    const road = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.22, len), new THREE.MeshStandardMaterial({ color: '#374151', roughness: 0.9 }));
+    road.position.set(mid.x, roadY, mid.z);
+    road.rotation.order = 'YXZ'; road.rotation.y = yaw; road.rotation.x = -pitch;
+    road.receiveShadow = true;
     g.add(road);
-    const steps = Math.max(2, Math.floor(len / 2.3));
+    const steps = Math.max(2, Math.floor(len / 2.6));
     const dashM = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#594200' });
     for (let s = 1; s < steps; s++) {
-      const frac = s / steps;
-      const p = new THREE.Vector3().lerpVectors(a, b, frac);
-      const dy = Math.max(1.46, p.y);
+      const p = new THREE.Vector3().lerpVectors(a, b, s / steps);
       const dash = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.24, 0.9), dashM);
-      dash.position.set(p.x, dy, p.z); dash.rotation.y = yaw;
+      dash.position.set(p.x, p.y - 0.03, p.z);
+      dash.rotation.order = 'YXZ'; dash.rotation.y = yaw; dash.rotation.x = -pitch;
       g.add(dash);
     }
   }
@@ -291,68 +600,53 @@ function makeBridgeSegment(a, b, isSea) {
 function buildTaiwanIsland() {
   const tw = new THREE.Group();
 
-  // 無邊際漸層深海（大型圓盤，完全消除方形邊界感）
+  // 無邊際深邃太平洋＋台灣海峽海床圓盤
   const deepSea = new THREE.Mesh(
-    new THREE.CylinderGeometry(460, 460, 0.8, 64),
-    new THREE.MeshStandardMaterial({ color: '#072238', roughness: 0.55, metalness: 0.15 })
+    new THREE.CylinderGeometry(820, 820, 0.8, 72),
+    new THREE.MeshStandardMaterial({ color: '#062036', roughness: 0.55, metalness: 0.15 })
   );
   deepSea.position.y = -0.8; deepSea.receiveShadow = true;
   tw.add(deepSea);
 
-  // 台灣本島外輪廓 Shape（XY 平面，旋轉 -90° 後對應 XZ 世界座標）
-  const shape = new THREE.Shape();
-  TW_POLY.forEach(([lon, lat], k) => {
-    const [x, z] = twXZ(lon, lat);
-    const sx = x, sy = -z;
-    if (k === 0) shape.moveTo(sx, sy); else shape.lineTo(sx, sy);
-  });
-  shape.closePath();
+  // 高精度 86 點台灣本島 Shape 與真實分層設色地貌貼圖
+  const { shape, minX, maxX, minZ, maxZ } = makeShapeXZ(TW_POLY);
 
-  // 1) 淺海大陸棚與珊瑚礁浪花環
-  const shelfGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.18, bevelSize: 6.2, bevelSegments: 2 });
-  const shelf = new THREE.Mesh(shelfGeo, new THREE.MeshStandardMaterial({ color: '#0d4a6e', roughness: 0.4, metalness: 0.1 }));
+  const shelfGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.18, bevelSize: 6.8, bevelSegments: 2 });
+  const shelf = new THREE.Mesh(shelfGeo, new THREE.MeshStandardMaterial({ color: '#0c476b', roughness: 0.42, metalness: 0.08 }));
   shelf.rotation.x = -Math.PI / 2; shelf.position.y = -0.45; shelf.receiveShadow = true;
   tw.add(shelf);
 
-  const surfGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.42, bevelEnabled: true, bevelThickness: 0.18, bevelSize: 2.8, bevelSegments: 2 });
-  const surf = new THREE.Mesh(surfGeo, new THREE.MeshStandardMaterial({ color: '#218ca8', roughness: 0.45 }));
+  const surfGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.42, bevelEnabled: true, bevelThickness: 0.18, bevelSize: 3.1, bevelSegments: 2 });
+  const surf = new THREE.Mesh(surfGeo, new THREE.MeshStandardMaterial({ color: '#218ba8', roughness: 0.45 }));
   surf.rotation.x = -Math.PI / 2; surf.position.y = -0.22; surf.receiveShadow = true;
   tw.add(surf);
 
-  // 2) 金色海岸沙灘層
-  const beachGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.72, bevelEnabled: true, bevelThickness: 0.25, bevelSize: 1.4, bevelSegments: 2 });
+  const beachGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.72, bevelEnabled: true, bevelThickness: 0.25, bevelSize: 1.5, bevelSegments: 2 });
   const beach = new THREE.Mesh(beachGeo, new THREE.MeshStandardMaterial({ color: '#d8c58d', roughness: 0.92 }));
   beach.rotation.x = -Math.PI / 2; beach.position.y = 0.06; beach.receiveShadow = true;
   tw.add(beach);
 
-  // 3) 翠綠本島平原層（主地表 top y = 1.35）
   const landGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.85, bevelEnabled: true, bevelThickness: 0.25, bevelSize: 0.35, bevelSegments: 2 });
-  const land = new THREE.Mesh(landGeo, new THREE.MeshStandardMaterial({ color: '#37914c', roughness: 0.85 }));
+  applyPlanarUV(landGeo, minX, maxX, minZ, maxZ);
+  const landTex = makeTaiwanReliefTex(minX, maxX, minZ, maxZ);
+  const land = new THREE.Mesh(landGeo, new THREE.MeshStandardMaterial({ map: landTex, roughness: 0.85 }));
   land.rotation.x = -Math.PI / 2; land.position.y = 0.25; land.castShadow = true; land.receiveShadow = true;
   tw.add(land);
 
-  // 4) 中央山地丘陵台地（top y = 1.72）
-  const plateau = new THREE.Mesh(
-    new THREE.ExtrudeGeometry(shape, { depth: 0.38, bevelEnabled: true, bevelThickness: 0.19, bevelSize: 0.2, bevelSegments: 1 }),
-    new THREE.MeshStandardMaterial({ color: '#2b753f', roughness: 0.88 })
-  );
-  plateau.rotation.x = -Math.PI / 2;
-  plateau.scale.set(0.46, 0.56, 1);
-  plateau.position.set(1.5, 1.15, 3.0);
-  plateau.castShadow = true; plateau.receiveShadow = true;
-  tw.add(plateau);
-
-  // 5) 玉山・雪山・中央山脈・大霸尖山・海岸山脈精細峰群
+  // 真實五大山脈立體峰群（大屯火山群、雪山、大霸尖山、南湖大山、合歡山、奇萊山、玉山主峰、塔山、關山、北大武山、海岸山脈）
   const peaks = [
-    [121.34, 24.48, 4.8, 7.6, '#2b6a3c', false, 'cone'], // 南湖大山
-    [121.22, 24.38, 4.4, 8.2, '#5a6b5c', true, 'dabajian'], // 大霸尖山
-    [121.18, 24.06, 5.8, 9.8, '#367544', false, 'cone'], // 合歡群峰
-    [121.12, 23.82, 5.4, 9.4, '#3d7a4a', false, 'cone'], // 奇萊能高
-    [121.10, 23.48, 7.0, 14.5, '#467d50', true, 'yushan'], // 玉山主峰（雪頂）
-    [121.02, 23.18, 5.6, 8.8, '#346f42', false, 'cone'], // 關山
-    [120.94, 22.82, 4.8, 7.2, '#2d683b', false, 'cone'], // 北大武山
-    [121.48, 23.78, 4.2, 6.6, '#2a6339', false, 'cone'], // 海岸山脈北段
-    [121.34, 23.42, 4.0, 5.8, '#2a6339', false, 'cone'], // 海岸山脈南段
+    [121.55, 25.17, 4.2, 5.8, '#2d683b', false, 'cone'], // 大屯火山七星山
+    [121.23, 24.38, 6.2, 11.2, '#3c7747', true, 'cone'], // 雪山主峰
+    [121.26, 24.46, 4.6, 9.5, '#687366', true, 'dabajian'], // 大霸尖山
+    [121.44, 24.36, 5.4, 9.8, '#346e42', false, 'cone'], // 南湖大山
+    [121.27, 24.14, 6.4, 11.4, '#3a7646', false, 'cone'], // 合歡奇萊群峰
+    [121.14, 23.85, 5.8, 10.2, '#3d7949', false, 'cone'], // 能高丹大
+    [120.96, 23.47, 8.2, 18.5, '#5b7c54', true, 'yushan'], // 玉山主峰（台灣最高峰 3952m）
+    [120.80, 23.56, 4.8, 7.6, '#2f6b3e', false, 'cone'], // 阿里山大塔山
+    [120.91, 23.22, 6.2, 10.6, '#346f42', false, 'cone'], // 關山南一段
+    [120.76, 22.63, 5.6, 9.2, '#2d683b', false, 'cone'], // 北大武山
+    [121.48, 23.62, 4.4, 7.2, '#2b663b', false, 'cone'], // 海岸山脈新港山
+    [121.22, 22.92, 4.0, 6.2, '#2b663b', false, 'cone'], // 都蘭山
   ];
   for (const [lon, lat, r, h, col, snow, kind] of peaks) {
     const [x, z] = twXZ(lon, lat);
@@ -360,83 +654,41 @@ function buildTaiwanIsland() {
       kind === 'dabajian' ? new THREE.CylinderGeometry(r * 0.42, r * 0.85, h, 7) : new THREE.ConeGeometry(r, h, 7),
       new THREE.MeshStandardMaterial({ color: col, flatShading: true, roughness: 0.9 })
     );
-    m.position.set(x, 1.65 + h / 2, z); m.castShadow = true; m.receiveShadow = true;
+    m.position.set(x, 1.32 + h / 2, z); m.castShadow = true; m.receiveShadow = true;
     tw.add(m);
     if (snow) {
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.4, h * 0.34, 7), new THREE.MeshStandardMaterial({ color: '#f3f7fa', flatShading: true }));
-      cap.position.set(x, 1.65 + h * 0.85, z);
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.38, h * 0.33, 7), new THREE.MeshStandardMaterial({ color: '#f3f7fa', flatShading: true }));
+      cap.position.set(x, 1.32 + h * 0.85, z);
       tw.add(cap);
     }
   }
 
-  // 6) 日月潭湛藍高山湖泊＋拉魯小島
-  const [smlX, smlZ] = twXZ(120.91, 23.84);
-  const lake = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 3.8, 0.24, 18), new THREE.MeshStandardMaterial({ color: '#2ca6e0', roughness: 0.22, metalness: 0.1 }));
-  lake.scale.set(1.25, 1, 0.88); lake.position.set(smlX, 1.78, smlZ);
-  const lalu = new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.7, 6), new THREE.MeshStandardMaterial({ color: '#39884f', flatShading: true }));
-  lalu.position.set(smlX - 0.5, 2.08, smlZ);
+  // 日月潭湛藍高山湖泊＋拉魯小島（真實位置 120.91°E, 23.86°N）
+  const [smlX, smlZ] = twXZ(120.91, 23.86);
+  const lake = new THREE.Mesh(new THREE.CylinderGeometry(4.4, 4.4, 0.28, 20), new THREE.MeshStandardMaterial({ color: '#2ca6e0', roughness: 0.2, metalness: 0.12 }));
+  lake.scale.set(1.25, 1, 0.85); lake.position.set(smlX, 1.48, smlZ);
+  const lalu = new THREE.Mesh(new THREE.ConeGeometry(0.95, 0.8, 6), new THREE.MeshStandardMaterial({ color: '#39884f', flatShading: true }));
+  lalu.position.set(smlX - 0.5, 1.85, smlZ);
   tw.add(lake, lalu);
 
-  // 7) 台灣主要水系（淡水河、濁水溪、高屏溪、蘭陽溪、秀姑巒溪）
-  const riverM = new THREE.MeshStandardMaterial({ color: '#2ea7de', roughness: 0.25 });
-  const rivers = [
-    [[121.48, 25.00], [121.38, 25.18]], // 淡水河
-    [[120.52, 23.80], [120.14, 23.82]], // 濁水溪下段
-    [[120.60, 22.82], [120.38, 22.44]], // 高屏溪
-    [[121.56, 24.60], [121.84, 24.72]], // 蘭陽溪
-    [[121.38, 23.46], [121.52, 23.48]], // 秀姑巒溪
-  ];
-  for (const [[lo1, la1], [lo2, la2]] of rivers) {
-    const [x1, z1] = twXZ(lo1, la1), [x2, z2] = twXZ(lo2, la2);
-    const len = Math.hypot(x2 - x1, z2 - z1);
-    const seg = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.14, len), riverM);
-    seg.position.set((x1 + x2) / 2, 1.38, (z1 + z2) / 2);
-    seg.rotation.y = Math.atan2(x2 - x1, z2 - z1);
-    tw.add(seg);
+  // 真實離島群（澎湖本島/白沙/西嶼/望安/七美、大金門/烈嶼、馬祖、小琉球、龜山島、綠島、蘭嶼、與那國）
+  for (const isl of OFFSHORE_POLYS) {
+    tw.add(buildIslandPoly(isl.poly, isl.elev, isl.col, !!isl.lh));
   }
 
-  // 8) 立體離島群島（緊密對應 16澎湖 / 32金門 / 53綠島 / 54蘭嶼 ＋ 馬祖裝飾）
-  const [phX, phZ] = twXZ(119.74, 23.70);
-  tw.add(buildIslandBase(phX, phZ, 5.8, 7.6, '#398f52'));
-  tw.add(buildIslandBase(phX - 5.2, phZ + 5.8, 2.4, 2.2, '#398f52')); // 望安七美小島
+  // 海峽西側閩東南大陸海岸
+  tw.add(buildIslandPoly(FUJIAN_POLY, 1.15, '#4c754d', false, { shelfSize: 2.8, surfSize: 1.4, beachSize: 0.6 }));
 
-  const [kmX, kmZ] = twXZ(120.62, 25.24);
-  tw.add(buildIslandBase(kmX, kmZ, 5.6, 4.4, '#3e8c4c'));
-
-  const [mzX, mzZ] = twXZ(121.12, 25.44); // 馬祖裝飾島與燈塔
-  tw.add(buildIslandBase(mzX, mzZ, 3.0, 2.4, '#39884f', true));
-
-  const [gdX, gdZ] = twXZ(121.64, 22.80);
-  tw.add(buildIslandBase(gdX, gdZ, 4.8, 4.5, '#358e4c'));
-
-  const [lyX, lyZ] = twXZ(121.68, 22.14);
-  tw.add(buildIslandBase(lyX, lyZ, 5.1, 4.8, '#2f7f45'));
-
-  // 9) 中央山麓林木點綴
-  for (const [lon, lat] of [[121.16, 24.28], [121.02, 23.36], [120.88, 23.02], [121.40, 23.94], [121.24, 23.62], [121.56, 24.42]]) {
+  // 中央山麓林木點綴
+  for (const [lon, lat] of [[121.14, 24.22], [121.02, 23.36], [120.84, 22.98], [121.38, 23.88], [121.22, 23.58], [121.48, 24.46], [120.88, 24.48]]) {
     const [x, z] = twXZ(lon, lat);
-    const tr = tree(0.85); tr.position.set(x, 1.5, z); tw.add(tr);
+    const tr = tree(0.95); tr.position.set(x, 1.35, z); tw.add(tr);
   }
 
-  // 10) 海面「環島富豪 3D」燙金羅盤徽章
-  const banner = new THREE.Mesh(
-    new THREE.PlaneGeometry(34, 13),
-    new THREE.MeshBasicMaterial({
-      transparent: true,
-      map: canvasTex(768, 280, (c, w, h) => {
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.font = '900 100px "PingFang TC","Noto Sans TC",sans-serif';
-        c.fillStyle = 'rgba(255, 218, 110, 0.92)'; c.fillText('環島富豪', w / 2, h * 0.40);
-        c.font = '700 40px "PingFang TC","Noto Sans TC",sans-serif';
-        c.fillStyle = 'rgba(175, 225, 255, 0.85)'; c.fillText('TAIWAN 3D TYCOON', w / 2, h * 0.78);
-      }),
-    })
-  );
-  banner.rotation.x = -Math.PI / 2;
-  banner.position.set(-70, 0.1, 76);
-  tw.add(banner);
+  // 海面真實地理經緯度網格、北回歸線、海域標註與指北羅盤
+  tw.add(buildWorldSeaGrid());
 
-  // 11) 56 格環島公路與跨海大橋路網
+  // 56 格真實環島公路與跨海大橋路網
   for (let i = 0; i < 56; i++) {
     tw.add(makeBridgeSegment(TILE_PTS[i], TILE_PTS[(i + 1) % 56], SEA_SEGMENTS.has(i)));
   }
@@ -618,6 +870,28 @@ function makeTileProp(t) {
     const deck = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.25, 0.8), new THREE.MeshStandardMaterial({ color: '#94a3b8' }));
     deck.position.y = 0.45;
     g.add(mast, deck);
+  } else if (nm === '嘉義') {
+    // 北回歸線太陽館（銀白雙柱＋金色日晷圓環）
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.35, 8), new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.7 }));
+    base.position.y = 0.18; base.castShadow = true;
+    const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 2.7, 6), new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.45 }));
+    pylon.position.y = 1.65; pylon.castShadow = true;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.12, 8, 16), new THREE.MeshStandardMaterial({ color: '#eab308', metalness: 0.55, roughness: 0.3 }));
+    ring.position.y = 2.65; ring.rotation.x = Math.PI / 6; ring.castShadow = true;
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.35 }));
+    orb.position.y = 2.65;
+    g.add(base, pylon, ring, orb);
+  } else if (nm === '金門') {
+    // 莒光樓（白石台基＋朱紅宮殿重簷閣樓）
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.5, 2.1), new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.8 }));
+    base.position.y = 0.25; base.castShadow = true;
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.35, 1.35), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.6 }));
+    wall.position.y = 1.15; wall.castShadow = true;
+    const roof1 = new THREE.Mesh(new THREE.ConeGeometry(1.35, 0.55, 4), new THREE.MeshStandardMaterial({ color: '#ca8a04', roughness: 0.5 }));
+    roof1.position.y = 1.95; roof1.rotation.y = Math.PI / 4; roof1.castShadow = true;
+    const roof2 = new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.55, 4), new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.5 }));
+    roof2.position.y = 2.45; roof2.rotation.y = Math.PI / 4; roof2.castShadow = true;
+    g.add(base, wall, roof1, roof2);
   } else if (nm === '墾丁' || nm === '恆春' || nm === '屏東') {
     // 熱帶椰子樹＋古城磚門
     const p1 = palmTree(0.85); p1.position.set(-0.5, 0, 0);
@@ -753,10 +1027,10 @@ const tileProps = new Array(R.BOARD.length).fill(null);
     const p = tilePos(i);
     // 精緻八角形石磚底座＋清晰正面字牌（文字統一朝向玩家視角，永不顛倒）
     const plinth = new THREE.Mesh(
-      new THREE.CylinderGeometry(4.05, 4.45, 0.72, 8),
+      new THREE.CylinderGeometry(3.55, 3.9, 0.68, 8),
       new THREE.MeshStandardMaterial({ color: gc || accent || '#c4b596', roughness: 0.75 })
     );
-    plinth.position.set(p.x, p.y - 0.36, p.z);
+    plinth.position.set(p.x, p.y - 0.34, p.z);
     plinth.rotation.y = Math.PI / 8;
     plinth.castShadow = true; plinth.receiveShadow = true;
     board.add(plinth);
@@ -772,8 +1046,8 @@ const tileProps = new Array(R.BOARD.length).fill(null);
 
     const prop = makeTileProp(t);
     if (prop.children.length) {
-      prop.position.set(p.x - 1.5, p.y + 0.16, p.z - 2.35);
-      prop.scale.setScalar(0.68);
+      prop.position.set(p.x - 1.35, p.y + 0.16, p.z - 2.05);
+      prop.scale.setScalar(0.62);
       board.add(prop);
       tileProps[i] = prop;
     }
@@ -879,12 +1153,12 @@ function syncBuildings() {
       buildingRise.set(i, { t0: now, fromScale: Math.max(0.16, prevLv / Math.max(1, s.level)) });
     }
     prevTileLevels[i] = s.level || 0;
-    if (tileProps[i]) tileProps[i].scale.setScalar(s.owner != null && s.level > 0 ? 0.34 : 0.68);
+    if (tileProps[i]) tileProps[i].scale.setScalar(s.owner != null && s.level > 0 ? 0.31 : 0.62);
     const p = tilePos(i);
     if (s.owner != null) {
       const col = G.players[s.owner].color;
       const halo = new THREE.Mesh(
-        new THREE.RingGeometry(3.8, 4.45, 8),
+        new THREE.RingGeometry(3.35, 3.95, 8),
         new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide })
       );
       halo.rotation.x = -Math.PI / 2; halo.rotation.z = Math.PI / 8;
@@ -892,11 +1166,11 @@ function syncBuildings() {
 
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.8), new THREE.MeshStandardMaterial({ color: '#eee' }));
       const flag = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.85, 0.1), new THREE.MeshStandardMaterial({ color: col }));
-      const fx = p.x + 2.55, fz = p.z - 2.55;
+      const fx = p.x + 2.25, fz = p.z - 2.25;
       pole.position.set(fx, p.y + 1.55, fz); flag.position.set(fx + 0.65, p.y + 2.5, fz);
       buildG.add(pole, flag);
       const h = houseMesh(s.level || 0, col);
-      h.position.set(p.x + 1.1, p.y + 0.18, p.z - 1.9);
+      h.position.set(p.x + 0.95, p.y + 0.18, p.z - 1.65);
       const baseScale = s.level === 4 ? 0.8 : 0.78;
       h.scale.setScalar(baseScale);
       buildG.add(h);
@@ -1153,11 +1427,11 @@ const pipTex = n => canvasTex(128, 128, (c, w) => {
 });
 const FACE = [3, 4, 1, 6, 2, 5];
 const diceMats = FACE.map(n => new THREE.MeshStandardMaterial({ map: pipTex(n), roughness: 0.35 }));
-const dice = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 3.4), diceMats); m.castShadow = true; m.position.set(-76 + k * 5.2, 2.2, 44); scene.add(m); return m; });
+const dice = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 3.4), diceMats); m.castShadow = true; m.position.set(-105 + k * 5.2, 2.2, 120); scene.add(m); return m; });
 const UP = { 1: [0, 0], 2: [-Math.PI / 2, 0], 3: [0, Math.PI / 2], 4: [0, -Math.PI / 2], 5: [Math.PI / 2, 0], 6: [Math.PI, 0] };
 let diceAnim = null;
 function rollDice(a, b) {
-  const anchor = G ? tilePos(R.cur(G).pos) : new THREE.Vector3(-76, 1.5, 44);
+  const anchor = G ? tilePos(R.cur(G).pos) : new THREE.Vector3(-105, 1.5, 120);
   diceAnim = {
     t0: performance.now(), dur: 900, end: [a, b], anchor,
     spin: [new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6), new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6)]
@@ -1185,9 +1459,9 @@ function stepDice(now) {
 
 // ---------- 鏡頭：操作模式與大戰略 3D 一致（單指/左鍵平移、雙指鎖定縮放或旋轉傾斜、右鍵或 Shift+左鍵旋轉傾斜、Q/E/R/F 與右下角控制列） ----------
 const ROT_STEP = Math.PI / 12, TILT_STEP = 10;
-const DIST_MIN = 65, DIST_MAX = 420, TILT_MIN = 18, TILT_MAX = 85;
+const DIST_MIN = 65, DIST_MAX = 680, TILT_MIN = 18, TILT_MAX = 85;
 const camS = {
-  yaw: 0.25, yawGoal: 0.25, tilt: 0, tiltGoal: 0, pitch: 0.92, dist: 235,
+  yaw: 0.25, yawGoal: 0.25, tilt: 0, tiltGoal: 0, pitch: 0.92, dist: 320,
   target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4),
   hasGoal: true, follow: true,
 };
@@ -1205,7 +1479,7 @@ const camCtl = {
 function focusCurPlayer() {
   camS.hasGoal = true;
   const ct = G && tokens[G.cur];
-  if (ct) camS.goal.copy(ct.g.position).multiplyScalar(0.55).setY(0);
+  if (ct) camS.goal.copy(ct.g.position).multiplyScalar(0.75).setY(0);
   else camS.goal.set(-4, 0, 4);
 }
 function resetCamGoal() {
@@ -1221,8 +1495,8 @@ function panBoard(dx, dy) {
   const scale = (2 * camS.dist * Math.tan(camera.fov * Math.PI / 360)) / vh;
   const mx = (c * dx + sn * dy * k) * scale;
   const mz = (-sn * dx + c * dy * k) * scale;
-  camS.target.x = Math.max(-115, Math.min(115, camS.target.x - mx));
-  camS.target.z = Math.max(-135, Math.min(135, camS.target.z - mz));
+  camS.target.x = Math.max(-290, Math.min(175, camS.target.x - mx));
+  camS.target.z = Math.max(-230, Math.min(230, camS.target.z - mz));
   camS.goal.copy(camS.target);
 }
 function updateCamera() {
@@ -1493,7 +1767,7 @@ function frame(now) {
         if (camS.follow) camS.hasGoal = true;
       }
       if (ct.path.length && camS.follow) camS.hasGoal = true;
-      if (camS.hasGoal) camS.goal.copy(ct.g.position).multiplyScalar(0.55).setY(0);
+      if (camS.hasGoal) camS.goal.copy(ct.g.position).multiplyScalar(0.75).setY(0);
     }
   } else if (camS.hasGoal) {
     camS.goal.set(-4, 0, 4);

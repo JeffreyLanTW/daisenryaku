@@ -3,7 +3,7 @@
 (function (root) {
   'use strict';
 
-  // ----- 棋盤：56 格（12×16 台灣環島長方形棋盤），0 為起點（右下角），順時針環台（南→西→北→東）-----
+  // ----- 棋盤：56 格真實台灣順時針環島路線（0 為南端鵝鑾鼻起點，順時針：高屏 → 嘉南 → 澎湖 → 中彰投 → 桃竹苗 → 金門 → 北北基 → 宜花東 → 綠島蘭嶼）-----
   // type: start / land / chance / fate / tax / jail / gojail / park / shop / temple / hospital / station
   const GROUPS = {
     south: { name: '高屏南', color: '#3fb6c8' },
@@ -17,32 +17,31 @@
   };
   const L = (name, group, price) => ({ type: 'land', name, group, price });
   const BOARD = [
-    // 南岸（右下起點 → 向西，0..11）
+    // 南台灣・高屏嘉南（鵝鑾鼻起點 → 順時針北上，0..11）
     { type: 'start', name: '起點' },
     L('墾丁', 'south', 1200), L('恆春', 'south', 1300), { type: 'fate', name: '命運' },
-    L('屏東', 'south', 1500), { type: 'station', name: '高鐵左營', price: 2200 },
-    L('高雄', 'south', 1800), L('台南', 'yunjia', 1900), { type: 'chance', name: '機會' },
-    L('安平', 'yunjia', 2000), { type: 'shop', name: '道具屋' }, L('嘉義', 'yunjia', 2100),
-    // 西岸（左下監獄 → 向北，12..27）
+    L('屏東', 'south', 1500), L('高雄', 'south', 1800), { type: 'station', name: '高鐵左營', price: 2200 },
+    L('台南', 'yunjia', 1900), L('安平', 'yunjia', 2000), { type: 'chance', name: '機會' },
+    { type: 'shop', name: '道具屋' }, L('嘉義', 'yunjia', 2100),
+    // 阿里山・雲林北港・跨海澎湖・鹿港彰化南投日月潭・台中（12..24）
     { type: 'jail', name: '監獄' },
     L('阿里山', 'scenic', 2600), L('雲林', 'yunjia', 2000), { type: 'temple', name: '北港廟宇' },
-    L('澎湖', 'island', 2500), L('彰化', 'central', 2300), L('鹿港', 'central', 2400),
-    { type: 'station', name: '台中高鐵', price: 2400 }, L('日月潭', 'scenic', 2800),
-    { type: 'hospital', name: '醫院' }, L('南投', 'central', 2200), L('台中', 'central', 3000),
-    { type: 'chance', name: '機會' }, L('苗栗', 'taoyuan', 2400), L('新竹', 'taoyuan', 2800),
-    { type: 'fate', name: '命運' },
-    // 北岸（左上國家公園 → 向東，28..39）
-    { type: 'park', name: '國家公園' },
-    L('竹科', 'taoyuan', 3200), L('桃園', 'taoyuan', 3100), { type: 'station', name: '桃園機場', price: 2600 },
-    L('金門', 'island', 2900), L('淡水', 'north', 3500), { type: 'shop', name: '道具屋' },
-    L('新北', 'north', 4200), { type: 'temple', name: '行天宮' }, { type: 'chance', name: '機會' },
-    L('台北', 'north', 5400), L('信義區', 'north', 6200),
-    // 東岸（右上入獄 → 向南，40..55）
-    { type: 'gojail', name: '入獄' },
-    { type: 'station', name: '基隆港', price: 2500 }, L('九份', 'scenic', 3500), { type: 'tax', name: '國稅局' },
+    L('澎湖', 'island', 2500), L('鹿港', 'central', 2400), L('彰化', 'central', 2300),
+    L('南投', 'central', 2200), L('日月潭', 'scenic', 2800), { type: 'hospital', name: '醫院' },
+    { type: 'station', name: '台中高鐵', price: 2400 }, L('台中', 'central', 3000), { type: 'chance', name: '機會' },
+    // 桃竹苗・跨海金門・大台北都會區（25..39）
+    L('苗栗', 'taoyuan', 2400), L('竹科', 'taoyuan', 3200), L('新竹', 'taoyuan', 2800),
+    { type: 'fate', name: '命運' }, L('桃園', 'taoyuan', 3100), L('金門', 'island', 2900),
+    { type: 'station', name: '桃園機場', price: 2600 }, { type: 'shop', name: '道具屋' },
+    L('淡水', 'north', 3500), { type: 'park', name: '國家公園' }, { type: 'temple', name: '行天宮' },
+    L('新北', 'north', 4200), L('台北', 'north', 5400), L('信義區', 'north', 6200),
+    { type: 'chance', name: '機會' },
+    // 基隆港・東北角・宜花東・綠島蘭嶼南迴（40..55）
+    { type: 'station', name: '基隆港', price: 2500 }, { type: 'gojail', name: '入獄' },
+    L('九份', 'scenic', 3500), { type: 'tax', name: '國稅局' },
     L('宜蘭', 'east', 3000), L('羅東', 'east', 2900), { type: 'fate', name: '命運' },
     { type: 'temple', name: '迎神殿' }, L('太魯閣', 'scenic', 3800), L('花蓮', 'east', 3300),
-    { type: 'shop', name: '道具屋' }, L('台東', 'east', 3100), { type: 'chance', name: '機會' },
+    { type: 'shop', name: '道具屋' }, { type: 'chance', name: '機會' }, L('台東', 'east', 3100),
     L('綠島', 'island', 3300), L('蘭嶼', 'island', 3400), { type: 'fate', name: '命運' },
   ];
   const N = BOARD.length;
