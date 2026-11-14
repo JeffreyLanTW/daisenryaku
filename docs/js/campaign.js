@@ -349,6 +349,27 @@ function deployZone() {
     if (G.owner[i] === P && TERRAIN[G.terrain[i]].prop) { const [x, y] = ixy(i); addAround(x, y, 2); }
   }
   for (const u of G.units) if (u.side === P && !u.vet) addAround(u.x, u.y, 1);
+  // 待命部隊若在配置區內完全沒有可放的格子（例如內陸關卡的艦艇），
+  // 另開一塊最靠近我方據點、且離敵軍至少 3 格的可通行區域（艦艇＝最近的外海）
+  const props = [];
+  for (let i = 0; i < G.owner.length; i++) if (G.owner[i] === P && TERRAIN[G.terrain[i]].prop) props.push(ixy(i));
+  if (!props.length && G.caps[P] != null) props.push(ixy(G.caps[P]));
+  const foes = G.units.filter(u => u.side !== P && u.x >= 0);
+  const mts = new Set((G.reserve || []).map(u => UNITS[u.type].mt));
+  for (const mt of mts) {
+    const pass = i => moveCost(G.terrain[i], mt) !== Infinity;
+    if ([...zone].some(pass)) continue;
+    const cand = [];
+    for (let i = 0; i < G.terrain.length; i++) {
+      if (!pass(i)) continue;
+      const [x, y] = ixy(i);
+      if (foes.some(f => hexDist(f.x, f.y, x, y) < 3)) continue;
+      cand.push([i, Math.min(...props.map(([px, py]) => hexDist(px, py, x, y)))]);
+    }
+    if (!cand.length) continue;
+    const d0 = Math.min(...cand.map(c => c[1]));
+    for (const [i, d] of cand) if (d <= d0 + 2) zone.add(i);
+  }
   return zone;
 }
 const deployOk = (u, i) => UIS.deployZone && UIS.deployZone.has(i) && !unitAt(...ixy(i)) && moveCost(G.terrain[i], UNITS[u.type].mt) !== Infinity;
