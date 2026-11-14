@@ -225,7 +225,7 @@ Object.assign(MISSIONS, {
     bonus: [{ type: 'hold', at: [26,22], flag: 'penghu', text: '結束時佔領澎湖機場（下一章多一架戰機）' }],
     win: [
       { id: 'leap', type: 'capture', at: [3,7], text: '跳：渡海奪下廈門港' },
-      { id: 'abide', type: 'survive', turn: 12, text: '不跳：固守到第 12 回合結束' },
+      { id: 'abide', type: 'survive', turn: 22, text: '不跳：固守到第 22 回合結束' },
     ],
     lose: [
       { type: 'hq', text: '台中指揮所失守' },
@@ -235,6 +235,8 @@ Object.assign(MISSIONS, {
       { turn: 4, lines: [["林上校","澎湖又上來一批增援。"]], spawn: [[1,"marine",26,24], [1,"attacker",27,22]] },
       { turn: 6, lines: [["周上將","陸戰 66 旅的預備隊到位了，交給你調度。"]], spawn: [[0,"marine",37,15]] },
       { turn: 7, lines: [["林上校","第二梯隊直衝西岸！"]], spawn: [[1,"lst",34,8,{"load":["tank","inf"]}], [1,"lst",32,23,{"load":["tank","inf"]}]] },
+      { turn: 12, lines: [["許中尉","廈門那邊的跑道又亮起來了，對岸在補充戰機。要跳的話，最好趁現在。"]], spawn: [[1,"fighter",10,5], [1,"tank",3,5]] },
+      { turn: 16, lines: [["林上校","第三梯隊出港，目標還是西岸。"]], spawn: [[1,"lst",33,14,{"load":["tank","marine"]}], [1,"destroyer",26,12]] },
     ],
     next: r => r.obj === 'leap'
       ? { to: 's5', flags: { leap: true }, note: '你選擇了跳。廈門港一度易手，對岸的集結被打亂。陸戰隊會跟著艦隊參加下一場決戰。' }

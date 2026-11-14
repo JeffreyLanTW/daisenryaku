@@ -315,7 +315,7 @@ ${MAPJS(b4)}
     bonus: [{ type: 'hold', at: ${js(b4.at('澎湖機場'))}, flag: 'penghu', text: '結束時佔領澎湖機場（下一章多一架戰機）' }],
     win: [
       { id: 'leap', type: 'capture', at: ${js(b4.at('廈門港'))}, text: '跳：渡海奪下廈門港' },
-      { id: 'abide', type: 'survive', turn: 12, text: '不跳：固守到第 12 回合結束' },
+      { id: 'abide', type: 'survive', turn: 22, text: '不跳：固守到第 22 回合結束' },
     ],
     lose: [
       { type: 'hq', text: '台中指揮所失守' },
@@ -326,6 +326,8 @@ ${EV(b4, [
       { turn: 4, lines: [['林上校', '澎湖又上來一批增援。']], spawn: [[1, 'marine', [119.60, 23.52]], [1, 'attacker', [119.66, 23.64]]] },
       { turn: 6, lines: [['周上將', '陸戰 66 旅的預備隊到位了，交給你調度。']], spawn: [[0, 'marine', [120.45, 24.00]]] },
       { turn: 7, lines: [['林上校', '第二梯隊直衝西岸！']], spawn: [[1, 'lst', [120.22, 24.40], { load: ['tank', 'inf'] }], [1, 'lst', [120.10, 23.60], { load: ['tank', 'inf'] }]] },
+      { turn: 12, lines: [['許中尉', '廈門那邊的跑道又亮起來了，對岸在補充戰機。要跳的話，最好趁現在。']], spawn: [[1, 'fighter', [118.50, 24.60]], [1, 'tank', [118.12, 24.52]]] },
+      { turn: 16, lines: [['林上校', '第三梯隊出港，目標還是西岸。']], spawn: [[1, 'lst', [120.15, 24.10], { load: ['tank', 'marine'] }], [1, 'destroyer', [119.60, 24.20]]] },
     ])}
     ],
     next: r => r.obj === 'leap'
