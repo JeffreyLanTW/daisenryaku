@@ -1192,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v108</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v109</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v109</span><span class="cl-date">2026.11.14</span><p>【雙指上下＝翻轉】3D 模式觸控板雙指上下滑改為翻轉鏡頭（往上較平視、往下較俯視），縮放改用雙指開合或 ＋／－；滑鼠滾輪仍是縮放。觸控螢幕的雙指手勢在開始時判斷是「開合縮放」還是「滑動旋轉／翻轉」，上下滑時不再同時縮放。</p></div>
         <div class="cl-item"><span class="cl-ver">v108</span><span class="cl-date">2026.11.14</span><p>【極慢速度】電腦速度新增「極慢」（觀戰用）：部隊移動、攻擊等待與 3D 彈道都放慢，鏡頭跟隨時會先移到部隊再行動。【手機工具列】右側工具按鈕在 iPhone 等矮畫面時自動往左排成多欄，不再被上方遮住。</p></div>
         <div class="cl-item"><span class="cl-ver">v107</span><span class="cl-date">2026.11.13</span><p>【3D 戰鬥特效】攻擊依兵種與目標使用符合現實的武器：步兵步槍曳光彈、戰車主砲（砲口焰與揚塵）、步戰車機砲、自走砲與迫砲拋物線彈、多管火箭齊射、彈道飛彈、防空砲曳光彈加黑色空爆、防空飛彈垂直發射近炸、反艦飛彈掠海、艦砲對岸射擊、潛艦魚雷水柱、戰機空對空飛彈、A-10 機砲掃射、轟炸機炸彈串、直升機反戰車飛彈與火箭、雷射光束等。命中有火球、煙、碎片、地面焦痕或水花，被擊中的部隊會晃動。【擊毀演出】車輛焦黑歪斜燃燒冒黑煙後沉入地面、飛機拖黑煙墜落爆炸、艦艇起火傾斜沉沒、步兵倒下；大爆炸有衝擊波與鏡頭震動。可在 ⚙️ 戰場設定「3D 戰鬥特效」開關。</p></div>
         <div class="cl-item"><span class="cl-ver">v106</span><span class="cl-date">2026.11.13</span><p>【觸控板旋轉】Mac 觸控板雙指左右滑改為旋轉 3D 鏡頭（上下滑仍是縮放，雙指開合縮放更靈敏）；不再因左右滑而觸發瀏覽器的上一頁／下一頁。</p></div>
@@ -1387,7 +1388,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v108</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v109</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
@@ -1586,7 +1587,7 @@ function setupInput() {
     if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, btn: e.button, shift: e.shiftKey }; dragging = false; camStart = { ...cam }; }
     else if (pts.size === 2) {
       const [a, b] = [...pts.values()];
-      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: cam.z, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: cam.z, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, mx0: (a.x + b.x) / 2, my0: (a.y + b.y) / 2, mode: null };
       dragging = true;
     }
   });
@@ -1594,15 +1595,20 @@ function setupInput() {
     if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 2 && pinch) {
       const [a, b] = [...pts.values()], r = cvs.getBoundingClientRect();
-      const nd = Math.hypot(a.x - b.x, a.y - b.y);
-      zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, (pinch.z * nd / pinch.d) / cam.z);
-      // 3D：雙指一起左右滑＝旋轉鏡頭；一起上下滑＝傾斜（往上較平視、往下較俯視）
-      if (in3D) {
-        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const nd = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      // 3D：每次雙指手勢開始時判斷一次——兩指距離變化較大＝縮放；兩指一起移動較大＝旋轉／傾斜（不會同時縮放）
+      if (in3D && !pinch.mode) {
+        const spread = Math.abs(nd - pinch.d), slide = Math.hypot(mx - pinch.mx0, my - pinch.my0);
+        if (Math.max(spread, slide) > 12) pinch.mode = spread > slide ? 'zoom' : 'turn';
+        else return;
+      }
+      if (!in3D || pinch.mode === 'zoom') zoomAt(mx - r.left, my - r.top, (pinch.z * nd / pinch.d) / cam.z);
+      else {
+        // 一起左右滑＝旋轉鏡頭；一起上下滑＝翻轉（往上較平視、往下較俯視）
         R3D.rotateBy(-(mx - pinch.mx) * 0.006);
         R3D.tiltBy((my - pinch.my) * 0.25);
-        pinch.mx = mx; pinch.my = my;
       }
+      pinch.mx = mx; pinch.my = my;
       return;
     }
     if (down) {
@@ -1649,9 +1655,13 @@ function setupInput() {
     const dx = e.deltaX * px, dy = e.deltaY * px;
     // 觸控板雙指開合（瀏覽器以 ctrlKey＋滾輪事件送出）：縮放，靈敏度較高
     if (e.ctrlKey) return zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-dy * 0.01));
-    // 3D：觸控板雙指左右滑旋轉鏡頭；以主要方向決定旋轉或縮放，斜滑不會兩者同時發生
-    if (in3D && Math.abs(dx) > Math.abs(dy)) { camGoal = null; R3D.rotateBy(dx * 0.005); return; }
-    zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-dy * 0.0015));
+    // 滑鼠滾輪（一格一大步的整數位移、沒有左右分量）：縮放
+    const wheelMouse = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50 && Number.isInteger(e.deltaY));
+    if (!in3D || wheelMouse) return zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-dy * 0.0015));
+    // 3D 觸控板：雙指左右滑＝旋轉、上下滑＝翻轉（往上較平視、往下較俯視）；以主要方向決定，斜滑不會兩者同時發生
+    camGoal = null;
+    if (Math.abs(dx) > Math.abs(dy)) R3D.rotateBy(dx * 0.005);
+    else R3D.tiltBy(-dy * 0.12);
   }, { passive: false });
   cvs.addEventListener('contextmenu', e => e.preventDefault());
 
