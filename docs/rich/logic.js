@@ -252,6 +252,8 @@
 
   function encounterNpc(G, p, npc) {
     if (!npc || npc.attachedTo != null || p.bankrupt) return false;
+    // 第 1 輪不會被神明附身（野狗照常咬人）
+    if (npc.kind !== 'dog' && (G.round || 1) <= 1) return false;
     if (npc.kind === 'dog') {
       pay(G, p, 800, null, '被野狗咬傷付醫藥費');
       npc.from = npc.pos;
@@ -493,7 +495,7 @@
           dice: 1,
           jail: 0,
           skip: 0,
-          items: ['remote', 'summon_god', 'dismiss_god'],
+          items: ['remote'],
           god: null,
           reverse: false,
           remote: 0,
@@ -666,6 +668,7 @@
           G.fx = { k: 'demolish', i };
           pushNews(G, '爆破拆屋', `💣 ${p.name} 使用拆除卡，將 ${victim.name} 的「${BOARD[i].name}」降為${LEVEL_NAME[s.level]}！`, '道具攻擊', '#e74c3c');
         } else if (a.item === 'summon_god') {
+          if ((G.round || 1) <= 1) return '第 1 輪不能請神，第 2 輪起才能使用請神卡';
           const godKey = GOOD_GOD_KEYS.includes(a.god) ? a.god : 'tudigong';
           attachGod(G, p, godKey, '使用請神卡');
         } else if (a.item === 'dismiss_god') {
@@ -829,7 +832,7 @@
         if (opp) return { type: 'item', item: 'dismiss_god', target: opp.id };
       }
       // 沒有神明且有請神卡 → 請土地公或財神爺
-      if (!p.god && p.items.includes('summon_god') && rnd(G) < 0.75) {
+      if (!p.god && p.items.includes('summon_god') && (G.round || 1) > 1 && rnd(G) < 0.75) {
         const oppLands = G.tiles.filter(s => s.owner != null && s.owner !== p.id).length;
         return { type: 'item', item: 'summon_god', god: oppLands >= 4 ? 'tudigong' : 'caishen' };
       }
