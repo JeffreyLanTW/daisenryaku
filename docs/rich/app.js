@@ -765,6 +765,7 @@ function resize() {
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
 
 // ---------- 每幀動畫 ----------
 let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0;
@@ -849,8 +850,14 @@ let shownAsk = null;
 
 function renderNews() {
   const bar = $('#newsBar');
-  if (!G || !G.news || !G.news.length) { bar.classList.add('hidden'); return; }
+  const wasHidden = bar.classList.contains('hidden');
+  if (!G || !G.news || !G.news.length) {
+    bar.classList.add('hidden');
+    if (!wasHidden) resize();
+    return;
+  }
   bar.classList.remove('hidden');
+  if (wasHidden) resize();
   const latest = G.news[G.news.length - 1];
   $('#newsTitle').textContent = `[${latest.cat}] ${latest.title}`;
   $('#newsTicker').textContent = G.news.slice(-5, -1).reverse().map(n => `• ${n.title}`).join('   ');
