@@ -34,6 +34,8 @@ function snd(kind) {
     else if (kind === 'news') { tone(784, 0.07, 0, 'sine', 0.09); tone(1046, 0.14, 0.07, 'sine', 0.09); }
     else if (kind === 'turn') tone(587, 0.12, 0, 'sine', 0.09);
     else if (kind === 'dog') { tone(190, 0.09, 0, 'sawtooth', 0.14); tone(145, 0.11, 0.11, 'sawtooth', 0.16); tone(260, 0.08, 0.24, 'square', 0.12); tone(120, 0.2, 0.34, 'sawtooth', 0.14); }
+    else if (kind === 'siren') { for (let k = 0; k < 4; k++) { tone(660, 0.14, k * 0.32, 'sine', 0.11); tone(880, 0.14, k * 0.32 + 0.16, 'sine', 0.11); } }
+    else if (kind === 'bankrupt') { tone(440, 0.18, 0, 'sawtooth', 0.14); tone(311, 0.2, 0.16, 'sawtooth', 0.14); tone(220, 0.25, 0.34, 'sawtooth', 0.14); tone(110, 0.5, 0.56, 'sawtooth', 0.18); }
     else if (kind === 'bad') tone(220, 0.3, 0, 'sawtooth', 0.08);
   } catch (e) { /* 忽略 */ }
 }
@@ -45,7 +47,7 @@ const SPEEDS = [[0.5, '慢'], [1, '標準'], [1.6, '快'], [2.5, '極快']];
 let SPEED = 0.5; // 預設「慢」
 try { const v = parseFloat(localStorage.getItem('rich_speed')); if (SPEEDS.some(([k]) => k === v)) SPEED = v; } catch (e) { /* 忽略 */ }
 function setSpeed(v) { SPEED = v; try { localStorage.setItem('rich_speed', String(v)); } catch (e) { /* 忽略 */ } }
-const STEP_MS = () => 200 / SPEED;
+const STEP_MS = () => 290 / SPEED;
 // WS：世界尺度倍率（地圖放大 1.8 倍，棋格造景與地形更有空間）
 const WS = 1.8;
 const TILE_SIZE = 5.4;
@@ -2342,7 +2344,7 @@ function rollDice(a, b, count = (b > 0 ? 2 : 1)) {
   const anchor = G ? tilePos(from) : new THREE.Vector3(-105, 1.5, 120);
   syncDiceVisible(count);
   diceAnim = {
-    t0: performance.now(), dur: 750 / Math.sqrt(SPEED), hold: 550 / SPEED, end: [a, b], count, anchor,
+    t0: performance.now(), dur: 850 / Math.sqrt(SPEED), hold: 680 / SPEED, end: [a, b], count, anchor,
     spin: [new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6), new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6)]
   };
   snd('dice');
@@ -2636,7 +2638,7 @@ addEventListener('resize', resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
 
 // ---------- 每幀動畫 ----------
-let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0;
+let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0, lastHospitalN = 0, lastBankruptN = 0;
 function syncMoveStart() {
   if (!G || !G.move || !G.move.path || !G.move.path.length) return;
   if (G.move.n !== lastMoveN) {
@@ -2702,15 +2704,168 @@ function stepDogBite(now) {
   if (!biteAnim) return;
   const bp = (now - biteAnim.t0) / biteAnim.dur;
   if (bp >= 1) {
-    const tk = tokens[biteAnim.p];
+    const pId = biteAnim.p, at = biteAnim.at;
+    const tk = tokens[pId];
     if (tk) tk.g.rotation.z = 0;
     clearBiteFx();
+    // 咬傷特效結束後，若有醫院行程則派出救護車緊急送醫
+    if (tk && tk.path && tk.path.length > 0 && G && G.hospital && G.hospital.p === pId) {
+      const to = tk.path[tk.path.length - 1];
+      tk.path.length = 0;
+      lastHospitalN = G.hospital.n;
+      startAmbulance(pId, at, to, now);
+    }
     return;
   }
   if (biteBurst) {
     const s = 0.75 + Math.sin(bp * Math.PI * 3) * 0.45 + bp * 0.45;
     biteBurst.scale.setScalar(s);
     biteBurst.rotation.y = bp * Math.PI * 4;
+  }
+}
+
+// ---------- 救護車送醫特效（3D 救護車＋紅藍閃燈＋雙音警笛）----------
+let ambAnim = null, ambGroup = null, ambRed = null, ambBlue = null, ambBanner = null;
+function ensureAmbFx() {
+  if (!ambGroup) {
+    ambGroup = new THREE.Group();
+    const white = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.3 });
+    const red = new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.35 });
+    const glass = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.15, metalness: 0.4 });
+    const tire = new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.85 });
+    const box = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.9, 4.2), white); box.position.set(0, 1.35, -0.35);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(2.35, 1.45, 1.5), white); cab.position.set(0, 1.12, 2.2);
+    const wind = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.75, 0.14), glass); wind.position.set(0, 1.4, 2.94);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.66, 0.35, 4.25), red); stripe.position.set(0, 0.95, -0.35);
+    for (const sx of [-1.32, 1.32]) {
+      const ch = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.9), red); ch.position.set(sx, 1.65, -0.35);
+      const cv = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.25), red); cv.position.set(sx, 1.65, -0.35);
+      ambGroup.add(ch, cv);
+    }
+    const rCh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.25), red); rCh.position.set(0, 2.33, -0.6);
+    const rCv = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.08, 0.9), red); rCv.position.set(0, 2.33, -0.6);
+    ambRed = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.34, 0.45), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#ef4444', emissiveIntensity: 1.5 }));
+    ambRed.position.set(-0.48, 2.48, 1.75);
+    ambBlue = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.34, 0.45), new THREE.MeshStandardMaterial({ color: '#3b82f6', emissive: '#3b82f6', emissiveIntensity: 1.5 }));
+    ambBlue.position.set(0.48, 2.48, 1.75);
+    ambGroup.add(box, cab, wind, stripe, rCh, rCv, ambRed, ambBlue);
+    for (const [wx, wz] of [[-1.25, -1.5], [1.25, -1.5], [-1.2, 2.1], [1.2, 2.1]]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.38, 10), tire);
+      w.rotation.z = Math.PI / 2; w.position.set(wx, 0.45, wz);
+      ambGroup.add(w);
+    }
+    ambGroup.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    ambGroup.scale.setScalar(1.35);
+    ambGroup.visible = false;
+    scene.add(ambGroup);
+  }
+  if (!ambBanner) {
+    ambBanner = document.createElement('div');
+    ambBanner.className = 'amb-fx hidden';
+    document.querySelector('main').appendChild(ambBanner);
+  }
+}
+function clearAmbFx() {
+  ambAnim = null;
+  if (ambGroup) ambGroup.visible = false;
+  if (ambBanner) ambBanner.classList.add('hidden');
+}
+function startAmbulance(pId, fromPos, toPos, now) {
+  ensureAmbFx();
+  const a = tilePos(fromPos), b = tilePos(toPos);
+  const dist = a.distanceTo(b);
+  const dur = Math.max(1500, Math.min(3400, dist * 13)) / Math.sqrt(SPEED);
+  ambAnim = { t0: now, dur, p: pId, from: fromPos, to: toPos, a, b };
+  ambGroup.position.copy(a);
+  ambGroup.visible = true;
+  const pl = G && G.players[pId];
+  ambBanner.textContent = `🚑 救護車緊急出動！${pl ? pl.name : '玩家'} 送往醫院急救中…`;
+  ambBanner.classList.remove('hidden');
+  snd('siren');
+}
+function stepAmbulance(now) {
+  if (!ambAnim) return;
+  const f = (now - ambAnim.t0) / ambAnim.dur;
+  if (f >= 1) {
+    const tk = tokens[ambAnim.p];
+    if (tk) { tk.pos = ambAnim.to; tk.from = ambAnim.to; tk.g.position.copy(tokenWorld(ambAnim.to, ambAnim.p)); }
+    clearAmbFx();
+    return;
+  }
+  const ease = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+  ambGroup.position.lerpVectors(ambAnim.a, ambAnim.b, ease);
+  ambGroup.position.y += 0.35 + Math.sin(f * Math.PI) * 5.2 + Math.abs(Math.sin(f * Math.PI * 10)) * 0.25;
+  ambGroup.rotation.y = Math.atan2(ambAnim.b.x - ambAnim.a.x, ambAnim.b.z - ambAnim.a.z);
+  const blink = Math.floor(now / 130) % 2 === 0;
+  if (ambRed) ambRed.material.emissiveIntensity = blink ? 2.4 : 0.2;
+  if (ambBlue) ambBlue.material.emissiveIntensity = blink ? 0.2 : 2.4;
+}
+
+// ---------- 破產特效（3D 棋子倒塌爆裂＋散落金幣碎片＋震撼橫幅）----------
+let bankruptAnim = null, bankruptGroup = null, bankruptShards = [], bankruptRing = null, bankruptBanner = null;
+function ensureBankruptFx() {
+  if (!bankruptGroup) {
+    bankruptGroup = new THREE.Group();
+    bankruptRing = new THREE.Mesh(new THREE.RingGeometry(1.8, 3.6, 24), new THREE.MeshBasicMaterial({ color: '#dc2626', side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+    bankruptRing.rotation.x = -Math.PI / 2;
+    bankruptGroup.add(bankruptRing);
+    bankruptShards = [];
+    for (let i = 0; i < 12; i++) {
+      const m = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.55, 0),
+        new THREE.MeshStandardMaterial({ color: i % 2 ? '#facc15' : '#ef4444', emissive: i % 2 ? '#a16207' : '#991b1b' })
+      );
+      const ang = (i / 12) * Math.PI * 2;
+      m.userData = { vx: Math.cos(ang) * (7 + (i % 3) * 2.5), vz: Math.sin(ang) * (7 + (i % 3) * 2.5), vy: 9 + (i % 4) * 2 };
+      bankruptShards.push(m);
+      bankruptGroup.add(m);
+    }
+    bankruptGroup.visible = false;
+    scene.add(bankruptGroup);
+  }
+  if (!bankruptBanner) {
+    bankruptBanner = document.createElement('div');
+    bankruptBanner.className = 'bankrupt-fx hidden';
+    document.querySelector('main').appendChild(bankruptBanner);
+  }
+}
+function clearBankruptFx() {
+  if (bankruptAnim) {
+    const tk = tokens[bankruptAnim.p];
+    if (tk) tk.g.rotation.set(0, 0, 0);
+  }
+  bankruptAnim = null;
+  if (bankruptGroup) bankruptGroup.visible = false;
+  if (bankruptBanner) bankruptBanner.classList.add('hidden');
+}
+function startBankruptFx(pId, atPos, now) {
+  ensureBankruptFx();
+  const dur = 1750 / Math.sqrt(SPEED);
+  bankruptAnim = { t0: now, dur, p: pId, at: atPos };
+  const wp = tilePos(atPos);
+  bankruptGroup.position.set(wp.x, wp.y + 0.5, wp.z);
+  bankruptGroup.visible = true;
+  const pl = G && G.players[pId];
+  bankruptBanner.textContent = `💥 破產出局！${pl ? pl.name : '玩家'} 資金耗盡宣告破產！`;
+  bankruptBanner.classList.remove('hidden');
+  snd('bankrupt');
+}
+function stepBankruptFx(now) {
+  if (!bankruptAnim) return;
+  const bp = (now - bankruptAnim.t0) / bankruptAnim.dur;
+  if (bp >= 1) {
+    clearBankruptFx();
+    return;
+  }
+  if (bankruptRing) {
+    bankruptRing.scale.setScalar(0.8 + bp * 3.2);
+    bankruptRing.material.opacity = Math.max(0, 0.95 * (1 - bp));
+  }
+  for (const m of bankruptShards) {
+    const u = m.userData;
+    m.position.set(u.vx * bp, Math.max(0, u.vy * bp - 12 * bp * bp), u.vz * bp);
+    m.rotation.set(bp * 8, bp * 10, 0);
+    m.scale.setScalar(Math.max(0.01, 1 - bp * 0.7));
   }
 }
 
@@ -2722,6 +2877,14 @@ function frame(now) {
   for (let k = 0; k < animProps.length; k++) animProps[k](now);
   if (G) {
     syncMoveStart();
+    if (G.hospital && G.hospital.n !== lastHospitalN && !diceAnim && !biteAnim && !ambAnim && !tokens.some(t => t && t.path && t.path.length)) {
+      lastHospitalN = G.hospital.n;
+      startAmbulance(G.hospital.p, G.hospital.from, G.hospital.to, now);
+    }
+    if (G.bankruptFx && G.bankruptFx.n !== lastBankruptN && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !tokens.some(t => t && t.path && t.path.length)) {
+      lastBankruptN = G.bankruptFx.n;
+      startBankruptFx(G.bankruptFx.p, G.bankruptFx.at, now);
+    }
     if (!isMoving() || !buildKey) syncBuildings();
     for (const ah of activeHouses) {
       const anim = buildingRise.get(ah.tileIdx);
@@ -2738,8 +2901,19 @@ function frame(now) {
     }
     G.players.forEach((pl, k) => {
       const tk = tokens[k] || (tokens[k] = makeToken(pl));
-      tk.g.visible = !pl.bankrupt;
-      tk.g.scale.setScalar(k === G.cur ? 1.46 : 1.36);
+      const inAmb = !!(ambAnim && ambAnim.p === k);
+      const inBankrupt = !!(bankruptAnim && bankruptAnim.p === k);
+      tk.g.visible = inBankrupt || (!pl.bankrupt && !inAmb);
+      const activeScale = k === G.cur ? 2.75 : 1.36;
+      if (inBankrupt) {
+        const bp = Math.min(1, (now - bankruptAnim.t0) / bankruptAnim.dur);
+        tk.g.position.copy(tokenWorld(bankruptAnim.at, k));
+        tk.g.rotation.x = Math.min(Math.PI / 2, bp * Math.PI * 0.9);
+        tk.g.rotation.y += 0.26;
+        tk.g.scale.setScalar(Math.max(0.2, activeScale * (1 - bp * 0.8)));
+      } else {
+        tk.g.scale.setScalar(activeScale);
+      }
       // 玩家附身神明光環特效（等待玩家棋子實際經過神明所在格後才點亮並跟隨）
       if (pl.god) {
         const gNpc = (G.npcs || []).find(n => n.attachedTo === k);
@@ -2757,7 +2931,12 @@ function frame(now) {
         tk.godVis.visible = false;
       }
 
-      if (tk.path.length) {
+      if (inBankrupt) {
+        // 破產倒塌動畫由上方控制
+      } else if (inAmb) {
+        tk.pos = ambAnim.from;
+        tk.g.position.copy(ambGroup.position);
+      } else if (tk.path.length) {
         if (biteAnim && biteAnim.p === k) {
           const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
           tk.g.position.copy(tokenWorld(biteAnim.at, k));
@@ -2814,12 +2993,13 @@ function frame(now) {
           nt.pos = npc.pos;
           nt.t = 1;
           if (nt.g.visible) {
-            nt.g.scale.setScalar(0.95);
+            const hs = (host.g.scale.x || 1.36) / 1.46;
+            nt.g.scale.setScalar(host.g.scale.x > 2 ? 1.18 : 0.95);
             const yaw = host.g.rotation.y;
             const target = new THREE.Vector3(
-              host.g.position.x - Math.sin(yaw) * 2.2 + Math.cos(yaw) * 2.1,
-              host.g.position.y + 1.35 + Math.sin(now * 0.005 + npc.id) * 0.42,
-              host.g.position.z - Math.cos(yaw) * 2.2 - Math.sin(yaw) * 2.1
+              host.g.position.x - Math.sin(yaw) * 2.4 * hs + Math.cos(yaw) * 2.3 * hs,
+              host.g.position.y + 1.45 * hs + Math.sin(now * 0.005 + npc.id) * 0.42,
+              host.g.position.z - Math.cos(yaw) * 2.4 * hs - Math.sin(yaw) * 2.3 * hs
             );
             if (nt.g.position.distanceToSquared(target) > 2500) nt.g.position.copy(target);
             else nt.g.position.lerp(target, 0.25);
@@ -2876,6 +3056,8 @@ function frame(now) {
   }
   stepDice(now);
   stepDogBite(now);
+  stepAmbulance(now);
+  stepBankruptFx(now);
   updateCamera();
   renderer.render(scene, camera);
 }
@@ -2883,9 +3065,11 @@ function frame(now) {
 // ============================================================ 介面與 Breaking News（移動後依序不重疊觸發）
 const mine = pid => NET.role === 'local' ? G.players[pid].kind !== 'ai' : NET.myIds.has(pid);
 const isMoving = () => {
-  if (diceAnim || biteAnim) return true;
+  if (diceAnim || biteAnim || ambAnim || bankruptAnim) return true;
   if (tokens.some(t => t && t.path && t.path.length)) return true;
   if (G && G.move && G.move.path && G.move.path.length && (!tokens[G.move.p] || tokens[G.move.p].moveN !== G.move.n)) return true;
+  if (G && G.hospital && G.hospital.n !== lastHospitalN) return true;
+  if (G && G.bankruptFx && G.bankruptFx.n !== lastBankruptN) return true;
   if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
   for (const nt of npcTokens.values()) if (nt && nt.g.visible && nt.t < 1) return true;
   return false;
@@ -2975,6 +3159,8 @@ function resetUiQueue() {
   const el = $('#cardPop');
   clearTimeout(el._t); el.classList.add('hidden');
   clearBiteFx();
+  clearAmbFx();
+  clearBankruptFx();
   clearWalkTimers();
 }
 
@@ -3258,7 +3444,7 @@ function whenWalkDone(cb, settleMs = 0) {
     return;
   }
   const id = setTimeout(function check() {
-    if (isMoving() && performance.now() - t0 < 20000) {
+    if (isMoving() && performance.now() - t0 < 28000) {
       const id2 = setTimeout(check, 80); walkTimers.push(id2); return;
     }
     if (settleMs > 0) { const tid = setTimeout(cb, settleMs); walkTimers.push(tid); }
@@ -3550,7 +3736,7 @@ function scheduleAuto() {
     return;
   }
   const p = R.cur(G);
-  const wait = (G.phase === 'roll' ? 420 : 280) / SPEED;
+  const wait = (G.phase === 'roll' ? 560 : 380) / SPEED;
   if (p.kind === 'ai') {
     autoTimer = setTimeout(() => {
       const a = R.aiAction(G);
@@ -3594,7 +3780,7 @@ function startGame(seats, rounds) {
   tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
   buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-  lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+  lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
   resetCamGoal(); syncDiceVisible(1);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
@@ -3781,7 +3967,7 @@ function openJoin() {
               tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
               buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-              lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+              lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
               resetCamGoal(); syncDiceVisible();
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b, G.dice.count);
@@ -3800,4 +3986,4 @@ function openJoin() {
 resize();
 requestAnimationFrame(frame);
 openLobby();
-window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens, isMoving, isBiting: () => !!biteAnim, uiQueue, showNewsToast, dismissNewsToast };
+window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens, isMoving, isBiting: () => !!biteAnim, isAmbulance: () => !!ambAnim, isBankruptFx: () => !!bankruptAnim, uiQueue, showNewsToast, dismissNewsToast };

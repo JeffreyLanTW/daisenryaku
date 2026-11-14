@@ -242,9 +242,13 @@
     pushNews(G, '社會新聞', `🚨 ${p.name} ${why}，已移送監獄拘留 ${JAIL_TURNS} 回合！`, '突發治安', '#e74c3c');
   }
   function goHospital(G, p, why = '送醫治療') {
-    const hi = idx('醫院');
+    const from = p.pos, hi = idx('醫院');
     if (hi >= 0) p.pos = hi;
     p.skip = 1;
+    if (hi >= 0 && hi !== from) {
+      G.moveSeq = (G.moveSeq || 0) + 1;
+      G.hospital = { p: p.id, from, to: hi, n: G.moveSeq };
+    }
     log(G, `🏥 ${p.name} ${why}`);
     G.fx = { k: 'jail', p: p.id };
     pushNews(G, '醫療快訊', `🏥 ${p.name} ${why}！`, '突發意外', '#e67e22');
@@ -282,6 +286,8 @@
     }
     if (p.cash < 0) {
       p.bankrupt = true;
+      G.fxSeq = (G.fxSeq || 0) + 1;
+      G.bankruptFx = { p: p.id, at: p.pos, n: G.fxSeq };
       if (creditor) creditor.cash += Math.max(0, p.cash);
       if (p.god) releaseGod(G, p, true);
       log(G, `💥 ${p.name} 破產出局`);
