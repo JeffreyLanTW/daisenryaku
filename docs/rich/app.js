@@ -2939,7 +2939,7 @@ function clearBiteFx() {
 }
 function startDogBite(pId, atPos, npcId, now) {
   ensureBiteFx();
-  const dur = 1150 / Math.sqrt(SPEED);
+  const dur = 2150 / Math.sqrt(SPEED);
   biteAnim = { t0: now, dur, p: pId, at: atPos, npcId };
   const wp = tilePos(atPos);
   biteBurst.position.set(wp.x + 1.2, wp.y + 1.4, wp.z + 1.2);
@@ -3164,7 +3164,7 @@ function clearGodFx() {
 function startGodAttachFx(pId, atPos, kind, now) {
   ensureGodFx();
   const gInfo = R.GODS[kind] || { name: '神明', icon: '✨', color: '#fde047', good: true, turns: 5 };
-  const dur = 1250 / Math.sqrt(SPEED);
+  const dur = 2300 / Math.sqrt(SPEED);
   godAnim = { t0: now, dur, p: pId, at: atPos, kind };
   const wp = tilePos(atPos);
   godFxGroup.position.set(wp.x, wp.y + 0.35, wp.z);
@@ -3385,18 +3385,19 @@ function frame(now) {
         if (biteAnim && biteAnim.npcId === npc.id) {
           const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
           const dPos = npcWorld(biteAnim.at), pPos = tokenWorld(biteAnim.at, biteAnim.p);
-          const lunge = Math.sin(bp * Math.PI * 6) * 0.5 + 0.5;
+          const lunge = Math.sin(bp * Math.PI * 4) * 0.5 + 0.5;
           nt.g.position.lerpVectors(dPos, pPos, 0.45 + lunge * 0.45);
-          nt.g.position.y += Math.abs(Math.sin(bp * Math.PI * 5)) * 1.9;
+          nt.g.position.y += Math.abs(Math.sin(bp * Math.PI * 3.5)) * 1.9;
           nt.g.rotation.y = Math.atan2(pPos.x - dPos.x, pPos.z - dPos.z);
-          nt.g.scale.setScalar(1.38 + lunge * 0.16);
-          if (nt.g.userData.tail) nt.g.userData.tail.rotation.z = Math.sin(now * 0.04) * 0.7;
+          nt.g.scale.setScalar(2.4 + lunge * 0.22);
+          if (nt.g.userData.tail) nt.g.userData.tail.rotation.z = Math.sin(now * 0.03) * 0.7;
           continue;
         }
         if (!waitingPass && !waitingBite && npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
         if (nt.t < 1) {
           if (!diceAnim && !biteAnim) {
             nt.t = Math.min(1, nt.t + dt / (stepDurMs(nt.from, nt.pos) * (npc.kind === 'dog' ? 3.8 : 1.6)));
+            if (npc.kind === 'dog') nt.g.scale.setScalar(2.5);
             const a = npcWorld(nt.from), b = npcWorld(nt.pos);
             nt.g.position.lerpVectors(a, b, nt.t);
             nt.g.position.y += Math.sin(nt.t * Math.PI) * (npc.kind === 'dog' ? 2.2 : 4.5);
@@ -4338,7 +4339,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v162</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v163</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
