@@ -1192,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v117</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v118</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v118</span><span class="cl-date">2026.11.14</span><p>【iPad 全螢幕命令列】主畫面全螢幕模式的狀態列改為不透明，畫面從狀態列下方開始，命令列不再被系統的淡化效果蓋住而看起來透明；畫面邊緣的淺色底改為深色。</p></div>
         <div class="cl-item"><span class="cl-ver">v117</span><span class="cl-date">2026.11.14</span><p>【修正雙指縮放後畫面跳動】雙指放開時兩指不會同時離開，剩下那一指原本會被當成從手勢開始前的位置拖曳，畫面跳回去；現在改從放開當下的位置接續，不再跳動。</p></div>
         <div class="cl-item"><span class="cl-ver">v116</span><span class="cl-date">2026.11.14</span><p>【最上列不再變透明】電腦代理或電腦回合時，「下一部隊」「結束回合」等暫停使用的按鈕與非行動方的資訊改為實色灰階，不再半透明。</p></div>
         <div class="cl-item"><span class="cl-ver">v115</span><span class="cl-date">2026.11.14</span><p>【取消鏡頭震動】擊破與大型爆炸時不再震動畫面；爆炸、衝擊波與殘骸演出不變。</p></div>
@@ -1395,7 +1396,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v117</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v118</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>

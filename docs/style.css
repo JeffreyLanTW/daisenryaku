@@ -1113,3 +1113,7 @@ html, body { overscroll-behavior-x: none; }
 #topbar button.primary:disabled { color: #8c7d58; background: #2e281b; border-color: #463c26; }
 #funds .pill { opacity: 1; }
 #funds .pill:not(.active) { color: #8592a3; background: #141a21; }
+
+/* iPad／iPhone 主畫面全螢幕：狀態列改為不透明（black），內容從狀態列下方開始，系統不會在命令列上疊淡化效果；
+   最外層也塗成深色，避免畫面邊緣露出淺色底 */
+html { background: #0b0f14; }
