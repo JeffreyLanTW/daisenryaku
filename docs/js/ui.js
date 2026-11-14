@@ -1192,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v110</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v111</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v111</span><span class="cl-date">2026.11.14</span><p>【已行動部隊改用透明度】已行動的部隊保持原本顏色、改為半透明顯示（3D 模型、2D 圖示與兵種名牌都一樣），不再變灰。</p></div>
         <div class="cl-item"><span class="cl-ver">v110</span><span class="cl-date">2026.11.14</span><p>【已行動部隊】已行動的部隊只稍微變暗（3D 與 2D 都是），不再整片深灰。【劇情精簡】劇情模式只保留最新的「昇龍 2031」，移除「第三次世界大戰」「福爾摩沙之盾」「乾為天」三部劇情與測試地圖；自由對戰保留。舊劇情的存檔無法再讀取。</p></div>
         <div class="cl-item"><span class="cl-ver">v109</span><span class="cl-date">2026.11.14</span><p>【雙指上下＝翻轉】3D 模式觸控板雙指上下滑改為翻轉鏡頭（往上較平視、往下較俯視），縮放改用雙指開合或 ＋／－；滑鼠滾輪仍是縮放。觸控螢幕的雙指手勢在開始時判斷是「開合縮放」還是「滑動旋轉／翻轉」，上下滑時不再同時縮放。</p></div>
         <div class="cl-item"><span class="cl-ver">v108</span><span class="cl-date">2026.11.14</span><p>【極慢速度】電腦速度新增「極慢」（觀戰用）：部隊移動、攻擊等待與 3D 彈道都放慢，鏡頭跟隨時會先移到部隊再行動。【手機工具列】右側工具按鈕在 iPhone 等矮畫面時自動往左排成多欄，不再被上方遮住。</p></div>
@@ -1388,7 +1389,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v110</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v111</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>

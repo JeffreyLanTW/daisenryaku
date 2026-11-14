@@ -252,18 +252,22 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
   }
 
   c.save();
-  if (o.done) c.globalAlpha = 0.72;   // 已行動：淡一點即可，不要太灰
+  if (o.done) c.globalAlpha = 0.55;   // 已行動：以透明度表示，不改顏色
   if (!o.noIcon) c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2 * 1.14, cy + oy + 1 - ICON_H / 2 * 1.14, ICON_W * 1.14, ICON_H * 1.14);
   c.restore();
 
   if (o.label) {
+    // 已行動：名牌保持國家顏色，只變半透明
+    c.save();
+    if (o.done) c.globalAlpha = 0.55;
     c.font = 'bold 12px -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif';
     const tw = c.measureText(d.name).width + 10;
     roundRect(c, cx - tw / 2, top + h - 2, tw, 15, 4);
-    c.fillStyle = o.done ? 'rgba(20,25,32,0.75)' : ncol; c.fill();
-    if (!o.done && light) { c.strokeStyle = '#1e293b'; c.lineWidth = 1.4; c.stroke(); }
-    c.fillStyle = o.done ? '#cbd5e1' : (light ? '#0f172a' : '#fff'); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = ncol; c.fill();
+    if (light) { c.strokeStyle = '#1e293b'; c.lineWidth = 1.4; c.stroke(); }
+    c.fillStyle = light ? '#0f172a' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(d.name, cx, top + h + 5.5);
+    c.restore();
   }
   // 生命值圓標：一般部隊 <10 時顯示；次世代旗艦 (maxHp > 10) 或蜂群 (maxHp < 10) 隨時顯示
   const isSpecialHp = o.maxHp && o.maxHp !== 10;
