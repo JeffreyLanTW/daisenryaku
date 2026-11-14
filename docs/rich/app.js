@@ -1751,7 +1751,7 @@ function makeLabelSprite(t, idx) {
     }
 
     const sp = makeLabelSprite(t, i);
-    sp.position.set(p.x, p.y + 5.6, p.z);
+    sp.position.set(p.x, p.y + 7.8, p.z);
     labelGroup.add(sp);
     tileLabels[i] = sp;
   });
@@ -1862,7 +1862,7 @@ function syncBuildings() {
     }
     const p = tilePos(i);
     if (tileLabels[i]) {
-      const hOff = s.owner != null && s.level > 0 ? [5.6, 7.2, 8.8, 11.2, 16.5][s.level] : 5.6;
+      const hOff = s.owner != null && s.level > 0 ? [7.8, 8.6, 9.8, 11.8, 16.8][s.level] : 7.8;
       tileLabels[i].position.y = p.y + hOff;
     }
     if (s.owner != null) {
@@ -2037,7 +2037,7 @@ function makeToken(pl) {
   g.add(godVis);
 
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  g.scale.setScalar(0.76);
+  g.scale.setScalar(1.38);
   scene.add(g);
   return { g, leftArm, rightArm, leftLeg, rightLeg, godVis, ring, spirit, pos: pl.pos, path: [], t: 0, moveN: 0 };
 }
@@ -2120,14 +2120,14 @@ function makeNpcToken(npc) {
     }
   }
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  g.scale.setScalar(0.75);
+  g.scale.setScalar(1.25);
   scene.add(g);
   return { g, pos: npc.pos, from: npc.pos, t: 1, moveN: npc.moveN || 0 };
 }
 
-const slotOff = k => new THREE.Vector3([-1.75, 1.75, -1.75, 1.75][k % 4], 0, [1.55, 1.55, 2.55, 2.55][k % 4]);
-const tokenWorld = (i, k) => { const p = tilePos(i); return new THREE.Vector3(p.x, p.y + 0.19, p.z).add(slotOff(k)); };
-const npcWorld = i => { const p = tilePos(i); return new THREE.Vector3(p.x + 2.55, p.y + 0.19, p.z + 0.25); };
+const slotOff = k => new THREE.Vector3([-2.15, 2.15, -2.15, 2.15][k % 4], 0, [1.15, 1.15, 3.45, 3.45][k % 4]);
+const tokenWorld = (i, k) => { const p = tilePos(i); return new THREE.Vector3(p.x, p.y + 0.2, p.z).add(slotOff(k)); };
+const npcWorld = i => { const p = tilePos(i); return new THREE.Vector3(p.x + 2.95, p.y + 0.2, p.z + 0.35); };
 
 // ---------- 雙顆 3D 骰子（隨當前玩家定位滾動，永不淹沒於地形）----------
 const pipTex = n => canvasTex(128, 128, (c, w) => {
@@ -2434,6 +2434,7 @@ function frame(now) {
     G.players.forEach((pl, k) => {
       const tk = tokens[k] || (tokens[k] = makeToken(pl));
       tk.g.visible = !pl.bankrupt;
+      tk.g.scale.setScalar(k === G.cur ? 1.46 : 1.36);
       // 玩家附身神明特效
       if (pl.god) {
         const gCol = R.GODS[pl.god.kind].color;
@@ -2455,7 +2456,7 @@ function frame(now) {
         tk.t += 0.085;
         const a = tokenWorld(tk.from, k), b = tokenWorld(tk.path[0], k), f = Math.min(1, tk.t);
         tk.g.position.lerpVectors(a, b, f);
-        tk.g.position.y += Math.sin(f * Math.PI) * 3.8;
+        tk.g.position.y += Math.sin(f * Math.PI) * 4.6;
         tk.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
         const swing = Math.sin(f * Math.PI * 2) * 0.65;
         tk.leftArm.rotation.x = swing; tk.rightArm.rotation.x = -swing;
@@ -2464,7 +2465,7 @@ function frame(now) {
       } else {
         tk.pos = pl.pos;
         tk.g.position.copy(tokenWorld(pl.pos, k));
-        tk.g.position.y += k === G.cur ? Math.abs(Math.sin(now / 300)) * 0.72 : 0;
+        tk.g.position.y += k === G.cur ? Math.abs(Math.sin(now / 280)) * 0.95 : 0;
         tk.leftArm.rotation.x = 0; tk.rightArm.rotation.x = 0;
         tk.leftLeg.rotation.x = 0; tk.rightLeg.rotation.x = 0;
       }
@@ -3289,4 +3290,4 @@ function openJoin() {
 resize();
 requestAnimationFrame(frame);
 openLobby();
-window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice };
+window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens };
