@@ -3037,7 +3037,15 @@ function frame(now) {
       const bf = G.biteFx;
       const btk = tokens[bf.p];
       const walkApproach = !!(G.move && G.move.bite && G.move.p === bf.p && btk && btk.moveN === G.move.n && btk.path.includes(bf.at));
-      if (!walkApproach && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !tokens.some(t => t && t.path && t.path.length)) {
+      const dogNt = bf.approachFrom != null ? npcTokens.get(bf.npcId) : null;
+      if (dogNt && dogNt.approachBiteN !== bf.n && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !tokens.some(t => t && t.path && t.path.length)) {
+        dogNt.approachBiteN = bf.n;
+        dogNt.from = bf.approachFrom;
+        dogNt.pos = bf.at;
+        dogNt.t = 0;
+      }
+      const dogReady = bf.approachFrom == null || (dogNt && dogNt.approachBiteN === bf.n && dogNt.t >= 1);
+      if (!walkApproach && dogReady && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !tokens.some(t => t && t.path && t.path.length)) {
         lastBiteN = bf.n;
         startDogBite(bf.p, bf.at, bf.npcId, now);
       }
@@ -4023,7 +4031,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v155</span></h2><div class="sub">原創 3D 台灣地產桌遊：64 格全台灣與離島地圖（去金門途中有海峽賭場）、神明附身、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v156</span></h2><div class="sub">原創 3D 台灣地產桌遊：64 格全台灣與離島地圖（去金門途中有海峽賭場）、神明附身、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>

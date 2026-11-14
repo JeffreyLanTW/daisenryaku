@@ -258,7 +258,7 @@
     pushNews(G, '醫療快訊', `🏥 ${p.name} ${why}！`, '突發意外', '#e67e22');
   }
 
-  function encounterNpc(G, p, npc) {
+  function encounterNpc(G, p, npc, approachFrom = null) {
     if (!npc || npc.attachedTo != null || p.bankrupt) return false;
     // 第 1 輪不會被神明附身（野狗照常咬人）
     if (npc.kind !== 'dog' && (G.round || 1) <= 1) return false;
@@ -270,7 +270,7 @@
       npc.moveN = (npc.moveN || 0) + 1;
       if (!p.bankrupt) goHospital(G, p, '遭路邊野狗咬傷，送醫住院 1 回合');
       G.fxSeq = (G.fxSeq || 0) + 1;
-      G.biteFx = { p: p.id, at: biteAt, npcId: npc.id, n: G.fxSeq };
+      G.biteFx = { p: p.id, at: biteAt, npcId: npc.id, approachFrom, n: G.fxSeq };
       G.fx = { k: 'dog_bite', p: p.id, at: biteAt };
       return true;
     }
@@ -794,9 +794,9 @@
       const step = npc.kind === 'dog' ? (rnd(G) < 0.35 ? -1 : 2) : (1 + Math.floor(rnd(G) * 2));
       npc.pos = (npc.pos + step + N) % N;
       npc.moveN = (npc.moveN || 0) + 1;
-      // 若剛好停在站立玩家的格子上，觸發遭遇
+      // 若剛好停在站立玩家的格子上，觸發遭遇（保留移動起點供畫面先播狗走過來再播咬人）
       const hit = G.players.find(q => !q.bankrupt && q.jail === 0 && q.skip === 0 && q.pos === npc.pos);
-      if (hit) encounterNpc(G, hit, npc);
+      if (hit) encounterNpc(G, hit, npc, npc.from);
     }
   }
 
