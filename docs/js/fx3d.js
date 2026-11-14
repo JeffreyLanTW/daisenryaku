@@ -153,7 +153,6 @@ export function createFX(ctx) {
   const fire = new Particles(1400, true), smoke = new Particles(1400, false), debris = new Debris(260);
   ctx.fxScene.add(fire.points, smoke.points, debris.mesh);
   const shots = [], wrecks = [], timers = [], decals = [];
-  let shake = 0;
   // 彈體網格
   const glow = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
   const G_TRACER = new THREE.BoxGeometry(1, 1, 1), G_ROUND = new THREE.SphereGeometry(1, 8, 6);
@@ -310,7 +309,7 @@ export function createFX(ctx) {
         if (w.path === 'subsurface') explode(V3(a.x, ctx.waterY, a.z), 'water', 0.5);
         else muzzle(a, w.path === 'vertical' ? V3(0, 1, 0) : dir, 0.5);
         const end = w.proximity ? b.clone().add(V3(rnd(-4, 4), rnd(2, 5), rnd(-4, 4))) : b;
-        projectile({ fn: path(w.path, a, end), dur, mesh: missileMesh(w.size), trail: missileTrail(w.size, w.big), arrive: () => { hit(end, w.big ? 2 : w.proximity ? 0.8 : 1); if (w.big) { shockwave(V3(end.x, ctx.heightAt(end.x, end.z) + 1, end.z), 1.4); shake = Math.max(shake, 5); } } });
+        projectile({ fn: path(w.path, a, end), dur, mesh: missileMesh(w.size), trail: missileTrail(w.size, w.big), arrive: () => { hit(end, w.big ? 2 : w.proximity ? 0.8 : 1); if (w.big) { shockwave(V3(end.x, ctx.heightAt(end.x, end.z) + 1, end.z), 1.4); } } });
         return dur;
       }
       case 'bombs': {
@@ -360,7 +359,7 @@ export function createFX(ctx) {
         if (w.drop || w.asroc) { lead = 450 * speedK; projectile({ fn: path(w.asroc ? 'arc' : 'default', a, V3(st.x, ctx.waterY, st.z)), dur: lead, mesh: missileMesh(0.6), trail: w.asroc ? missileTrail(0.6) : null, arrive: () => explode(V3(st.x, ctx.waterY, st.z), 'water', 0.3) }); }
         const end = V3(b.x, sY, b.z), dur = (500 + st.distanceTo(end) * 1.2) * speedK;
         projectile({ fn: t => st.clone().lerp(end, t), dur, delay: lead, trail: p => smoke.emit({ p: V3(p.x, ctx.waterY + 0.3, p.z), life: 1.6, s0: 3, s1: 9, c0: '#f8fafc', a: 0.5, drag: 2 }),
-          arrive: () => { explode(V3(b.x, ctx.waterY, b.z), 'water', 1.6); hit(V3(b.x, ctx.waterY + 4, b.z), 1); shake = Math.max(shake, 3); } });
+          arrive: () => { explode(V3(b.x, ctx.waterY, b.z), 'water', 1.6); hit(V3(b.x, ctx.waterY + 4, b.z), 1); } });
         return lead + dur;
       }
       case 'swarm': {
@@ -392,7 +391,7 @@ export function createFX(ctx) {
     mesh.traverse(o => { if (o !== mesh && o.isMesh) o.material = wreckMat; });
     const p = mesh.position.clone(), s = info.big ? 1.8 : info.inf ? 0.5 : 1.2;
     explode(p.clone().add(V3(0, info.h * 0.5, 0)), info.air ? 'air' : info.sea ? 'ship' : 'land', s);
-    if (!info.inf) { shockwave(V3(p.x, (info.sea ? ctx.waterY : ctx.heightAt(p.x, p.z)) + 0.8, p.z), s); shake = Math.max(shake, info.big ? 6 : 3); }
+    if (!info.inf) { shockwave(V3(p.x, (info.sea ? ctx.waterY : ctx.heightAt(p.x, p.z)) + 0.8, p.z), s); }
     const roll = rnd(-0.35, 0.35), pitch = rnd(-0.12, 0.12), yaw0 = mesh.rotation.y;
     const fwd = V3(Math.cos(yaw0), 0, -Math.sin(yaw0));
     wrecks.push({ mesh, info, p, t0: performance.now(), last: performance.now(), roll, pitch, fwd, vy: 0, crashed: false });
@@ -441,7 +440,7 @@ export function createFX(ctx) {
   return {
     weaponFor, fire: fire3D, wreck, explode,
     get busy() { return shots.length + wrecks.length + fire.alive + smoke.alive > 0; },
-    // 每幀更新；回傳鏡頭震動量
+    // 每幀更新
     update(now, uScale) {
       const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
       fire.mat.uniforms.uScale.value = smoke.mat.uniforms.uScale.value = uScale;
@@ -456,8 +455,6 @@ export function createFX(ctx) {
       for (let i = wrecks.length - 1; i >= 0; i--) if (updWreck(wrecks[i], now, dt)) { const w = wrecks[i]; wrecks.splice(i, 1); w.mesh.parent && w.mesh.parent.remove(w.mesh); }
       for (let i = decals.length - 1; i >= 0; i--) { const d = decals[i], age = (now - d.t0) / 1000; if (age > 8) { ctx.scene.remove(d.m); d.m.material.dispose(); decals.splice(i, 1); } else if (age > 5) d.m.material.opacity = 0.55 * (8 - age) / 3; }
       fire.update(dt); smoke.update(dt); debris.update(dt);
-      const amp = shake; shake = Math.max(0, shake - dt * 18);
-      return amp;
     },
     clear() {
       for (const s of shots) s.done && s.mesh && ctx.fxScene.remove(s.mesh);

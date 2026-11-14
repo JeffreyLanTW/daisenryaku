@@ -3,8 +3,8 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=114';
-import { createFX } from './fx3d.js?v=114';
+import { unitModel } from './models3d.js?v=115';
+import { createFX } from './fx3d.js?v=115';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -633,11 +633,8 @@ const API = {
     syncProps();
     ovFill.done(); ovRing.done(); ovSeg.done();
     if (waterTex) waterTex.offset.set(now * 0.000012, now * 0.000021);
-    // 戰鬥特效：粒子大小換算用畫面高度（像素）；大爆炸時鏡頭短暫震動
-    if (fx) {
-      const amp = fx.update(now, renderer.domElement.height / (2 * Math.tan(FOV * Math.PI / 360)));
-      if (amp > 0.05) { camera.position.x += (Math.random() - 0.5) * amp; camera.position.y += (Math.random() - 0.5) * amp; camera.updateMatrixWorld(); }
-    }
+    // 戰鬥特效：粒子大小換算用畫面高度（像素）
+    if (fx) fx.update(now, renderer.domElement.height / (2 * Math.tan(FOV * Math.PI / 360)));
     renderer.clear();
     renderer.render(scene, camera);
     renderer.clearDepth();
