@@ -1117,3 +1117,15 @@ html, body { overscroll-behavior-x: none; }
 /* iPad／iPhone 主畫面全螢幕：狀態列改為不透明（black），內容從狀態列下方開始，系統不會在命令列上疊淡化效果；
    最外層也塗成深色，避免畫面邊緣露出淺色底 */
 html { background: #0b0f14; }
+
+/* ===== iOS／iPadOS 26 主畫面 App：系統會在狀態列與其下約 40pt 疊一層模糊（命令列看起來變透明）。
+   命令列改為「固定在最上方、全寬、不透明」的元素，WebKit 就不畫模糊，改用命令列的顏色填滿狀態列 ===== */
+:root { --tbh: 48px; }
+@media (max-height: 520px) and (orientation: landscape) { :root { --tbh: 40px; } }
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 15;
+  height: calc(var(--tbh) + env(safe-area-inset-top));
+  background: #121820;                 /* 實色，不可半透明或加 backdrop-filter */
+  padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right));
+}
+#app { grid-template-rows: 1fr; padding-top: calc(var(--tbh) + env(safe-area-inset-top)); }
