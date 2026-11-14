@@ -3,7 +3,7 @@
 (function (root) {
   'use strict';
 
-  // ----- 棋盤：64 格真實台灣順時針環島路線（0 為南端鵝鑾鼻起點，順時針：高屏小琉球 → 嘉南 → 澎湖 → 中彰投 → 桃竹苗 → 馬祖・海峽賭場・金門 → 北北基 → 龜山島宜花東 → 綠島蘭嶼）-----
+  // ----- 棋盤：78 格真實台灣多路線路網（含海路七美／東引／烈嶼，以及本島北橫／中橫／南橫跨山支線與交會選路）-----
   // type: start / land / chance / fate / tax / jail / gojail / park / shop / temple / hospital / station / casino
   const GROUPS = {
     south: { name: '高屏南', color: '#3fb6c8' },
@@ -15,29 +15,30 @@
     east: { name: '宜花東', color: '#4f7fe0' },
     island: { name: '離島群島', color: '#9b6cd6' },
   };
-  const L = (name, group, price) => ({ type: 'land', name, group, price });
+  const L = (name, group, price, opt = {}) => ({ type: 'land', name, group, price, ...opt });
+  const MAIN_COUNT = 67;
   const BOARD = [
-    // 南台灣・高屏小琉球嘉南（鵝鑾鼻起點 → 順時針北上，0..12）
+    // 0..12 南台灣・高屏小琉球嘉南
     { type: 'start', name: '起點' },
     L('墾丁', 'south', 1200), L('恆春', 'south', 1300), { type: 'fate', name: '命運' },
-    L('屏東', 'south', 1500), L('小琉球', 'island', 1700), L('高雄', 'south', 1800), { type: 'station', name: '高鐵左營', price: 2200 },
+    L('屏東', 'south', 1500), L('小琉球', 'island', 1700, { branch: '高屏海路' }), L('高雄', 'south', 1800), { type: 'station', name: '高鐵左營', price: 2200 },
     L('台南', 'yunjia', 1900), L('安平', 'yunjia', 2000), { type: 'chance', name: '機會' },
     { type: 'shop', name: '道具屋' }, L('嘉義', 'yunjia', 2100),
-    // 阿里山・雲林北港・跨海澎湖・鹿港彰化南投日月潭・台中（13..25）
+    // 13..26 阿里山・雲林北港・七美澎湖・鹿港彰化南投日月潭・台中
     { type: 'jail', name: '監獄' },
     L('阿里山', 'scenic', 2600), L('雲林', 'yunjia', 2000), { type: 'temple', name: '北港廟宇' },
-    L('澎湖', 'island', 2500), L('鹿港', 'central', 2400), L('彰化', 'central', 2300),
+    L('七美', 'island', 2200), L('澎湖', 'island', 2500), L('鹿港', 'central', 2400), L('彰化', 'central', 2300),
     L('南投', 'central', 2200), L('日月潭', 'scenic', 2800), { type: 'hospital', name: '醫院' },
-    { type: 'station', name: '台中高鐵', price: 2400 }, L('台中', 'central', 3000), { type: 'chance', name: '機會' },
-    // 桃竹苗・馬祖・海峽賭場・金門・大台北都會區（26..44）
+    { type: 'station', name: '台中高鐵', price: 2400 }, L('台中', 'central', 3000), { type: 'chance', name: '機會', branch: '西部縱貫線' },
+    // 27..47 桃竹苗・馬祖東引賭場烈嶼金門・大台北都會區
     L('三義', 'taoyuan', 2300), L('苗栗', 'taoyuan', 2400), L('竹科', 'taoyuan', 3200), L('新竹', 'taoyuan', 2800),
     { type: 'fate', name: '命運' }, L('桃園', 'taoyuan', 3100),
-    L('馬祖', 'island', 2700), { type: 'casino', name: '賭場' }, L('金門', 'island', 2900),
+    L('馬祖', 'island', 2700, { branch: '海空離島線' }), L('東引', 'island', 2500), { type: 'casino', name: '賭場' }, L('烈嶼', 'island', 2600), L('金門', 'island', 2900),
     { type: 'station', name: '桃園機場', price: 2600 }, { type: 'shop', name: '道具屋' },
     L('淡水', 'north', 3500), { type: 'park', name: '國家公園' }, { type: 'temple', name: '行天宮' },
     L('新北', 'north', 4200), L('台北', 'north', 5400), L('信義區', 'north', 6200),
     { type: 'chance', name: '機會' }, { type: 'station', name: '基隆港', price: 2500 },
-    // 東北角・平溪・龜山島・宜花東・綠島蘭嶼南迴（45..63）
+    // 48..66 東北角・平溪・龜山島・宜花東・綠島蘭嶼南迴
     { type: 'gojail', name: '入獄' },
     L('九份', 'scenic', 3500), L('平溪', 'scenic', 3200), { type: 'tax', name: '國稅局' },
     L('龜山島', 'island', 2800), L('宜蘭', 'east', 3000), L('羅東', 'east', 2900), { type: 'fate', name: '命運' },
@@ -45,7 +46,32 @@
     { type: 'shop', name: '道具屋' }, L('玉里', 'east', 2900), { type: 'chance', name: '機會' },
     L('台東', 'east', 3100), L('知本', 'scenic', 3000), L('綠島', 'island', 3300), L('蘭嶼', 'island', 3400),
     { type: 'fate', name: '命運' },
+    // 67..69 北橫公路支線（桃園 32 -> 大溪 67 -> 拉拉山 68 -> 明池 69 -> 宜蘭 53）
+    L('大溪', 'taoyuan', 2700, { branch: '北橫公路', next: [68] }),
+    L('拉拉山', 'scenic', 2900, { branch: '北橫公路', next: [69] }),
+    L('明池', 'scenic', 2800, { branch: '北橫公路', next: [53] }),
+    // 70..73 中橫公路支線（台中 25 -> 谷關 70 -> 梨山 71 -> 合歡山 72 -> 天祥 73 -> 太魯閣 57）
+    L('谷關', 'central', 2600, { branch: '中橫公路', next: [71] }),
+    L('梨山', 'scenic', 2900, { branch: '中橫公路', next: [72] }),
+    L('合歡山', 'scenic', 3400, { branch: '中橫公路', next: [73] }),
+    L('天祥', 'scenic', 2800, { branch: '中橫公路', next: [57] }),
+    // 74..77 南橫公路支線（屏東 4 -> 甲仙 74 -> 梅山 75 -> 埡口 76 -> 向陽 77 -> 機會(池上) 61）
+    L('甲仙', 'south', 2100, { branch: '南橫公路', next: [75] }),
+    L('梅山', 'scenic', 2400, { branch: '南橫公路', next: [76] }),
+    L('埡口', 'scenic', 2900, { branch: '南橫公路', next: [77] }),
+    L('向陽', 'scenic', 2700, { branch: '南橫公路', next: [61] }),
   ];
+  // 建立路網有向圖與反向邊（交接處可選擇主線或橫貫公路）
+  for (let i = 0; i < BOARD.length; i++) {
+    if (!BOARD[i].next) BOARD[i].next = [(i + 1) % MAIN_COUNT];
+    BOARD[i].prev = [];
+  }
+  BOARD[4].next = [5, 74];   // 屏東：高屏海路(小琉球) / 南橫公路(甲仙)
+  BOARD[25].next = [26, 70]; // 台中：西部縱貫線(大甲) / 中橫公路(谷關)
+  BOARD[32].next = [33, 67]; // 桃園：海空離島線(馬祖) / 北橫公路(大溪)
+  for (let i = 0; i < BOARD.length; i++) {
+    for (const j of BOARD[i].next) BOARD[j].prev.push(i);
+  }
   const N = BOARD.length;
   const START_BONUS = 2000, START_CASH = 18000, MAX_LEVEL = 4, JAIL_TURNS = 2, MAX_ITEMS = 8;
   const LEVEL_NAME = ['空地', '一樓平房', '二樓透天', '高層大樓', '摩天大樓'];
@@ -316,51 +342,113 @@
     return false;
   }
 
-  // ----- 移動 -----
-  // 逐格前進：經過起點領錢、遇到路障或 NPC 互動；回傳是否中斷
-  function walk(G, p, steps, abs = false) {
-    const dir = abs ? 1 : (p.reverse ? -1 : 1), path = [];
-    const from = p.pos;
-    let interrupted = false, bite = null;
-    for (let k = 0; k < Math.abs(steps); k++) {
-      const d = steps < 0 ? -dir : dir;
-      p.pos = (p.pos + d + N) % N; path.push(p.pos);
-      if (p.pos === 0 && d > 0) {
-        p.cash += START_BONUS;
-        log(G, `${p.name} 經過起點，領 $${START_BONUS}`);
-      }
-      // 路障檢查
-      const b = G.blocks.findIndex(x => x.i === p.pos);
-      if (b >= 0 && k < Math.abs(steps) - 1) {
-        G.blocks.splice(b, 1);
-        log(G, `🚧 ${p.name} 在 ${BOARD[p.pos].name} 被路障擋住`);
-        pushNews(G, '路況突發', `🚧 ${p.name} 在「${BOARD[p.pos].name}」撞上路障被迫停下！`, '路障攔截', '#e67e22');
-        break;
-      }
-      if (b >= 0) G.blocks.splice(b, 1);
-      // 路遇野狗（經過或踩到皆會被咬；神明改為只有停在該格時才附身）
-      const hitDog = (G.npcs || []).find(n => n.attachedTo == null && n.kind === 'dog' && n.pos === p.pos);
-      if (hitDog) {
-        const atPos = p.pos;
-        const stopWalk = encounterNpc(G, p, hitDog);
-        if (stopWalk) {
-          bite = { at: atPos, npcId: hitDog.id };
-          if (p.pos !== path[path.length - 1]) path.push(p.pos);
-          interrupted = true;
-          break;
-        }
+  // ----- 移動（支援交接處分岔選路）-----
+  function stepToNode(G, p, nextIdx, dirSign, path, isLastStep) {
+    p.pos = nextIdx; path.push(p.pos);
+    if (p.pos === 0 && dirSign > 0) {
+      p.cash += START_BONUS;
+      log(G, `${p.name} 經過起點，領 $${START_BONUS}`);
+    }
+    const b = G.blocks.findIndex(x => x.i === p.pos);
+    if (b >= 0 && !isLastStep) {
+      G.blocks.splice(b, 1);
+      log(G, `🚧 ${p.name} 在 ${BOARD[p.pos].name} 被路障擋住`);
+      pushNews(G, '路況突發', `🚧 ${p.name} 在「${BOARD[p.pos].name}」撞上路障被迫停下！`, '路障攔截', '#e67e22');
+      return 'blocked';
+    }
+    if (b >= 0) G.blocks.splice(b, 1);
+    const hitDog = (G.npcs || []).find(n => n.attachedTo == null && n.kind === 'dog' && n.pos === p.pos);
+    if (hitDog) {
+      const atPos = p.pos;
+      const stopWalk = encounterNpc(G, p, hitDog);
+      if (stopWalk) {
+        if (p.pos !== path[path.length - 1]) path.push(p.pos);
+        return { bite: { at: atPos, npcId: hitDog.id } };
       }
     }
-    G.moveSeq = (G.moveSeq || 0) + 1;
-    G.move = { p: p.id, path, n: G.moveSeq, from, bite };
-    return interrupted;
+    return null;
   }
-  function moveTo(G, p, i) {
-    const interrupted = walk(G, p, (i - p.pos + N) % N || N, true);
+
+  function walkContinue(G, p, rem, dir, abs, path, fromPos, forceNext = null) {
+    let interrupted = false, pausedBranch = false, bite = null;
+    let remaining = rem;
+    const dirSign = dir >= 0 ? 1 : -1;
+    while (remaining > 0) {
+      let nextIdx = forceNext;
+      forceNext = null;
+      if (nextIdx == null) {
+        const choices = dirSign > 0 ? BOARD[p.pos].next : BOARD[p.pos].prev;
+        if (choices.length > 1) {
+          G.pendingWalk = { p: p.id, rem: remaining, dir, abs };
+          G.ask = {
+            k: 'branch', i: p.pos, dir: dirSign, rem: remaining,
+            options: choices.map(to => ({
+              to, name: BOARD[to].name,
+              tag: BOARD[to].branch || (BOARD[to].group ? GROUPS[BOARD[to].group].name : '環島主線'),
+            })),
+          };
+          pausedBranch = true;
+          break;
+        }
+        nextIdx = choices[0];
+      }
+      remaining--;
+      const res = stepToNode(G, p, nextIdx, dirSign, path, remaining === 0);
+      if (res === 'blocked') break;
+      if (res && res.bite) { bite = res.bite; interrupted = true; break; }
+    }
+    if (path.length > 0 || bite) {
+      G.moveSeq = (G.moveSeq || 0) + 1;
+      G.move = { p: p.id, path, n: G.moveSeq, from: fromPos, bite };
+    }
+    return pausedBranch ? 'branch' : interrupted;
+  }
+
+  function walk(G, p, steps, abs = false) {
+    const dir = (abs ? 1 : (p.reverse ? -1 : 1)) * (steps < 0 ? -1 : 1);
+    return walkContinue(G, p, Math.abs(steps), dir, abs, [], p.pos, null);
+  }
+  function shortestPath(from, to) {
+    if (from === to) return [];
+    const q = [[from]], vis = new Set([from]);
+    while (q.length) {
+      const curPath = q.shift(), u = curPath[curPath.length - 1];
+      for (const v of BOARD[u].next) {
+        if (vis.has(v)) continue;
+        const np = [...curPath, v];
+        if (v === to) return np.slice(1);
+        vis.add(v); q.push(np);
+      }
+    }
+    return [];
+  }
+  function moveTo(G, p, targetIdx) {
+    const from = p.pos, sp = shortestPath(from, targetIdx), path = [];
+    let interrupted = false, bite = null;
+    for (let k = 0; k < sp.length; k++) {
+      const res = stepToNode(G, p, sp[k], 1, path, k === sp.length - 1);
+      if (res === 'blocked') break;
+      if (res && res.bite) { bite = res.bite; interrupted = true; break; }
+    }
+    if (path.length > 0 || bite) {
+      G.moveSeq = (G.moveSeq || 0) + 1;
+      G.move = { p: p.id, path, n: G.moveSeq, from, bite };
+    }
     if (!interrupted && !p.bankrupt) arrive(G, p);
   }
   function moveBy(G, p, n) {
-    const interrupted = walk(G, p, n, true);
+    const from = p.pos, path = [], dirSign = n >= 0 ? 1 : -1;
+    let interrupted = false, bite = null;
+    for (let k = 0; k < Math.abs(n); k++) {
+      const choices = dirSign > 0 ? BOARD[p.pos].next : BOARD[p.pos].prev;
+      const res = stepToNode(G, p, choices[0], dirSign, path, k === Math.abs(n) - 1);
+      if (res === 'blocked') break;
+      if (res && res.bite) { bite = res.bite; interrupted = true; break; }
+    }
+    if (path.length > 0 || bite) {
+      G.moveSeq = (G.moveSeq || 0) + 1;
+      G.move = { p: p.id, path, n: G.moveSeq, from, bite };
+    }
     if (!interrupted && !p.bankrupt) arrive(G, p);
   }
 
@@ -501,7 +589,7 @@
       fx: null,
       dice: null,
       newsSeq: 1,
-      news: [{ id: 1, cat: '開局快訊', title: `🎲 環島富豪 3D 正式開賽！共 ${seats.length} 位玩家角逐台灣地產王！`, body: '64 格全台灣地圖＋海峽賭場＋神明附身＋道具屋全面啟動！', color: '#f1c40f', round: 1 }],
+      news: [{ id: 1, cat: '開局快訊', title: `🎲 環島富豪 3D 正式開賽！共 ${seats.length} 位玩家角逐台灣地產王！`, body: '78 格全台灣多路線地圖（含北橫／中橫／南橫與海峽賭場）全面啟動！', color: '#f1c40f', round: 1 }],
       tiles: BOARD.map(() => ({ owner: null, level: 0 })),
       blocks: [],
       npcs: GOD_NPC_INIT.map((n, id) => ({ id, kind: n.kind, pos: n.pos, from: n.pos, attachedTo: null, moveN: 0 })),
@@ -576,8 +664,8 @@
         const sum = d1 + d2;
         G.dice = { a: d1, b: d2, count: twoDice ? 2 : 1, n: (G.dice ? G.dice.n : 0) + 1 };
         log(G, twoDice ? `${p.name} 擲出 ${d1} + ${d2} = ${sum}` : `${p.name} 擲出 ${d1} 點`);
-        const interrupted = walk(G, p, sum);
-        if (!interrupted && !p.bankrupt) arrive(G, p);
+        const walkRes = walk(G, p, sum);
+        if (!walkRes && !p.bankrupt) arrive(G, p);
         G.phase = G.ask ? 'ask' : 'done';
         if (G.winner != null) G.phase = 'over';
         return null;
@@ -610,6 +698,19 @@
       case 'answer': {
         if (!G.ask) return '沒有待回答的問題';
         const q = G.ask; G.ask = null;
+        if (q.k === 'branch') {
+          const pw = G.pendingWalk;
+          G.pendingWalk = null;
+          const valid = q.options.some(o => o.to === Number(a.to)) ? Number(a.to) : q.options[0].to;
+          log(G, `🧭 ${p.name} 在「${BOARD[q.i].name}」選擇前往【${BOARD[valid].name}】`);
+          if (pw && pw.p === p.id) {
+            const walkRes = walkContinue(G, p, pw.rem, pw.dir, pw.abs, [], p.pos, valid);
+            if (!walkRes && !p.bankrupt) arrive(G, p);
+          }
+          G.phase = G.ask ? 'ask' : 'done';
+          if (G.winner != null) G.phase = 'over';
+          return null;
+        }
         if (q.k === 'card') {
           G.move = null;
           const deck = q.kind === 'chance' ? CHANCE : FATE;
@@ -791,8 +892,17 @@
       // 神明棋子停留原地不巡邏，只有野狗會在路上遊蕩
       if (npc.kind !== 'dog') continue;
       npc.from = npc.pos;
-      const step = npc.kind === 'dog' ? (rnd(G) < 0.35 ? -1 : 2) : (1 + Math.floor(rnd(G) * 2));
-      npc.pos = (npc.pos + step + N) % N;
+      const steps = rnd(G) < 0.35 ? 1 : 2;
+      let curPos = npc.pos;
+      if (rnd(G) < 0.35 && BOARD[curPos].prev.length) {
+        curPos = BOARD[curPos].prev[Math.floor(rnd(G) * BOARD[curPos].prev.length)];
+      } else {
+        for (let s = 0; s < steps; s++) {
+          const nx = BOARD[curPos].next;
+          curPos = nx[Math.floor(rnd(G) * nx.length)];
+        }
+      }
+      npc.pos = curPos;
       npc.moveN = (npc.moveN || 0) + 1;
       // 若剛好停在站立玩家的格子上，觸發遭遇（保留移動起點供畫面先播狗走過來再播咬人）
       const hit = G.players.find(q => !q.bankrupt && q.jail === 0 && q.skip === 0 && q.pos === npc.pos);
@@ -868,6 +978,26 @@
     const p = cur(G);
     if (G.phase === 'ask') {
       const q = G.ask;
+      if (q.k === 'branch') {
+        let bestTo = q.options[0].to, bestScore = -1e9;
+        for (const opt of q.options) {
+          let sc = BOARD[opt.to].branch ? 140 : 100;
+          let probe = opt.to;
+          for (let d = 0; d < 3; d++) {
+            const st = G.tiles[probe], bt = BOARD[probe];
+            if (bt.type === 'land' || bt.type === 'station') {
+              if (st.owner == null) sc += 250;
+              else if (st.owner === p.id) sc += 120;
+              else sc -= rentOf(G, probe) * 0.4;
+            } else if (bt.type === 'casino') sc += 80;
+            const dog = (G.npcs || []).find(x => x.kind === 'dog' && x.pos === probe);
+            if (dog) sc -= 600;
+            probe = bt.next[0];
+          }
+          if (sc > bestScore) { bestScore = sc; bestTo = opt.to; }
+        }
+        return { type: 'answer', to: bestTo };
+      }
       if (q.k === 'card') return { type: 'answer', yes: true };
       if (q.k === 'shop') {
         const bought = (q.bought && q.bought.length) || 0;
@@ -912,8 +1042,11 @@
       if (p.items.includes('remote')) {
         let best = 0, bs = -1e9;
         const rMin = (p.dice || 1) >= 2 ? 2 : 1, rMax = (p.dice || 1) >= 2 ? 12 : 6;
-        for (let n = rMin; n <= rMax; n++) {
-          const i = (p.pos + (p.reverse ? -n : n) + N) % N, t = BOARD[i], s = G.tiles[i];
+        let probe = p.pos;
+        for (let n = 1; n <= rMax; n++) {
+          probe = p.reverse ? BOARD[probe].prev[0] : BOARD[probe].next[0];
+          if (n < rMin) continue;
+          const i = probe, t = BOARD[i], s = G.tiles[i];
           let sc = 0;
           if (t.type === 'land' || t.type === 'station') {
             if (s.owner == null) sc = t.price / 8;
