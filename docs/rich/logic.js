@@ -296,6 +296,7 @@
   // 逐格前進：經過起點領錢、遇到路障或 NPC 互動；回傳是否中斷
   function walk(G, p, steps, abs = false) {
     const dir = abs ? 1 : (p.reverse ? -1 : 1), path = [];
+    const from = p.pos;
     let interrupted = false;
     for (let k = 0; k < Math.abs(steps); k++) {
       const d = steps < 0 ? -dir : dir;
@@ -325,7 +326,7 @@
       }
     }
     G.moveSeq = (G.moveSeq || 0) + 1;
-    G.move = { p: p.id, path, n: G.moveSeq };
+    G.move = { p: p.id, path, n: G.moveSeq, from };
     return interrupted;
   }
   function moveTo(G, p, i) {

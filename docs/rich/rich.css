@@ -146,3 +146,7 @@ button.sky:hover:not(:disabled) { filter: brightness(1.08); background: linear-g
   .items, .shop-grid { grid-template-columns: 1fr; }
   .seat { grid-template-columns: 20px 1fr; gap: 6px; }
 }
+#tileTip { position: absolute; z-index: 13; min-width: 160px; max-width: 220px; pointer-events: none; background: rgba(15, 21, 29, .94); border: 1px solid var(--line);
+  border-radius: 10px; padding: 7px 11px; font-size: 12px; line-height: 1.5; box-shadow: 0 10px 26px rgba(0, 0, 0, .5); }
+#tileTip .nm { display: block; font-size: 15px; color: #fff6db; border-left: 4px solid; padding-left: 6px; }
+#tileTip small { color: var(--muted); }
