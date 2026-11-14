@@ -68,18 +68,19 @@
     { kind: 'dog', pos: 51 },
   ];
 
-  // ----- 道具（含請神卡、送神卡）-----
+  // ----- 道具（含請神卡、送神卡、道具屋加購第 2 顆骰子）-----
   const ITEMS = {
+    add_die: { name: '加購骰子', price: 2500, icon: '🎲', desc: '永久升級為雙骰子（2 顆骰子），每回合移動點數變 2–12 點！', shopOnly: true },
     summon_god: { name: '請神卡', price: 2000, icon: '🙏', desc: '請來指定好神明（土地公／財神爺／福神）附身 5 回合' },
     dismiss_god: { name: '送神卡', price: 1500, icon: '💨', desc: '送走自己身上的壞神明轉嫁給對手，或驅散對手的好神明' },
-    remote: { name: '遙控骰子', price: 1200, icon: '🎯', desc: '下次擲骰時自選點數（2–12）' },
+    remote: { name: '遙控骰子', price: 1200, icon: '🎯', desc: '下次擲骰時自選點數（1 顆 1–6，2 顆 2–12）' },
     block: { name: '路障卡', price: 1000, icon: '🚧', desc: '放在前方 1–8 格內，經過的玩家會在此強制停下' },
     free: { name: '免租卡', price: 1500, icon: '🛡️', desc: '下次要付過路費時自動抵銷一次（無法擋土地公強佔）' },
     reverse: { name: '迴轉卡', price: 800, icon: '🔄', desc: '改為反方向前進（直到再次使用）' },
     demolish: { name: '拆除卡', price: 1600, icon: '💣', desc: '把對手一塊地的建築降一級' },
     seize: { name: '徵收卡', price: 2800, icon: '📜', desc: '以 1.2 倍地價與建築現值強行收購對手一塊土地' },
   };
-  const ITEM_KEYS = Object.keys(ITEMS);
+  const ITEM_KEYS = Object.keys(ITEMS).filter(k => !ITEMS[k].shopOnly);
 
   // ----- 機會與命運卡 -----
   const CHANCE = [
@@ -479,6 +480,7 @@
           owner: s.owner || null,
           cash: START_CASH,
           pos: 0,
+          dice: 1,
           jail: 0,
           skip: 0,
           items: ['remote', 'summon_god', 'dismiss_god'],
@@ -524,12 +526,16 @@
       case 'roll': {
         if (G.phase !== 'roll' || G.ask) return '現在不能擲骰';
         G.card = null; G.fx = null; G.move = null;
-        const d1 = p.remote ? Math.max(1, Math.min(6, Math.floor(p.remote / 2))) : roll(G);
-        const d2 = p.remote ? p.remote - d1 : roll(G);
+        const twoDice = (p.dice || 1) >= 2;
+        const d1 = p.remote
+          ? (twoDice ? Math.max(1, Math.min(6, Math.floor(p.remote / 2))) : Math.max(1, Math.min(6, p.remote)))
+          : roll(G);
+        const d2 = twoDice ? (p.remote ? Math.max(1, Math.min(6, p.remote - d1)) : roll(G)) : 0;
         p.remote = 0;
-        G.dice = { a: d1, b: d2, n: (G.dice ? G.dice.n : 0) + 1 };
-        log(G, `${p.name} 擲出 ${d1} + ${d2} = ${d1 + d2}`);
-        const interrupted = walk(G, p, d1 + d2);
+        const sum = d1 + d2;
+        G.dice = { a: d1, b: d2, count: twoDice ? 2 : 1, n: (G.dice ? G.dice.n : 0) + 1 };
+        log(G, twoDice ? `${p.name} 擲出 ${d1} + ${d2} = ${sum}` : `${p.name} 擲出 ${d1} 點`);
+        const interrupted = walk(G, p, sum);
         if (!interrupted && !p.bankrupt) arrive(G, p);
         G.phase = G.ask ? 'ask' : 'done';
         if (G.winner != null) G.phase = 'over';
@@ -539,6 +545,17 @@
         if (!G.ask || G.ask.k !== 'shop') return '目前不在道具屋';
         const item = ITEMS[a.item];
         if (!item) return '沒有這個道具';
+        if (a.item === 'add_die') {
+          if ((p.dice || 1) >= 2) return '你已經擁有 2 顆骰子了';
+          if (p.cash < item.price) return '現金不足';
+          p.cash -= item.price;
+          p.dice = 2;
+          G.ask.bought = G.ask.bought || [];
+          G.ask.bought.push('add_die');
+          log(G, `🎲 ${p.name} 在道具屋花了 $${item.price} 加購第 2 顆骰子，升級為雙骰子！`);
+          pushNews(G, '雙骰升級', `🎲 ${p.name} 在道具屋購入第 2 顆骰子，正式升級雙骰高速衝刺！`, '裝備升級', '#f1c40f');
+          return null;
+        }
         if (p.items.length >= MAX_ITEMS) return `道具欄已滿（最多 ${MAX_ITEMS} 張）`;
         if (p.cash < item.price) return '現金不足';
         p.cash -= item.price;
@@ -615,7 +632,8 @@
         if (k < 0) return '沒有這個道具';
         if (a.item === 'remote') {
           if (G.phase !== 'roll') return '遙控骰子請在擲骰前使用';
-          const n = Math.max(2, Math.min(12, a.n | 0));
+          const two = (p.dice || 1) >= 2;
+          const n = Math.max(two ? 2 : 1, Math.min(two ? 12 : 6, a.n | 0));
           p.remote = n;
           log(G, `🎯 ${p.name} 使用遙控骰子，點數設為 ${n}`);
         } else if (a.item === 'block') {
@@ -778,6 +796,7 @@
       if (q.k === 'card') return { type: 'answer', yes: true };
       if (q.k === 'shop') {
         const bought = (q.bought && q.bought.length) || 0;
+        if (bought === 0 && (p.dice || 1) < 2 && p.cash >= 3800) return { type: 'buyItem', item: 'add_die' };
         if (bought === 0 && p.cash >= 4000 && p.items.length < MAX_ITEMS) {
           if (!p.god && !p.items.includes('summon_god')) return { type: 'buyItem', item: 'summon_god' };
           if (p.god && !p.god.good && !p.items.includes('dismiss_god')) return { type: 'buyItem', item: 'dismiss_god' };
@@ -812,7 +831,8 @@
       if (p.items.includes('block') && rnd(G) < 0.4) return { type: 'item', item: 'block', n: 1 + Math.floor(rnd(G) * 6) };
       if (p.items.includes('remote')) {
         let best = 0, bs = -1e9;
-        for (let n = 2; n <= 12; n++) {
+        const rMin = (p.dice || 1) >= 2 ? 2 : 1, rMax = (p.dice || 1) >= 2 ? 12 : 6;
+        for (let n = rMin; n <= rMax; n++) {
           const i = (p.pos + (p.reverse ? -n : n) + N) % N, t = BOARD[i], s = G.tiles[i];
           let sc = 0;
           if (t.type === 'land' || t.type === 'station') {

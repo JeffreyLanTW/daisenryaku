@@ -48,7 +48,7 @@ button.primary:disabled { background: #2e281b; color: #8c7d58; border-color: #46
 #newsToast .nt-body { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.5; max-width: 480px; }
 @keyframes newsPopCenter { from { transform: translate(-50%, -50%) scale(.84); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
-main { position: relative; flex: 1; min-height: 0; width: 100%; }
+main { position: relative; flex: 1; min-height: 0; width: 100%; background: #1b5b94; }
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #players { position: absolute; left: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; z-index: 4; }
 .pcard { pointer-events: auto; display: grid; grid-template-columns: 34px 1fr; gap: 2px 8px; align-items: center; min-width: 210px; padding: 7px 10px;
