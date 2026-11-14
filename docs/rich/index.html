@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#121820">
+<title>環島富豪 3D</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="rich.css?v=1">
+</head>
+<body>
+<div id="app">
+  <header id="bar">
+    <a class="brand" href="../" title="回到大戰略">← 大戰略</a>
+    <span class="title">環島富豪 3D</span>
+    <span id="roundInfo" class="pill"></span>
+    <span id="netInfo" class="pill hidden"></span>
+    <span class="spacer"></span>
+    <button id="btnSound" title="音效">🔊</button>
+    <button id="btnLog" title="紀錄">紀錄</button>
+    <button id="btnMenu" title="選單">☰</button>
+  </header>
+  <main>
+    <canvas id="gl"></canvas>
+    <div id="players"></div>
+    <div id="dock">
+      <div id="turnName"></div>
+      <div class="acts">
+        <button id="btnItem">道具</button>
+        <button id="btnRoll" class="primary">擲骰子</button>
+        <button id="btnEnd">結束回合</button>
+      </div>
+    </div>
+    <div id="cardPop" class="hidden"></div>
+    <div id="logBox" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+  </main>
+</div>
+<div id="modal" class="hidden"><div id="modalBox"></div></div>
+<script src="../vendor/peerjs.min.js?v=1"></script>
+<script src="logic.js?v=1"></script>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>
