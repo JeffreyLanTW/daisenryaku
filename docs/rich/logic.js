@@ -110,36 +110,60 @@
   };
   const ITEM_KEYS = Object.keys(ITEMS).filter(k => !ITEMS[k].shopOnly);
 
-  // ----- 各地特色特產（可收集並修飾 3D 棋子外觀）-----
+  // ----- 各地特色特產（24 種台灣各地名產，可收集並修飾 3D 棋子外觀）-----
   const SLOT_NAMES = { hand: '手持', head: '頭飾', back: '背飾', halo: '伴隨' };
   const SPECIALTIES = {
-    bubble_tea: { name: '珍珠奶茶', icon: '🧋', slot: 'hand', origin: '台中 / 台北', color: '#c08457', desc: '手捧濃醇黑糖珍珠奶茶，環島必備手搖飲！' },
-    pineapple_cake: { name: '鳳梨酥禮盒', icon: '🍍', slot: 'hand', origin: '南投 / 彰化 / 桃園', color: '#f59e0b', desc: '金黃酥香的台灣名產鳳梨酥伴手禮！' },
-    mango_ice: { name: '愛文芒果冰', icon: '🥭', slot: 'hand', origin: '台南 / 高屏', color: '#fbbf24', desc: '堆滿鮮甜芒果塊與煉乳的消暑剉冰！' },
-    kinmen_kaoliang: { name: '金門高粱酒', icon: '🏺', slot: 'hand', origin: '金門 / 馬祖', color: '#38bdf8', desc: '經典青花瓷瓶裝陳年高粱，豪氣干雲！' },
-    yilan_scallion: { name: '宜蘭三星蔥', icon: '🧅', slot: 'hand', origin: '宜蘭 / 南迴', color: '#22c55e', desc: '翠綠飽滿的三星蔥束，最接地氣的台灣味！' },
-    sun_moon_jade: { name: '原民彩羽冠', icon: '🪶', slot: 'head', origin: '日月潭 / 花東', color: '#ef4444', desc: '融合山海色彩的部落精緻羽飾頭冠！' },
+    bubble_tea: { name: '珍珠奶茶', icon: '🧋', slot: 'hand', origin: '台中', color: '#c08457', desc: '手捧濃醇黑糖珍珠奶茶，環島必備手搖飲！' },
+    xiaolongbao: { name: '台北小籠包', icon: '🥟', slot: 'hand', origin: '台北 / 新北', color: '#e5e7eb', desc: '熱騰騰的竹籠小籠包，皮薄湯汁鮮美！' },
+    keelung_tempura: { name: '廟口天婦羅', icon: '🍢', slot: 'hand', origin: '基隆港 / 淡水', color: '#f97316', desc: '基隆廟口炭烤金黃甜不辣串，香氣撲鼻！' },
+    daxi_tofu: { name: '大溪黑豆干', icon: '🟫', slot: 'hand', origin: '桃園 / 大溪', color: '#78350f', desc: '滷得入味彈牙的大溪傳統黑豆干禮串！' },
+    miaoli_strawberry: { name: '大湖草莓籃', icon: '🍓', slot: 'hand', origin: '苗栗', color: '#e11d48', desc: '裝滿鮮紅香甜大湖草莓的手提竹籃！' },
+    pineapple_cake: { name: '鳳梨酥禮盒', icon: '🍍', slot: 'hand', origin: '南投 / 嘉義', color: '#f59e0b', desc: '金黃酥香的台灣名產鳳梨酥伴手禮！' },
+    mango_ice: { name: '愛文芒果冰', icon: '🥭', slot: 'hand', origin: '台南 / 安平', color: '#fbbf24', desc: '堆滿鮮甜芒果塊與煉乳的消暑剉冰！' },
+    kinmen_kaoliang: { name: '金門高粱酒', icon: '🏺', slot: 'hand', origin: '金門 / 烈嶼', color: '#38bdf8', desc: '經典青花瓷瓶裝陳年高粱，豪氣干雲！' },
+    yilan_scallion: { name: '宜蘭三星蔥', icon: '🧅', slot: 'hand', origin: '宜蘭 / 羅東', color: '#22c55e', desc: '翠綠飽滿的三星蔥束，最接地氣的台灣味！' },
+    taitung_sugar_apple: { name: '台東大目釋迦', icon: '🍈', slot: 'hand', origin: '台東 / 知本', color: '#4ade80', desc: '飽滿香甜的台東特產大目釋迦果實！' },
+    sun_moon_jade: { name: '原民彩羽冠', icon: '🪶', slot: 'head', origin: '日月潭 / 山地', color: '#ef4444', desc: '融合山海色彩的部落精緻羽飾頭冠！' },
     penghu_cactus: { name: '澎湖仙人掌', icon: '🌵', slot: 'head', origin: '澎湖 / 離島', color: '#10b981', desc: '開著紅果實的迷你仙人掌盆栽頭飾！' },
+    kaohsiung_anchor: { name: '海港船長帽', icon: '⚓', slot: 'head', origin: '高雄 / 左營', color: '#1d4ed8', desc: '象徵高雄大港精神的金色錨徽船長帽！' },
+    pingtung_tuna: { name: '東港黑鮪魚帽', icon: '🐟', slot: 'head', origin: '屏東 / 墾丁', color: '#0284c7', desc: '超逗趣的東港黑鮪魚造型紀念頭套！' },
+    changhua_meatball: { name: '彰化古早斗笠', icon: '👒', slot: 'head', origin: '彰化 / 鹿港', color: '#d97706', desc: '充滿鹿港老街懷舊風情的竹編斗笠！' },
+    lanyu_flying_fish: { name: '蘭嶼飛魚冠', icon: '🐠', slot: 'head', origin: '蘭嶼 / 綠島', color: '#06b6d4', desc: '達悟族拼板舟白紅黑三色飛魚圖騰頭飾！' },
     alishan_tea: { name: '阿里山茶簍', icon: '🍵', slot: 'back', origin: '阿里山 / 高山', color: '#16a34a', desc: '背上竹編採茶簍與高山烏龍茶葉清香！' },
-    hsinchu_wind: { name: '竹科光翼', icon: '💠', slot: 'back', origin: '竹科 / 新竹', color: '#0ea5e9', desc: '閃耀電藍電路紋的台灣護國神山科技光翼！' },
+    hsinchu_wind: { name: '竹科光翼', icon: '💠', slot: 'back', origin: '竹科 / 新竹', color: '#0ea5e9', desc: '閃耀護國神山電藍電路紋的科技光翼！' },
     yunlin_talisman: { name: '北港平安令旗', icon: '🚩', slot: 'back', origin: '北港 / 廟宇', color: '#eab308', desc: '媽祖廟求得的金龍護身平安令旗背飾！' },
-    sky_lantern: { name: '平溪祈福天燈', icon: '🏮', slot: 'halo', origin: '平溪 / 九份', color: '#fb923c', desc: '暖光微閃、隨身伴飛的平溪祈福天燈！' },
-    wood_carving: { name: '三義木雕貓頭鷹', icon: '🦉', slot: 'halo', origin: '三義 / 苗栗 / 鹿港', color: '#a16207', desc: '手工原木雕刻的幸運守護貓頭鷹伴飛！' },
+    jiufen_gold: { name: '九份淘金背簍', icon: '⛏️', slot: 'back', origin: '九份 / 金瓜石', color: '#facc15', desc: '裝滿閃亮金礦石的山城礦工背簍！' },
+    hualien_marble: { name: '花蓮大理石盾', icon: '🪨', slot: 'back', origin: '花蓮 / 太魯閣', color: '#94a3b8', desc: '太魯閣紋理天然大理石精雕的背盾！' },
+    sky_lantern: { name: '平溪祈福天燈', icon: '🏮', slot: 'halo', origin: '平溪', color: '#fb923c', desc: '暖光微閃、隨身伴飛的平溪祈福天燈！' },
+    wood_carving: { name: '三義木雕貓頭鷹', icon: '🦉', slot: 'halo', origin: '三義', color: '#a16207', desc: '手工原木雕刻的幸運守護貓頭鷹伴飛！' },
+    matsu_tears: { name: '馬祖藍眼淚燈', icon: '🔮', slot: 'halo', origin: '馬祖 / 東引', color: '#38bdf8', desc: '散發夢幻幽藍螢光的馬祖藍眼淚星燈！' },
   };
   const SPECIALTY_KEYS = Object.keys(SPECIALTIES);
   const TILE_SPECIALTY = {
-    '台中': 'bubble_tea', '台北': 'bubble_tea', '信義區': 'bubble_tea', '新北': 'bubble_tea', '台中高鐵': 'bubble_tea', '高鐵左營': 'bubble_tea',
-    '南投': 'pineapple_cake', '彰化': 'pineapple_cake', '桃園': 'pineapple_cake', '大溪': 'pineapple_cake',
-    '台南': 'mango_ice', '安平': 'mango_ice', '高雄': 'mango_ice', '屏東': 'mango_ice', '墾丁': 'mango_ice', '恆春': 'mango_ice',
-    '金門': 'kinmen_kaoliang', '烈嶼': 'kinmen_kaoliang', '馬祖': 'kinmen_kaoliang', '東引': 'kinmen_kaoliang',
-    '宜蘭': 'yilan_scallion', '羅東': 'yilan_scallion', '甲仙': 'yilan_scallion', '梅山': 'yilan_scallion', '埡口': 'yilan_scallion', '向陽': 'yilan_scallion',
-    '日月潭': 'sun_moon_jade', '太魯閣': 'sun_moon_jade', '花蓮': 'sun_moon_jade', '台東': 'sun_moon_jade', '知本': 'sun_moon_jade', '玉里': 'sun_moon_jade',
-    '澎湖': 'penghu_cactus', '七美': 'penghu_cactus', '小琉球': 'penghu_cactus', '綠島': 'penghu_cactus', '蘭嶼': 'penghu_cactus', '龜山島': 'penghu_cactus',
-    '阿里山': 'alishan_tea', '谷關': 'alishan_tea', '梨山': 'alishan_tea', '合歡山': 'alishan_tea', '天祥': 'alishan_tea', '拉拉山': 'alishan_tea', '明池': 'alishan_tea', '國家公園': 'alishan_tea',
+    '台中': 'bubble_tea', '台中高鐵': 'bubble_tea',
+    '台北': 'xiaolongbao', '信義區': 'xiaolongbao', '新北': 'xiaolongbao',
+    '基隆港': 'keelung_tempura', '淡水': 'keelung_tempura',
+    '桃園': 'daxi_tofu', '大溪': 'daxi_tofu',
+    '苗栗': 'miaoli_strawberry',
+    '南投': 'pineapple_cake', '嘉義': 'pineapple_cake',
+    '台南': 'mango_ice', '安平': 'mango_ice',
+    '金門': 'kinmen_kaoliang', '烈嶼': 'kinmen_kaoliang',
+    '宜蘭': 'yilan_scallion', '羅東': 'yilan_scallion',
+    '台東': 'taitung_sugar_apple', '知本': 'taitung_sugar_apple', '玉里': 'taitung_sugar_apple',
+    '日月潭': 'sun_moon_jade', '拉拉山': 'sun_moon_jade', '明池': 'sun_moon_jade', '谷關': 'sun_moon_jade', '梨山': 'sun_moon_jade', '合歡山': 'sun_moon_jade', '埡口': 'sun_moon_jade', '向陽': 'sun_moon_jade',
+    '澎湖': 'penghu_cactus', '七美': 'penghu_cactus', '小琉球': 'penghu_cactus', '龜山島': 'penghu_cactus',
+    '高雄': 'kaohsiung_anchor', '高鐵左營': 'kaohsiung_anchor',
+    '屏東': 'pingtung_tuna', '墾丁': 'pingtung_tuna', '恆春': 'pingtung_tuna', '甲仙': 'pingtung_tuna', '梅山': 'pingtung_tuna',
+    '彰化': 'changhua_meatball', '鹿港': 'changhua_meatball',
+    '蘭嶼': 'lanyu_flying_fish', '綠島': 'lanyu_flying_fish',
+    '阿里山': 'alishan_tea', '天祥': 'alishan_tea', '國家公園': 'alishan_tea',
     '竹科': 'hsinchu_wind', '新竹': 'hsinchu_wind', '桃園機場': 'hsinchu_wind',
-    '北港廟宇': 'yunlin_talisman', '行天宮': 'yunlin_talisman', '迎神殿': 'yunlin_talisman', '雲林': 'yunlin_talisman', '嘉義': 'yunlin_talisman',
-    '平溪': 'sky_lantern', '九份': 'sky_lantern', '基隆港': 'sky_lantern', '淡水': 'sky_lantern',
-    '三義': 'wood_carving', '苗栗': 'wood_carving', '鹿港': 'wood_carving',
+    '北港廟宇': 'yunlin_talisman', '行天宮': 'yunlin_talisman', '迎神殿': 'yunlin_talisman', '雲林': 'yunlin_talisman',
+    '九份': 'jiufen_gold',
+    '花蓮': 'hualien_marble', '太魯閣': 'hualien_marble',
+    '平溪': 'sky_lantern',
+    '三義': 'wood_carving',
+    '馬祖': 'matsu_tears', '東引': 'matsu_tears',
   };
   function specialtyOfTile(i) {
     const t = BOARD[i];
@@ -536,6 +560,7 @@
         return;
       }
       if (s.owner === p.id) {
+        giveSpecialty(G, p, specialtyOfTile(i), `巡視自家「${t.name}」獲贈地方特產`);
         if (s.level < MAX_LEVEL) {
           const cost = buildCostOf(G, p, i);
           if (p.god && p.god.kind === 'fushen') {
@@ -596,6 +621,8 @@
     }
     if (t.type === 'shop') {
       const freeItem = giveItem(G, p, null, '逛道具屋獲得贈禮');
+      const unownedSp = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
+      if (unownedSp.length) giveSpecialty(G, p, unownedSp[Math.floor(rnd(G) * unownedSp.length)], '逛道具屋獲贈地方特產');
       G.ask = { k: 'shop', i, freeItem, bought: [] };
       return;
     }
@@ -728,7 +755,8 @@
       return null;
     }
     if (a.type === 'equipSpecialty') {
-      const tp = G.players[pid];
+      const targetId = a.pid != null ? (a.pid | 0) : pid;
+      const tp = G.players[targetId];
       if (!tp || tp.bankrupt) return '找不到玩家';
       const k = a.specialty;
       const sp = SPECIALTIES[k];
@@ -1125,7 +1153,10 @@
       if (q.k === 'shop') {
         const bought = (q.bought && q.bought.length) || 0;
         if (bought === 0 && (p.dice || 1) < 2 && p.cash >= 3800) return { type: 'buyItem', item: 'add_die' };
-        if (bought === 0 && p.cash >= 4000 && p.items.length < MAX_ITEMS) {
+        if (bought === 0 && p.cash >= 2200 && (p.specialties || []).length < SPECIALTY_KEYS.length && !q.bought.includes('specialty_box')) {
+          return { type: 'buyItem', item: 'specialty_box' };
+        }
+        if (bought <= 1 && p.cash >= 4000 && p.items.length < MAX_ITEMS) {
           if (!p.god && !p.items.includes('summon_god')) return { type: 'buyItem', item: 'summon_god' };
           if (p.god && !p.god.good && !p.items.includes('dismiss_god')) return { type: 'buyItem', item: 'dismiss_god' };
           if (!p.items.includes('remote')) return { type: 'buyItem', item: 'remote' };

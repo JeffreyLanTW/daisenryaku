@@ -2438,6 +2438,99 @@ function makeSpecialtyMesh(key) {
       grp.add(eye, ear);
     }
     grp.add(body, belly);
+  } else if (key === 'xiaolongbao') {
+    const steamer = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.28, 12), std('#d97706'));
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.04, 6, 12), std('#92400e'));
+    rim.rotation.x = Math.PI / 2; rim.position.y = 0.14;
+    grp.add(steamer, rim);
+    for (const [bx, bz] of [[-0.12, 0.08], [0.12, 0.08], [0, -0.14]]) {
+      const bun = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), std('#f8fafc'));
+      bun.position.set(bx, 0.17, bz); grp.add(bun);
+    }
+    grp.position.set(0.05, -0.84, 0.45);
+  } else if (key === 'keelung_tempura') {
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.95, 6), std('#fde68a'));
+    grp.add(stick);
+    for (let k = 0; k < 3; k++) {
+      const patty = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.1, 10), std(k === 1 ? '#ea580c' : '#f59e0b'));
+      patty.rotation.x = Math.PI / 2; patty.position.y = -0.05 + k * 0.22; grp.add(patty);
+    }
+    grp.position.set(0.05, -0.78, 0.42); grp.rotation.x = 0.35;
+  } else if (key === 'daxi_tofu') {
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), std('#fde68a'));
+    grp.add(stick);
+    for (let k = 0; k < 3; k++) {
+      const block = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.14), std('#451a03'));
+      block.position.y = -0.05 + k * 0.22; grp.add(block);
+    }
+    grp.position.set(0.05, -0.78, 0.42); grp.rotation.x = 0.35;
+  } else if (key === 'miaoli_strawberry') {
+    const basket = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.24, 0.32, 10), std('#b45309'));
+    grp.add(basket);
+    for (const [sx, sy, sz] of [[-0.12, 0.16, 0.1], [0.12, 0.16, 0.08], [0, 0.2, -0.1], [0, 0.28, 0.02]]) {
+      const berry = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.2, 8), std('#e11d48'));
+      berry.rotation.x = Math.PI; berry.position.set(sx, sy, sz); grp.add(berry);
+    }
+    grp.position.set(0.05, -0.84, 0.45);
+  } else if (key === 'taitung_sugar_apple') {
+    const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 10), std('#4ade80'));
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), std('#78350f'));
+    stem.position.y = 0.3;
+    grp.add(fruit, stem);
+    grp.position.set(0.05, -0.82, 0.44);
+  } else if (key === 'kaohsiung_anchor') {
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.36, 16), std('#f8fafc'));
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.1, 16, 1, false, -0.8, 1.6), std('#1e3a8a'));
+    brim.position.set(0, -0.15, 0.22);
+    const badge = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), std('#facc15'));
+    badge.position.set(0, 0.02, 0.96);
+    grp.add(cap, brim, badge);
+    grp.position.set(0, 5.05, 0);
+  } else if (key === 'pingtung_tuna') {
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 10), std('#0284c7'));
+    body.scale.set(0.85, 0.72, 1.55);
+    const fin = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.55, 4), std('#0369a1'));
+    fin.position.set(0, 0.52, -0.1); fin.rotation.x = -0.3;
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.5, 4), std('#0369a1'));
+    tail.position.set(0, 0.05, -1.02); tail.rotation.x = Math.PI / 2;
+    grp.add(body, fin, tail);
+    grp.position.set(0, 5.25, 0);
+  } else if (key === 'changhua_meatball') {
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(1.38, 0.65, 16), std('#d97706'));
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.36, 0.06, 6, 18), std('#92400e'));
+    rim.rotation.x = Math.PI / 2; rim.position.y = -0.3;
+    grp.add(hat, rim);
+    grp.position.set(0, 5.25, 0);
+  } else if (key === 'lanyu_flying_fish') {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.09, 6, 18), std('#f8fafc'));
+    band.rotation.x = Math.PI / 2;
+    const fish = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.24, 0.95), std('#06b6d4'));
+    fish.position.set(0, 0.3, 0.4);
+    const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.35), std('#e0f2fe'));
+    wingL.position.set(-0.55, 0.32, 0.35); wingL.rotation.z = 0.2;
+    const wingR = wingL.clone(); wingR.position.x = 0.55; wingR.rotation.z = -0.2;
+    grp.add(band, fish, wingL, wingR);
+    grp.position.set(0, 5.2, 0);
+  } else if (key === 'jiufen_gold') {
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.62), std('#78350f'));
+    grp.add(pack);
+    for (const [gx, gy] of [[-0.2, 0.55], [0.18, 0.58], [0, 0.62]]) {
+      const nugget = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), std('#facc15', { emissive: '#ca8a04', emissiveIntensity: 0.45 }));
+      nugget.position.set(gx, gy, 0); grp.add(nugget);
+    }
+    grp.position.set(0, 2.2, -1.12);
+  } else if (key === 'hualien_marble') {
+    const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.16, 6), std('#cbd5e1'));
+    shield.rotation.x = Math.PI / 2;
+    const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.18, 6), std('#0f766e'));
+    inner.rotation.x = Math.PI / 2;
+    grp.add(shield, inner);
+    grp.position.set(0, 2.2, -1.06);
+  } else if (key === 'matsu_tears') {
+    const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 1), std('#38bdf8', { emissive: '#0284c7', emissiveIntensity: 1.2, transparent: true, opacity: 0.9 }));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.05, 6, 16), std('#7dd3fc', { emissive: '#38bdf8', emissiveIntensity: 0.8 }));
+    ring.rotation.x = 0.7;
+    grp.add(orb, ring);
   }
   grp.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return grp;
@@ -2766,8 +2859,14 @@ const DIST_MIN = 45, DIST_MAX = 680 * WS, TILT_MIN = 18, TILT_MAX = 85;
 const camS = {
   yaw: 0.25, yawGoal: 0.25, tilt: 0, tiltGoal: 0, pitch: 0.92, dist: 320 * WS,
   target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4),
-  hasGoal: true, follow: true,
+  hasGoal: true, follow: true, focusMode: 'auto',
 };
+const FOCUS_MODES = [
+  { id: 'auto', label: '🎯原', toast: '🎯 鏡頭焦點：原本（自動跟隨玩家與特效）', title: '鏡頭焦點：原本（點擊切換為跟隨玩家）' },
+  { id: 'player', label: '👤玩', toast: '👤 鏡頭焦點：鎖定玩家', title: '鏡頭焦點：玩家（點擊切換為跟隨野狗）' },
+  { id: 'dog', label: '🐕狗', toast: '🐕 鏡頭焦點：鎖定野狗', title: '鏡頭焦點：野狗（點擊切換為固定視角）' },
+  { id: 'free', label: '📌定', toast: '📌 鏡頭焦點：固定視角（可自由拖曳瀏覽）', title: '鏡頭焦點：固定（點擊切回原本自動）' },
+];
 let lastFocusTurn = -1, wasFollowingFx = false, manualFocusPos = null;
 const camCtl = {
   rotate(d) { camS.yawGoal += d; },
@@ -2975,14 +3074,30 @@ function updateCamera() {
   });
 
   // 右下角浮動 3D 鏡頭控制列
-  const syncCamBtn = () => { const b = $('#zCam'); if (b) b.classList.toggle('on', camS.follow); };
+  const syncCamBtn = () => {
+    const b = $('#zCam');
+    if (!b) return;
+    const fm = FOCUS_MODES.find(m => m.id === camS.focusMode) || FOCUS_MODES[0];
+    b.classList.toggle('on', camS.focusMode !== 'free');
+    b.textContent = fm.label;
+    b.title = fm.title;
+  };
   syncCamBtn();
   if ($('#zCam')) $('#zCam').onclick = () => {
-    camS.follow = !camS.follow;
+    const curIdx = FOCUS_MODES.findIndex(m => m.id === camS.focusMode);
+    const next = FOCUS_MODES[(curIdx + 1) % FOCUS_MODES.length];
+    camS.focusMode = next.id;
+    camS.follow = next.id !== 'free';
     syncCamBtn();
-    if (camS.follow) focusCurPlayer();
-    else camS.hasGoal = false;
-    toast(camS.follow ? '🎯 鏡頭：跟隨行動玩家' : '📌 鏡頭：固定視角');
+    manualFocusPos = null;
+    if (camS.focusMode === 'free') camS.hasGoal = false;
+    else if (camS.focusMode === 'dog') {
+      const dog = G && (G.npcs || []).find(n => n.kind === 'dog');
+      const dnt = dog ? npcTokens.get(dog.id) : null;
+      camS.hasGoal = true;
+      if (dnt) camS.goal.copy(dnt.g.position).setY(0);
+    } else focusCurPlayer();
+    toast(next.toast);
   };
   if ($('#zLabel')) {
     $('#zLabel').classList.toggle('on', showLabels);
@@ -3771,39 +3886,48 @@ function frame(now) {
       }
     }
 
-    const activeFxPos = (biteAnim && biteBurst && biteBurst.visible) ? biteBurst.position
-      : (ambAnim && ambGroup && ambGroup.visible) ? ambGroup.position
-      : (transportAnim && hsrGroup && hsrGroup.visible) ? hsrGroup.position
-      : (transportAnim && heliGroup && heliGroup.visible) ? heliGroup.position
-      : (transportAnim && jailGroup && jailGroup.visible) ? jailGroup.position
-      : (bankruptAnim && bankruptGroup && bankruptGroup.visible) ? bankruptGroup.position
-      : (godAnim && godFxGroup && godFxGroup.visible) ? godFxGroup.position
-      : movingDogPos;
-    if (activeFxPos) {
+    const dogNpc = (G.npcs || []).find(n => n.kind === 'dog');
+    const dogNt = dogNpc ? npcTokens.get(dogNpc.id) : null;
+    if (camS.focusMode === 'dog' && dogNt) {
       manualFocusPos = null;
-      wasFollowingFx = true;
-      if (camS.follow) camS.hasGoal = true;
-      if (camS.hasGoal) camS.goal.copy(activeFxPos).setY(0);
+      camS.hasGoal = true;
+      camS.goal.copy(dogNt.g.position).setY(0);
     } else {
-      if (wasFollowingFx) {
-        wasFollowingFx = false;
+      const activeFxPos = camS.focusMode === 'player' ? null
+        : (biteAnim && biteBurst && biteBurst.visible) ? biteBurst.position
+        : (ambAnim && ambGroup && ambGroup.visible) ? ambGroup.position
+        : (transportAnim && hsrGroup && hsrGroup.visible) ? hsrGroup.position
+        : (transportAnim && heliGroup && heliGroup.visible) ? heliGroup.position
+        : (transportAnim && jailGroup && jailGroup.visible) ? jailGroup.position
+        : (bankruptAnim && bankruptGroup && bankruptGroup.visible) ? bankruptGroup.position
+        : (godAnim && godFxGroup && godFxGroup.visible) ? godFxGroup.position
+        : movingDogPos;
+      if (activeFxPos) {
+        manualFocusPos = null;
+        wasFollowingFx = true;
         if (camS.follow) camS.hasGoal = true;
-      }
-      const ct = tokens[G.cur];
-      if (ct) {
-        if (G.turn !== lastFocusTurn) {
-          lastFocusTurn = G.turn;
-          manualFocusPos = null;
+        if (camS.hasGoal) camS.goal.copy(activeFxPos).setY(0);
+      } else {
+        if (wasFollowingFx) {
+          wasFollowingFx = false;
           if (camS.follow) camS.hasGoal = true;
         }
-        if (ct.path.length) {
-          manualFocusPos = null;
-          if (camS.follow) camS.hasGoal = true;
-        }
-        if (manualFocusPos) {
-          if (camS.hasGoal) camS.goal.copy(manualFocusPos);
-        } else if (camS.hasGoal) {
-          camS.goal.copy(ct.g.position).setY(0);
+        const ct = tokens[G.cur];
+        if (ct) {
+          if (G.turn !== lastFocusTurn) {
+            lastFocusTurn = G.turn;
+            manualFocusPos = null;
+            if (camS.follow) camS.hasGoal = true;
+          }
+          if (ct.path.length) {
+            manualFocusPos = null;
+            if (camS.follow) camS.hasGoal = true;
+          }
+          if (manualFocusPos) {
+            if (camS.hasGoal) camS.goal.copy(manualFocusPos);
+          } else if (camS.hasGoal) {
+            camS.goal.copy(ct.g.position).setY(0);
+          }
         }
       }
     }
@@ -4139,6 +4263,18 @@ function specialtySvg(k) {
     yunlin_talisman: `<svg viewBox="0 0 36 36"><line x1="10" y1="5" x2="10" y2="32" stroke="#d97706" stroke-width="2.6" stroke-linecap="round"/><rect x="11" y="7" width="16" height="19" rx="2" fill="#facc15" stroke="#fef08a" stroke-width="1.4"/><rect x="15" y="11" width="8" height="10" fill="#dc2626"/></svg>`,
     sky_lantern: `<svg viewBox="0 0 36 36"><polygon points="11,8 25,8 27,22 18,28 9,22" fill="#fb923c" stroke="#fed7aa" stroke-width="1.6"/><circle cx="18" cy="24" r="2.5" fill="#fef08a"/></svg>`,
     wood_carving: `<svg viewBox="0 0 36 36"><ellipse cx="18" cy="19" rx="9" ry="11" fill="#92400e" stroke="#fde68a" stroke-width="1.2"/><circle cx="14" cy="15" r="3" fill="#facc15"/><circle cx="22" cy="15" r="3" fill="#facc15"/><circle cx="14" cy="15" r="1.2" fill="#111"/><circle cx="22" cy="15" r="1.2" fill="#111"/><polygon points="16,18 20,18 18,21" fill="#f59e0b"/></svg>`,
+    xiaolongbao: `<svg viewBox="0 0 36 36"><ellipse cx="18" cy="24" rx="12" ry="6" fill="#d97706" stroke="#fde68a" stroke-width="1.4"/><circle cx="13" cy="18" r="4.5" fill="#f8fafc"/><circle cx="23" cy="18" r="4.5" fill="#f8fafc"/><circle cx="18" cy="14" r="4.5" fill="#fff"/></svg>`,
+    keelung_tempura: `<svg viewBox="0 0 36 36"><line x1="18" y1="5" x2="18" y2="33" stroke="#fde68a" stroke-width="2.2"/><ellipse cx="18" cy="11" rx="7" ry="3.5" fill="#f59e0b"/><ellipse cx="18" cy="18" rx="7.5" ry="3.5" fill="#ea580c"/><ellipse cx="18" cy="25" rx="7" ry="3.5" fill="#f59e0b"/></svg>`,
+    daxi_tofu: `<svg viewBox="0 0 36 36"><line x1="18" y1="5" x2="18" y2="33" stroke="#fde68a" stroke-width="2"/><rect x="11" y="8" width="14" height="6" rx="1.5" fill="#451a03" stroke="#92400e"/><rect x="11" y="16" width="14" height="6" rx="1.5" fill="#451a03" stroke="#92400e"/><rect x="11" y="24" width="14" height="6" rx="1.5" fill="#451a03" stroke="#92400e"/></svg>`,
+    miaoli_strawberry: `<svg viewBox="0 0 36 36"><path d="M9 21 H27 L24 31 H12 Z" fill="#b45309"/><path d="M18 10 C13 10 11 16 18 23 C25 16 23 10 18 10 Z" fill="#e11d48"/><path d="M14 10 L18 7 L22 10" fill="#22c55e"/></svg>`,
+    taitung_sugar_apple: `<svg viewBox="0 0 36 36"><circle cx="18" cy="20" r="10" fill="#4ade80" stroke="#15803d" stroke-width="1.6"/><circle cx="14" cy="17" r="2.5" fill="#86efac"/><circle cx="21" cy="18" r="2.5" fill="#86efac"/><circle cx="17" cy="24" r="2.5" fill="#86efac"/></svg>`,
+    kaohsiung_anchor: `<svg viewBox="0 0 36 36"><path d="M7 20 Q18 10 29 20 L27 26 H9 Z" fill="#f8fafc" stroke="#1e3a8a" stroke-width="1.8"/><rect x="8" y="24" width="20" height="4" rx="1.5" fill="#1e3a8a"/><circle cx="18" cy="18" r="3" fill="#facc15"/></svg>`,
+    pingtung_tuna: `<svg viewBox="0 0 36 36"><ellipse cx="17" cy="18" rx="11" ry="6" fill="#0284c7"/><polygon points="27,18 33,12 33,24" fill="#0369a1"/><polygon points="15,12 19,6 21,12" fill="#0369a1"/><circle cx="11" cy="17" r="1.6" fill="#fff"/></svg>`,
+    changhua_meatball: `<svg viewBox="0 0 36 36"><polygon points="18,7 32,26 4,26" fill="#d97706" stroke="#92400e" stroke-width="1.8"/></svg>`,
+    lanyu_flying_fish: `<svg viewBox="0 0 36 36"><ellipse cx="18" cy="19" rx="10" ry="4.5" fill="#06b6d4"/><polygon points="12,17 5,8 19,15" fill="#e0f2fe"/><polygon points="24,17 31,8 19,15" fill="#e0f2fe"/></svg>`,
+    jiufen_gold: `<svg viewBox="0 0 36 36"><rect x="9" y="15" width="18" height="15" rx="3" fill="#78350f"/><polygon points="13,15 17,9 21,15" fill="#facc15"/><polygon points="19,15 23,10 26,15" fill="#fde047"/></svg>`,
+    hualien_marble: `<svg viewBox="0 0 36 36"><polygon points="18,5 29,12 29,24 18,31 7,24 7,12" fill="#cbd5e1" stroke="#475569" stroke-width="1.8"/><polygon points="18,10 24,15 24,22 18,26 12,22 12,15" fill="#0f766e"/></svg>`,
+    matsu_tears: `<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="9" fill="#38bdf8" stroke="#bae6fd" stroke-width="1.8"/><ellipse cx="18" cy="18" rx="14" ry="5" transform="rotate(-22 18 18)" fill="none" stroke="#7dd3fc" stroke-width="1.6"/></svg>`,
   };
   return icons[k] || `<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="12" fill="#eab308"/></svg>`;
 }
@@ -4189,12 +4325,12 @@ function openPlayerDetail(pid) {
       }).join('')}</div>` : '<div class="sub" style="margin:4px 0">目前沒有持有任何道具</div>'}
     </div>
     <div class="pd-section">
-      <h4>🎁 各地特產收藏（${(p.specialties || []).length}/${Object.keys(R.SPECIALTIES).length}${mine(pid) && !p.bankrupt ? '・點擊即可穿戴／卸下修飾棋子' : ''}）</h4>
+      <h4>🎁 各地特產收藏（${(p.specialties || []).length}/${Object.keys(R.SPECIALTIES).length}${(NET.role === 'local' ? !p.bankrupt : (mine(pid) && !p.bankrupt)) ? '・點擊即可穿戴／卸下修飾棋子' : ''}）</h4>
       ${(p.specialties && p.specialties.length) ? `<div class="pd-items">${p.specialties.map(k => {
         const sp = R.SPECIALTIES[k];
         if (!sp) return '';
         const eq = p.equipped && p.equipped[sp.slot] === k;
-        const canEquip = mine(pid) && !p.bankrupt;
+        const canEquip = NET.role === 'local' ? !p.bankrupt : (mine(pid) && !p.bankrupt);
         return `<button class="sp-card ${eq ? 'equipped' : ''}" data-sp="${k}" ${canEquip ? '' : 'disabled'}>
           <span class="item-ico">${specialtySvg(k)}</span>
           <div class="item-meta">
@@ -4228,7 +4364,7 @@ function openPlayerDetail(pid) {
     if (uiBtn) uiBtn.onclick = () => { closeModal(); openItems(); };
     box.querySelectorAll('[data-sp]').forEach(btn => {
       btn.onclick = () => {
-        send({ type: 'equipSpecialty', specialty: btn.dataset.sp });
+        send({ type: 'equipSpecialty', pid, specialty: btn.dataset.sp });
         openPlayerDetail(pid);
       };
     });
@@ -4426,7 +4562,7 @@ function askPrompt(q) {
           <span class="item-ico">${specialtySvg('sky_lantern')}</span>
           <div class="item-meta">
             <b>🎁 台灣特產盲盒 <span class="price">$500</span></b>
-            <small>${spFull ? '已集滿全部 12 種地方特產！' : `隨機獲得未擁有的各地特產飾品來修飾棋子（已收集 ${ownedSp}/${totalSp}）`}</small>
+            <small>${spFull ? `已集滿全部 ${totalSp} 種地方特產！` : `隨機獲得未擁有的各地特產飾品來修飾棋子（已收集 ${ownedSp}/${totalSp}）`}</small>
           </div>
         </button>`;
       })()}</div>
@@ -4534,7 +4670,7 @@ function openItems() {
     <div class="row"><button class="close">關閉</button></div>`, box => {
     box.querySelector('.close').onclick = closeModal;
     box.querySelectorAll('[data-sp]').forEach(btn => btn.onclick = () => {
-      send({ type: 'equipSpecialty', specialty: btn.dataset.sp });
+      send({ type: 'equipSpecialty', pid: p.id, specialty: btn.dataset.sp });
       openItems();
     });
     box.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
@@ -4679,7 +4815,7 @@ function openHelp() {
 
 // ============================================================ 動作送出與套用
 function send(a) {
-  const pid = (a.type === 'setRounds' || a.type === 'rename' || a.type === 'setKind') ? (a.pid != null ? a.pid : [...NET.myIds][0] || 0) : G.cur;
+  const pid = (a.type === 'setRounds' || a.type === 'rename' || a.type === 'setKind' || a.type === 'equipSpecialty') ? (a.pid != null ? a.pid : [...NET.myIds][0] || 0) : G.cur;
   if (NET.role === 'client') { NET.host && NET.host.send({ t: 'act', pid, a }); return; }
   const err = R.act(G, pid, a);
   if (err) { toast(err); return; }
@@ -4772,7 +4908,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v168</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v169</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
