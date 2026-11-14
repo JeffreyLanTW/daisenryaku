@@ -1893,12 +1893,12 @@ const URBAN_TILES = new Set(['台北', '信義區', '高雄', '台中', '新北'
 function tileScale(t, i) {
   if (!t) return 1;
   const nm = t.name;
-  if (['信義區', '台北', '高雄', '台中', '新北'].includes(nm)) return 1.42;
-  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '國家公園', '賭場'].includes(nm)) return 1.32;
-  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南', '竹科', '新竹', '桃園', '起點'].includes(nm)) return 1.22;
-  if (['小琉球', '七美', '東引', '烈嶼', '龜山島', '拉拉山', '明池', '谷關', '梨山', '天祥', '甲仙', '梅山', '埡口', '向陽'].includes(nm)) return 0.8;
-  if (t.type === 'chance' || t.type === 'fate') return 0.94;
-  return 1.04;
+  if (['信義區', '台北', '高雄', '台中', '新北'].includes(nm)) return 1.95;
+  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '國家公園', '賭場', '起點'].includes(nm)) return 1.65;
+  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南', '竹科', '新竹', '桃園', '花蓮', '台東', '宜蘭'].includes(nm)) return 1.35;
+  if (['小琉球', '七美', '東引', '烈嶼', '龜山島', '拉拉山', '明池', '谷關', '梨山', '天祥', '甲仙', '梅山', '埡口', '向陽'].includes(nm)) return 0.58;
+  if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.82;
+  return 1.02;
 }
 function tileTheme(t, i) {
   if (t.type === 'temple') return 'temple';
@@ -2023,7 +2023,7 @@ function makeLabelSprite(t, idx) {
     const prop = makeTileProp(t, i);
     if (prop.children.length) {
       prop.position.set(p.x + LM_OFF.x * ts, p.y + 0.32, p.z + LM_OFF.z * ts);
-      const bs = (prop.userData.baseScale || 0.78) * 1.75 * (0.62 + ts * 0.38);
+      const bs = (prop.userData.baseScale || 0.78) * 1.75 * (0.52 + ts * 0.48);
       prop.userData.baseScale = bs;
       prop.scale.setScalar(bs);
       board.add(prop);
@@ -2248,7 +2248,7 @@ function syncBuildings() {
       buildG.add(pole, flag);
       const h = houseMesh(s.level || 0, col);
       h.position.set(p.x + HOUSE_OFF.x * ts, p.y + 0.32, p.z + HOUSE_OFF.z * ts);
-      const baseScale = (s.level === 4 ? 0.95 : 0.92) * (0.68 + ts * 0.32);
+      const baseScale = (s.level === 4 ? 0.95 : 0.92) * (0.58 + ts * 0.42);
       h.scale.setScalar(baseScale);
       buildG.add(h);
       activeHouses.push({ group: h, baseScale, tileIdx: i });
@@ -4306,7 +4306,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v159</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v160</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
