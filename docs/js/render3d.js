@@ -3,8 +3,8 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=137';
-import { createFX } from './fx3d.js?v=137';
+import { unitModel } from './models3d.js?v=140';
+import { createFX } from './fx3d.js?v=140';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部

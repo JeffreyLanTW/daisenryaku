@@ -109,8 +109,11 @@ function attackTileFor(target) {
 }
 async function doMove(u, path, cost, stepMs) {
   if (path.length < 2) return;
-  sfxMove(u);
-  await animateMove(u, path, stepMs);
+  // 全程在迷霧中的敵軍移動：不播音效、不播動畫（也不讓觀看者白等）
+  if (typeof pathSeen !== 'function' || pathSeen(u, path)) {
+    sfxMove(u);
+    await animateMove(u, path, stepMs);
+  }
   const [x, y] = ixy(path[path.length - 1]);
   u.x = x; u.y = y;
   if (UNITS[u.type].fuel !== undefined) u.fuel -= cost;
@@ -206,10 +209,18 @@ function cancelAction() {
 }
 async function performAttack(att, def, speed = 1) {
   const [ax, ay] = tileCenter(att.x, att.y), [dx, dy] = tileCenter(def.x, def.y);
-  sfxFire(UNITS[att.type].base);
+  // 戰爭迷霧：雙方都看不見就不播任何動畫與音效，直接結算；只看得見一方時只演那一方
+  const seeA = typeof unitSeen !== 'function' || unitSeen(att), seeD = typeof unitSeen !== 'function' || unitSeen(def);
+  if (!seeA && !seeD) {
+    const res = resolveAttack(att, def);
+    removeDead(); checkVictory(); refreshPanel();
+    return res;
+  }
+  if (seeA) sfxFire(UNITS[att.type].base);
   // 3D 戰鬥特效：發射彈體，等彈體飛到才結算（電腦極快時不等，特效照常播放）
-  const fx3 = in3D && SETTINGS.fx3d;
-  if (fx3) {
+  const fx3 = in3D && SETTINGS.fx3d && seeA && seeD;
+  if (!seeA) await sleep(200 * speed);
+  else if (fx3) {
     const t = R3D.fire(att, def, speed);
     await sleep(speed >= 0.3 ? Math.max(t, 220 * speed) : 220 * speed);
   } else if (isIndirect(att.type)) {
@@ -217,15 +228,15 @@ async function performAttack(att, def, speed = 1) {
     await sleep(260 * speed);
   } else await animLunge(att, dx, dy, 220 * speed);
   const res = resolveAttack(att, def);
-  if (res.dmg > 0 || def.hp <= 0) sfx('explode', { big: def.hp <= 0 });
+  if (seeD && (res.dmg > 0 || def.hp <= 0)) sfx('explode', { big: def.hp <= 0 });
   if (!fx3) fxBoom(dx, dy, def.hp <= 0);
   fxText(dx, dy, res.evaded ? '迴避!' : def.hp <= 0 ? '擊破!' : `-${res.dmg}`, res.evaded ? '#8fe3ff' : '#ffd166');
   await sleep(420 * speed);
   if (res.countered) {
-    sfxFire(UNITS[def.type].base);
+    if (seeD) sfxFire(UNITS[def.type].base);
     let tc = 120;
     if (fx3) { const t = R3D.fire(def, att, speed); if (speed >= 0.3) { tc = t; await sleep(t); } }
-    if (res.counter > 0) audioTimer(() => sfx('explode', { big: att.hp <= 0 }), fx3 ? 0 : tc);
+    if (res.counter > 0 && seeA) audioTimer(() => sfx('explode', { big: att.hp <= 0 }), fx3 ? 0 : tc);
     if (!fx3) fxBoom(ax, ay, att.hp <= 0);
     fxText(ax, ay, res.cEvaded ? '迴避!' : att.hp <= 0 ? '擊破!' : `-${res.counter}`, res.cEvaded ? '#8fe3ff' : '#ff9b8a');
     await sleep(420 * speed);
@@ -1277,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v137</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v140</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1309,6 +1320,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v140</span><span class="cl-date">2026.11.14</span><p>【迷霧中看不到動畫】戰爭迷霧開啟時，敵軍在迷霧中的移動、攻擊、爆炸、傷害飄字、佔領與建設音效都不再顯示或播放；走出迷霧才現身、走進迷霧即消失；雙方都在迷霧中的交戰直接結算，電腦回合也因此更快。</p></div>
         <div class="cl-item"><span class="cl-ver">v137</span><span class="cl-date">2026.11.14</span><p>【迷霧也限制電腦】開啟戰爭迷霧時，電腦 AI 只會瞄準、追擊、搶灘與計算威脅自己（含盟友共享）看得見的敵軍，不再掌握全場；據點位置與歸屬仍是公開情報。</p></div>
         <div class="cl-item"><span class="cl-ver">v136</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 操作與實況體驗升級】新增三指觸控拖曳自由平移台灣棋盤視角；Breaking News 突發新聞快訊改為畫面正中央彈出，並依事件類型顯示鮮明彩色插畫與醒目大字標題；新增每 20 回合自動結算並彈出財富排行榜（含頂部「🏆 排行」按鈕可隨時檢視）。</p></div>
         <div class="cl-item"><span class="cl-ver">v135</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 全台地形與建模大翻新】廢除舊版方形外圍棋盤與木框，將 56 個環島格位直接配置於放大立體的台灣本島與澎湖／金門／綠島／蘭嶼離島地形上，並鋪設雙線環島公路與跨海斜張大橋；全面精細化台北 101、中正紀念堂、85 大樓、鵝鑾鼻燈塔、阿里山森林小火車、日月潭寶塔、竹科晶圓廠、九份茶樓、太魯閣牌樓、4 階建築（三合院到摩天大樓）與可動四肢玩家及 6 位 NPC 3D 造型。</p></div>
@@ -1509,7 +1521,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v137</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v140</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>

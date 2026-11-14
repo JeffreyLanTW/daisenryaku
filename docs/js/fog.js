@@ -59,10 +59,25 @@ function aiSees(s, u) {
   return !!visFor(s)[idxOf(u.x, u.y)];
 }
 // 這個部隊在畫面上看得見嗎（自己人永遠看得見）
+// 移動動畫中以「目前畫到的位置」判斷，走出迷霧才現身、走進迷霧就消失
 function unitSeen(u) {
   const vis = fogVis();
   if (!vis || !foe(u.side, FOG.side)) return true;
+  if (u._anim) { const [x, y] = pixelToTile(u._anim[0], u._anim[1]); return x >= 0 && y >= 0 && x < G.w && y < G.h && !!vis[idxOf(x, y)]; }
   return !!vis[idxOf(u.x, u.y)];
+}
+// 畫面座標（世界像素）所在的格子看不看得見：迷霧中的爆炸、飄字等特效不顯示
+function pxSeen(px, py) {
+  const vis = fogVis();
+  if (!vis) return true;
+  const [x, y] = pixelToTile(px, py);
+  return x >= 0 && y >= 0 && x < G.w && y < G.h && !!vis[idxOf(x, y)];
+}
+// 一條移動路徑上有沒有任何一格看得見（全程在迷霧中就不播動畫與音效）
+function pathSeen(u, path) {
+  const vis = fogVis();
+  if (!vis || !foe(u.side, FOG.side)) return true;
+  return path.some(i => vis[i]);
 }
 const tileSeen = i => { const vis = fogVis(); return !vis || !!vis[i]; };
 // 畫面用的 unitAt：看不見的敵軍當作沒有

@@ -656,8 +656,10 @@ function drawFX(now) {
     }
   }
 }
-function fxBoom(x, y, big) { FX.push({ kind: 'boom', x, y, big, t0: performance.now(), dur: 550 }); }
-function fxText(x, y, text, color = '#fff') { FX.push({ kind: 'text', x, y: y - 10, text, color, t0: performance.now(), dur: 1100 }); }
+// 迷霧中的特效不顯示（以特效發生的格子判斷）
+const fxHidden = (x, y) => typeof pxSeen === 'function' && !pxSeen(x, y);
+function fxBoom(x, y, big) { if (fxHidden(x, y)) return; FX.push({ kind: 'boom', x, y, big, t0: performance.now(), dur: 550 }); }
+function fxText(x, y, text, color = '#fff') { if (fxHidden(x, y + 14)) return; FX.push({ kind: 'text', x, y: y - 10, text, color, t0: performance.now(), dur: 1100 }); }
 
 // ----- 動畫 -----
 function animateMove(u, path, stepMs) {

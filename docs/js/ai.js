@@ -367,7 +367,7 @@ async function aiAct(u, token) {
   const evo = evoOptions(u);
   if (evo.length) {
     evolve(u, evo[0]);
-    if (typeof sfx === 'function') sfx('build');
+    if (typeof sfx === 'function' && (typeof unitSeen !== 'function' || unitSeen(u))) sfx('build');
     const [cx, cy] = tileCenter(u.x, u.y);
     fxText(cx, cy, '進化！', '#ffd34d');
     markDone(u);
@@ -559,20 +559,20 @@ async function aiAct(u, token) {
   } else if (act && act.kind === 'capture') {
     const [cx, cy] = tileCenter(u.x, u.y);
     const took = doCapture(u);
-    if (took && typeof sfx === 'function') sfx('capture');
+    if (took && typeof sfx === 'function' && (typeof unitSeen !== 'function' || unitSeen(u))) sfx('capture');
     fxText(cx, cy, took ? '佔領！' : `佔領中 ${G.capture[idxOf(u.x, u.y)].pts}`, SIDES[s].light);
     await sleep(SETTINGS.aiStep * 2);
   } else if (act && act.kind === 'build') {
     const [cx, cy] = tileCenter(u.x, u.y);
     const done = doBuildBase(u, act.type);
-    if (typeof sfx === 'function') sfx(done ? 'capture' : 'build');
+    if (typeof sfx === 'function' && (typeof unitSeen !== 'function' || unitSeen(u))) sfx(done ? 'capture' : 'build');
     const c = G.construct && G.construct[idxOf(u.x, u.y)];
     fxText(cx, cy, done ? `${BASE_TYPES[act.type].name}完工！` : `建設中 ${c ? c.pts : 0}`, SIDES[s].light);
     await sleep(SETTINGS.aiStep * 2);
   } else if (act && act.kind === 'repair') {
     const [cx, cy] = tileCenter(u.x, u.y);
     const full = doRepair(u);
-    if (full && typeof sfx === 'function') sfx('capture');
+    if (full && typeof sfx === 'function' && (typeof unitSeen !== 'function' || unitSeen(u))) sfx('capture');
     const pts = G.capture[idxOf(u.x, u.y)] ? G.capture[idxOf(u.x, u.y)].pts : CAPTURE_POINTS;
     fxText(cx, cy, full ? '修復完畢！' : `修復中 ${pts}/${CAPTURE_POINTS}`, SIDES[s].light);
     await sleep(SETTINGS.aiStep * 2);
@@ -585,7 +585,7 @@ async function aiAct(u, token) {
       const o = unitAt(nx, ny);
       if (o && o !== u && canMerge(o, u)) {
         mergeInto(u, o);
-        if (typeof sfx === 'function') sfx('build');
+        if (typeof sfx === 'function' && (typeof unitSeen !== 'function' || unitSeen(u))) sfx('build');
         const [mx, my] = tileCenter(o.x, o.y);
         fxText(mx, my, `合流！${o.hp}`, SIDES[s].light);
         break;
