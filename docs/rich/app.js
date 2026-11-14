@@ -728,6 +728,7 @@ function makeTileProp(t) {
   return g;
 }
 
+const tileProps = new Array(R.BOARD.length).fill(null);
 (function buildBoard() {
   buildTaiwanIsland();
 
@@ -774,14 +775,15 @@ function makeTileProp(t) {
       prop.position.set(p.x - 1.5, p.y + 0.16, p.z - 2.35);
       prop.scale.setScalar(0.68);
       board.add(prop);
+      tileProps[i] = prop;
     }
   });
 })();
 
-// ---------- 精細 4 階地產建築（三合院平房 → 騎樓透天 → 現代公寓 → 摩天大樓）----------
+// ---------- 精細 5 階地產建築（已購空地 → 一樓平房 → 二樓透天 → 高層大樓 → 超級摩天大樓）----------
 const buildG = new THREE.Group();
 scene.add(buildG);
-let buildKey = '';
+let buildKey = '', prevTileLevels = [], activeHouses = [], buildingRise = new Map();
 
 function houseMesh(level, color) {
   const g = new THREE.Group();
@@ -789,8 +791,17 @@ function houseMesh(level, color) {
   const brick = new THREE.MeshStandardMaterial({ color: '#b84a39', roughness: 0.85 });
   const roof = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
   const win = new THREE.MeshStandardMaterial({ color: '#7dd3fc', emissive: '#0c4a6e', roughness: 0.22 });
-  if (level === 1) {
-    // 1級平房：台灣紅磚三合院（正身＋左右護龍）
+  if (level === 0) {
+    // 0級已購空地：整地石基＋建地木牌
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.24, 3.2), new THREE.MeshStandardMaterial({ color: '#d6ccb5', roughness: 0.9 }));
+    pad.position.y = 0.12;
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.35, 6), new THREE.MeshStandardMaterial({ color: '#78350f' }));
+    post.position.set(0, 0.7, 0);
+    const boardSign = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.82, 0.14), roof);
+    boardSign.position.set(0, 1.35, 0);
+    g.add(pad, post, boardSign);
+  } else if (level === 1) {
+    // 1級一樓平房：台灣紅磚三合院（正身＋左右護龍）
     const main = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.5, 1.4), brick); main.position.set(0, 0.75, -0.35);
     const rMain = new THREE.Mesh(new THREE.ConeGeometry(2.1, 1.1, 4), roof); rMain.position.set(0, 2.0, -0.35); rMain.rotation.y = Math.PI / 4;
     for (const dx of [-1.05, 1.05]) {
@@ -800,7 +811,7 @@ function houseMesh(level, color) {
     }
     g.add(main, rMain);
   } else if (level === 2) {
-    // 2級透天：台灣騎樓雙併透天＋垂直招牌
+    // 2級二樓透天：台灣騎樓雙併透天＋垂直招牌
     for (const [x, h] of [[-1.0, 3.2], [1.05, 2.7]]) {
       const b = new THREE.Mesh(new THREE.BoxGeometry(1.7, h, 2.0), wall); b.position.set(x, h / 2, 0);
       const r = new THREE.Mesh(new THREE.ConeGeometry(1.4, 1.0, 4), roof); r.position.set(x, h + 0.5, 0); r.rotation.y = Math.PI / 4;
@@ -810,31 +821,46 @@ function houseMesh(level, color) {
     const sign = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.4, 0.45), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#785000' }));
     sign.position.set(-2.05, 2.0, 0.85); g.add(sign);
   } else if (level === 3) {
-    // 3級公寓：五層現代住宅大樓＋陽台＋水塔
-    const b = new THREE.Mesh(new THREE.BoxGeometry(3.4, 5.2, 2.5), wall); b.position.y = 2.6; g.add(b);
-    for (let y = 0.9; y < 4.9; y += 1.2) {
+    // 3級高層大樓：六層現代住宅大樓＋陽台＋水塔
+    const b = new THREE.Mesh(new THREE.BoxGeometry(3.4, 6.2, 2.6), wall); b.position.y = 3.1; g.add(b);
+    for (let y = 0.9; y < 5.9; y += 1.0) {
       for (const x of [-0.95, 0, 0.95]) {
-        const w = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.55, 0.14), win);
-        w.position.set(x, y, 1.26); g.add(w);
+        const w = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.14), win);
+        w.position.set(x, y, 1.32); g.add(w);
       }
       const slab = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 0.35), roof);
-      slab.position.set(0, y - 0.3, 1.32); g.add(slab);
+      slab.position.set(0, y - 0.26, 1.36); g.add(slab);
     }
-    const rf = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.4, 2.8), roof); rf.position.y = 5.4; g.add(rf);
-    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.95, 10), new THREE.MeshStandardMaterial({ color: '#cbd5e1', metalness: 0.7 }));
-    tank.position.set(0.95, 6.05, -0.45); g.add(tank);
+    const rf = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.45, 2.9), roof); rf.position.y = 6.42; g.add(rf);
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.0, 10), new THREE.MeshStandardMaterial({ color: '#cbd5e1', metalness: 0.7 }));
+    tank.position.set(0.95, 7.1, -0.45); g.add(tank);
   } else if (level === 4) {
-    // 4級大樓：退縮式玻璃帷幕摩天大樓＋停機坪＋金頂天線
-    const glass = new THREE.MeshStandardMaterial({ color: '#cbd5e1', metalness: 0.45, roughness: 0.25 });
-    const podium = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.2, 3.5), glass); podium.position.y = 1.1; g.add(podium);
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(2.8, 7.6, 2.8), glass); tower.position.y = 5.8; g.add(tower);
-    for (let y = 2.6; y < 9.4; y += 1.05) {
-      const w = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.42, 2.9), win);
-      w.position.y = y; g.add(w);
+    // 4級摩天大樓：三段退縮式玻璃帷幕地標摩天大樓＋發光霓虹條＋停機坪＋黃金尖塔
+    const glass = new THREE.MeshStandardMaterial({ color: '#dbeafe', metalness: 0.55, roughness: 0.2 });
+    const neon = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.3 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207', metalness: 0.7, roughness: 0.2 });
+    const podium = new THREE.Mesh(new THREE.BoxGeometry(3.8, 2.2, 3.8), glass); podium.position.y = 1.1;
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.25, 1.0), goldMat); canopy.position.set(0, 1.15, 2.1);
+    const mid = new THREE.Mesh(new THREE.BoxGeometry(3.0, 6.2, 3.0), glass); mid.position.y = 5.3;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(2.2, 4.2, 2.2), glass); upper.position.y = 10.5;
+    g.add(podium, canopy, mid, upper);
+    for (let y = 2.6; y < 8.1; y += 0.95) {
+      const w = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.42, 3.1), win); w.position.y = y; g.add(w);
     }
-    const crown = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.3, 2.0), roof); crown.position.y = 10.2; g.add(crown);
-    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.16, 2.5, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#695100' }));
-    spire.position.y = 12.1; g.add(spire);
+    for (let y = 8.9; y < 12.4; y += 0.9) {
+      const w = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.38, 2.3), win); w.position.y = y; g.add(w);
+    }
+    for (const [cx, cz] of [[-1.52, -1.52], [1.52, -1.52], [-1.52, 1.52], [1.52, 1.52]]) {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 6.3, 0.18), neon);
+      strip.position.set(cx, 5.35, cz); g.add(strip);
+    }
+    const helipad = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.78, 16), goldMat);
+    helipad.rotation.x = -Math.PI / 2; helipad.position.y = 12.64; g.add(helipad);
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.15, 1.7), roof); crown.position.y = 13.15; g.add(crown);
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.2, 2.6, 8), goldMat); spire.position.y = 14.9; g.add(spire);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.9 }));
+    beacon.position.y = 16.25; g.add(beacon);
+    g.userData.beacon = beacon;
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   return g;
@@ -845,7 +871,15 @@ function syncBuildings() {
   if (key === buildKey) return;
   buildKey = key;
   buildG.clear();
+  activeHouses = [];
+  const now = performance.now();
   G.tiles.forEach((s, i) => {
+    const prevLv = prevTileLevels[i] || 0;
+    if (s.owner != null && s.level > prevLv) {
+      buildingRise.set(i, { t0: now, fromScale: Math.max(0.16, prevLv / Math.max(1, s.level)) });
+    }
+    prevTileLevels[i] = s.level || 0;
+    if (tileProps[i]) tileProps[i].scale.setScalar(s.owner != null && s.level > 0 ? 0.34 : 0.68);
     const p = tilePos(i);
     if (s.owner != null) {
       const col = G.players[s.owner].color;
@@ -861,12 +895,12 @@ function syncBuildings() {
       const fx = p.x + 2.55, fz = p.z - 2.55;
       pole.position.set(fx, p.y + 1.55, fz); flag.position.set(fx + 0.65, p.y + 2.5, fz);
       buildG.add(pole, flag);
-      if (s.level > 0) {
-        const h = houseMesh(s.level, col);
-        h.position.set(p.x + 1.45, p.y + 0.18, p.z - 1.95);
-        h.scale.setScalar(0.76);
-        buildG.add(h);
-      }
+      const h = houseMesh(s.level || 0, col);
+      h.position.set(p.x + 1.1, p.y + 0.18, p.z - 1.9);
+      const baseScale = s.level === 4 ? 0.8 : 0.78;
+      h.scale.setScalar(baseScale);
+      buildG.add(h);
+      activeHouses.push({ group: h, baseScale, tileIdx: i });
     }
   });
   for (const b of G.blocks) {
@@ -1255,6 +1289,19 @@ function frame(now) {
   for (let k = 0; k < animProps.length; k++) animProps[k](now);
   if (G) {
     syncBuildings();
+    for (const ah of activeHouses) {
+      const anim = buildingRise.get(ah.tileIdx);
+      if (anim) {
+        const f = Math.min(1, (now - anim.t0) / 760);
+        const ease = 1 - Math.pow(1 - f, 3) + Math.sin(f * Math.PI) * 0.14;
+        const sy = ah.baseScale * (anim.fromScale + (1 - anim.fromScale) * Math.min(1.12, ease));
+        ah.group.scale.y = sy;
+        if (f >= 1) { ah.group.scale.y = ah.baseScale; buildingRise.delete(ah.tileIdx); }
+      }
+      if (ah.group.userData.beacon) {
+        ah.group.userData.beacon.scale.setScalar(0.9 + Math.sin(now * 0.008) * 0.25);
+      }
+    }
     G.players.forEach((pl, k) => {
       const tk = tokens[k] || (tokens[k] = makeToken(pl));
       tk.g.visible = !pl.bankrupt;
@@ -1530,20 +1577,20 @@ function renderUI() {
   if (G.card && G.card.n !== lastCard) {
     lastCard = G.card.n;
     const c = G.card;
-    setTimeout(() => showCard(c), animDelay());
+    whenWalkDone(() => showCard(c));
   }
-  // 購買／蓋房／抽卡／道具屋詢問
+  // 購買／同位置蓋樓升級／抽卡／道具屋詢問
   const askKey = G.ask ? `${G.turn}:${G.ask.k}:${G.ask.i}:${G.ask.bought ? G.ask.bought.length : 0}` : '';
   if (G.ask && my && shownAsk !== askKey) {
     shownAsk = askKey;
     const q = G.ask;
-    const delay = (q.k === 'shop' && q.bought && q.bought.length > 0) ? 0 : animDelay();
-    setTimeout(() => askPrompt(q), delay);
+    if (q.k === 'shop' && q.bought && q.bought.length > 0) setTimeout(() => askPrompt(q), 0);
+    else whenWalkDone(() => askPrompt(q));
   }
   if (G.fx && JSON.stringify(G.fx) + G.turn !== lastFx) {
     lastFx = JSON.stringify(G.fx) + G.turn;
     const fk = G.fx.k;
-    setTimeout(() => snd({ rent: 'pay', buy: 'cash', build: 'build', jail: 'bad', demolish: 'bad', god_good: 'god', god_bad: 'badgod', seize: 'seize' }[fk] || 'turn'), animDelay());
+    whenWalkDone(() => snd({ rent: 'pay', buy: 'cash', build: 'build', jail: 'bad', demolish: 'bad', god_good: 'god', god_bad: 'badgod', seize: 'seize' }[fk] || 'turn'));
   }
   if (G.phase !== 'over' && G.round >= 20 && G.round % 20 === 0 && G.round !== lastRankRound && !G.ask && $('#modal').classList.contains('hidden')) {
     lastRankRound = G.round;
@@ -1561,8 +1608,20 @@ function renderUI() {
   if (G.phase === 'over') setTimeout(showResult, 900);
 }
 
-let moveAt = 0;
+let moveAt = 0, walkTimers = [];
 const animDelay = () => Math.max(300, moveAt + (G.move ? G.move.path.length : 0) * 210 + 750 - performance.now());
+function clearWalkTimers() { for (const id of walkTimers) clearTimeout(id); walkTimers.length = 0; }
+function whenWalkDone(cb) {
+  const t0 = performance.now();
+  const id = setTimeout(function check() {
+    const syncPending = G && G.move && G.move.path.length && tokens[G.move.p] && tokens[G.move.p].moveN !== G.move.n && (performance.now() - t0 < 2000);
+    if ((animBusy() || syncPending) && performance.now() - t0 < 7000) {
+      const id2 = setTimeout(check, 80); walkTimers.push(id2); return;
+    }
+    cb();
+  }, 180);
+  walkTimers.push(id);
+}
 
 function showCard(c) {
   const el = $('#cardPop');
@@ -1606,15 +1665,54 @@ function askPrompt(q) {
     return;
   }
 
-  const buy = q.k === 'buy', nextLv = buy ? 0 : s.level + 1;
+  const buy = q.k === 'buy', curLv = s.level || 0, nextLv = buy ? 0 : curLv + 1;
   const godHint = p.god ? (p.god.kind === 'tudigong' && buy ? '（土地公半價優惠）' : p.god.kind === 'fushen' && buy ? '（福神 8 折優惠）' : p.god.kind === 'shuaishen' ? '（衰神 1.5 倍漲價）' : '') : '';
-  openModal(`<h2>${buy ? '要買下這塊地嗎？' : '要加蓋嗎？'}</h2>
+  if (buy) {
+    const unitBuild = q.buildCost != null ? q.buildCost : R.buildCostOf(G, p, q.i);
+    const withBuildCost = q.cost + unitBuild;
+    const canBuildNow = p.cash >= withBuildCost;
+    openModal(`<h2>🏡 要買下「${t.name}」嗎？</h2>
+      <div class="deal"><span>地點</span><b>${t.name}${t.group ? `（${R.GROUPS[t.group].name}）` : ''}</b>
+        <span>購地價格</span><b>$${q.cost.toLocaleString()} ${godHint}</b>
+        <span>加蓋一樓</span><b>$${unitBuild.toLocaleString()}（合計 $${withBuildCost.toLocaleString()}）</b>
+        <span>目前現金</span><b>$${p.cash.toLocaleString()}</b></div>
+      <div class="sub">買下後，下次再回到同一位置即可一路蓋樓至【🏙️ 摩天大樓】！</div>
+      <div class="row">
+        <button id="aNo">不要</button>
+        <button class="primary" id="aYes">買下空地 ($${q.cost.toLocaleString()})</button>
+        ${canBuildNow ? `<button class="sky" id="aYesBuild">🏠 買地＋蓋一樓 ($${withBuildCost.toLocaleString()})</button>` : ''}
+      </div>`, box => {
+      box.querySelector('#aYes').onclick = () => { closeModal(); send({ type: 'answer', yes: true }); };
+      if (box.querySelector('#aYesBuild')) {
+        box.querySelector('#aYesBuild').onclick = () => { closeModal(); send({ type: 'answer', yes: true, buildFirst: true }); };
+      }
+      box.querySelector('#aNo').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
+    });
+    return;
+  }
+
+  const remain = R.MAX_LEVEL - curLv, skyCost = q.cost * remain, canSky = remain > 1 && p.cash >= skyCost;
+  const curRent = R.rentAt(G, q.i, curLv), nextRent = R.rentAt(G, q.i, nextLv), skyRent = R.rentAt(G, q.i, R.MAX_LEVEL);
+  const track = R.LEVEL_NAME.map((nm, idx) => {
+    const cls = idx < curLv ? 'done' : idx === curLv ? 'cur' : idx === nextLv ? 'next' : '';
+    return `<div class="lv-step ${cls}${idx === R.MAX_LEVEL ? ' sky' : ''}">${idx === R.MAX_LEVEL ? '🏙️ ' : ''}Lv.${idx}<br>${nm}</div>`;
+  }).join('<span class="lv-arrow">→</span>');
+  openModal(`<h2>🏗️ 回到自家「${t.name}」：蓋樓升級</h2>
+    <div class="lv-track">${track}</div>
     <div class="deal"><span>地點</span><b>${t.name}${t.group ? `（${R.GROUPS[t.group].name}）` : ''}</b>
-      <span>${buy ? '價格' : '費用'}</span><b>$${q.cost.toLocaleString()} ${godHint}</b>
-      ${buy ? '' : `<span>升級</span><b>${R.LEVEL_NAME[s.level]} → ${R.LEVEL_NAME[nextLv]}</b>`}
+      <span>蓋樓費用</span><b>$${q.cost.toLocaleString()} / 階 ${godHint}</b>
+      <span>建築升級</span><b>${R.LEVEL_NAME[curLv]} → ${R.LEVEL_NAME[nextLv]}</b>
+      <span>過路費躍升</span><b>$${curRent.toLocaleString()} → <span style="color:#4ade80">$${nextRent.toLocaleString()}</span>${remain > 1 ? `（摩天大樓 $${skyRent.toLocaleString()}）` : ''}</b>
       <span>現金</span><b>$${p.cash.toLocaleString()} → $${(p.cash - q.cost).toLocaleString()}</b></div>
-    <div class="row"><button id="aNo">不要</button><button class="primary" id="aYes">${buy ? '買下' : '加蓋'}</button></div>`, box => {
-    box.querySelector('#aYes').onclick = () => { closeModal(); send({ type: 'answer', yes: true }); };
+    <div class="row">
+      <button id="aNo">暫不蓋樓</button>
+      <button class="primary" id="aYes">🏗️ 蓋成【${R.LEVEL_NAME[nextLv]}】($${q.cost.toLocaleString()})</button>
+      ${canSky ? `<button class="sky" id="aSky">🏙️ 直衝摩天大樓 ($${skyCost.toLocaleString()})</button>` : ''}
+    </div>`, box => {
+    box.querySelector('#aYes').onclick = () => { closeModal(); send({ type: 'answer', yes: true, levels: 1 }); };
+    if (box.querySelector('#aSky')) {
+      box.querySelector('#aSky').onclick = () => { closeModal(); send({ type: 'answer', yes: true, levels: remain }); };
+    }
     box.querySelector('#aNo').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
   });
 }
@@ -1766,6 +1864,7 @@ $('#btnMenu').onclick = () => openModal(`<h2>選單</h2><div class="row" style="
 function openHelp() {
   openModal(`<h2>玩法說明</h2><div class="sub" style="font-size:14px;color:var(--text)">
   ・<b>56 格全台灣環島地圖</b>：從南部墾丁一路順時針經過西部、北台灣、東部與離島！<br>
+  ・<b>買地蓋樓變摩天大樓</b>：買下土地或車站後，每次再走到同位置即可一階階蓋樓（<b>空地 → 一樓平房 → 二樓透天 → 高層大樓 → 摩天大樓</b>），也可以直接蓋成最高級摩天大樓收高額過路費！<br>
   ・<b>機會、命運與道具屋</b>：踩到機會／命運會跳出卡片視窗確認執行；踩到道具屋會送一張隨機卡片，並開啟商店讓你購買「請神卡、送神卡、遙控骰子、路障、免租卡、迴轉卡、拆除卡、徵收卡」。<br>
   ・<b>神明與地圖 NPC</b>：地圖上會巡邏「土地公、財神爺、福神、窮神、衰神、野狗」6 位 NPC！路過或使用請神卡可獲得附身：<b>土地公附身時踩到別人的地可免費強佔</b>！送神卡則可把壞神明轉送給對手。<br>
   ・<b>Breaking News 快訊</b>：任何玩家的重大購地、強佔、使用道具與破產都會即時廣播給全場玩家。<br>
@@ -1839,7 +1938,8 @@ function startGame(seats, rounds) {
   G = R.newGame(seats, { maxRounds: rounds });
   tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
-  buildKey = ''; lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+  buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); clearWalkTimers();
+  lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
   camS.pan.set(0, 0, 0);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
@@ -2025,7 +2125,8 @@ function openJoin() {
               closeModal();
               tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
-              buildKey = ''; lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+              buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); clearWalkTimers();
+              lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
               camS.pan.set(0, 0, 0);
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b);

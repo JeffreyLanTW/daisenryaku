@@ -47,7 +47,7 @@
   ];
   const N = BOARD.length;
   const START_BONUS = 2000, START_CASH = 18000, MAX_LEVEL = 4, JAIL_TURNS = 2, MAX_ITEMS = 8;
-  const LEVEL_NAME = ['空地', '平房', '透天', '公寓', '大樓'];
+  const LEVEL_NAME = ['空地', '一樓平房', '二樓透天', '高層大樓', '摩天大樓'];
   const RENT_MUL = [1.5, 6, 14, 24, 36];
 
   // ----- 神明與地圖移動 NPC -----
@@ -122,21 +122,23 @@
     if (G.news.length > 25) G.news.shift();
   }
 
-  function rentOf(G, i) {
+  function rentAt(G, i, lv) {
     const t = BOARD[i], s = G.tiles[i];
     if (s.owner == null) return 0;
     const owner = G.players.find(q => q.id === s.owner);
+    const effLv = Math.max(0, Math.min(MAX_LEVEL, lv | 0));
     let r = 0;
     if (t.type === 'station') {
       const n = G.tiles.filter((x, j) => BOARD[j].type === 'station' && x.owner === s.owner).length;
-      r = 350 * Math.pow(2, n - 1);
+      r = Math.round(350 * Math.pow(2, n - 1) * (1 + effLv * 0.85));
     } else {
-      r = Math.round(t.price * 0.2 * RENT_MUL[s.level || 0]);
+      r = Math.round(t.price * 0.2 * RENT_MUL[effLv]);
       if (groupOwned(G, i)) r *= 2;
     }
     if (owner && owner.god && owner.god.kind === 'caishen') r = Math.round(r * 1.5);
     return r;
   }
+  function rentOf(G, i) { return rentAt(G, i, G.tiles[i].level || 0); }
   const buildCost = i => Math.round(BOARD[i].price * 0.5);
   function buyPriceOf(G, p, i) {
     const base = BOARD[i].price;
@@ -175,14 +177,14 @@
     return k;
   }
   function freeUpgrade(G, p) {
-    const own = lands(G, p).filter(i => BOARD[i].type === 'land' && G.tiles[i].level < MAX_LEVEL);
+    const own = lands(G, p).filter(i => (BOARD[i].type === 'land' || BOARD[i].type === 'station') && G.tiles[i].level < MAX_LEVEL);
     if (!own.length) { log(G, `${p.name} 沒有可升級的地`); return; }
     own.sort((a, b) => BOARD[b].price - BOARD[a].price);
     const ti = own[0];
     G.tiles[ti].level++;
     log(G, `${BOARD[ti].name} 免費升級為${LEVEL_NAME[G.tiles[ti].level]}`);
-    G.fx = { k: 'build', i: ti };
-    pushNews(G, '都更喜訊', `${p.name} 獲得地方補助，「${BOARD[ti].name}」免費升為${LEVEL_NAME[G.tiles[ti].level]}！`, '都市更新', '#2ecc71');
+    G.fx = { k: 'build', i: ti, lv: G.tiles[ti].level };
+    pushNews(G, G.tiles[ti].level === MAX_LEVEL ? '摩天大樓落成' : '都更喜訊', `${p.name} 獲得地方補助，「${BOARD[ti].name}」免費升為【${LEVEL_NAME[G.tiles[ti].level]}】！`, '都市更新', '#2ecc71');
   }
 
   function randomBoardTile(G) {
@@ -341,20 +343,24 @@
     if (t.type === 'land' || t.type === 'station') {
       if (s.owner == null) {
         const cost = buyPriceOf(G, p, i);
-        if (p.cash >= cost) G.ask = { k: 'buy', i, cost };
+        if (p.cash >= cost) G.ask = { k: 'buy', i, cost, buildCost: buildCostOf(G, p, i) };
         return;
       }
       if (s.owner === p.id) {
-        if (t.type === 'land' && s.level < MAX_LEVEL) {
+        if (s.level < MAX_LEVEL) {
           const cost = buildCostOf(G, p, i);
           if (p.god && p.god.kind === 'fushen') {
             s.level++;
             log(G, `🍀 福神顯靈！${p.name} 的 ${t.name} 免費升級為${LEVEL_NAME[s.level]}`);
-            G.fx = { k: 'build', i };
-            pushNews(G, '福神庇佑', `🍀 福神顯靈！${p.name} 的「${t.name}」免費加蓋成${LEVEL_NAME[s.level]}！`, '免費建設', '#2ecc71');
+            G.fx = { k: 'build', i, lv: s.level };
+            pushNews(G, s.level === MAX_LEVEL ? '摩天大樓落成' : '福神庇佑', `🍀 福神顯靈！${p.name} 的「${t.name}」免費加蓋成【${LEVEL_NAME[s.level]}】！`, s.level === MAX_LEVEL ? '地產巔峰' : '免費建設', '#2ecc71');
+            if (s.level < MAX_LEVEL && p.cash >= cost) G.ask = { k: 'build', i, cost };
             return;
           }
           if (p.cash >= cost) G.ask = { k: 'build', i, cost };
+          else log(G, `${p.name} 回到自家「${t.name}」，目前資金不足蓋樓（需 $${cost}）`);
+        } else {
+          log(G, `🏙️ ${p.name} 巡視自家的「${t.name}」摩天大樓！`);
         }
         return;
       }
@@ -559,25 +565,45 @@
           G.phase = 'done';
           return null;
         }
-        if (a.yes && p.cash >= q.cost) {
-          p.cash -= q.cost;
+        if (a.yes) {
           if (q.k === 'buy') {
-            G.tiles[q.i].owner = p.id;
-            log(G, `${p.name} 以 $${q.cost} 買下 ${BOARD[q.i].name}`);
-            G.fx = { k: 'buy', i: q.i };
-            if (groupOwned(G, q.i)) {
-              const gName = GROUPS[BOARD[q.i].group].name;
-              pushNews(G, '地產壟斷', `👑 ${p.name} 買下「${BOARD[q.i].name}」，成功獨佔整個【${gName}】過路費全面翻倍！`, '重大購地', p.color);
-            } else if (BOARD[q.i].price >= 3500) {
-              pushNews(G, '豪宅置產', `🏠 ${p.name} 斥資 $${q.cost} 買下精華地段「${BOARD[q.i].name}」！`, '地產成交', p.color);
+            const unitBuild = buildCostOf(G, p, q.i);
+            const wantBuild = !!a.buildFirst && p.cash >= q.cost + unitBuild;
+            const totalCost = q.cost + (wantBuild ? unitBuild : 0);
+            if (p.cash >= totalCost) {
+              p.cash -= totalCost;
+              G.tiles[q.i].owner = p.id;
+              if (wantBuild) {
+                G.tiles[q.i].level = 1;
+                log(G, `🏠 ${p.name} 以 $${q.cost} 買下 ${BOARD[q.i].name}，並立即花了 $${unitBuild} 蓋成【${LEVEL_NAME[1]}】`);
+                G.fx = { k: 'build', i: q.i, lv: 1 };
+              } else {
+                log(G, `${p.name} 以 $${q.cost} 買下 ${BOARD[q.i].name}`);
+                G.fx = { k: 'buy', i: q.i };
+              }
+              if (groupOwned(G, q.i)) {
+                const gName = GROUPS[BOARD[q.i].group].name;
+                pushNews(G, '地產壟斷', `👑 ${p.name} 買下「${BOARD[q.i].name}」，成功獨佔整個【${gName}】過路費全面翻倍！`, '重大購地', p.color);
+              } else if (BOARD[q.i].price >= 3500 || wantBuild) {
+                pushNews(G, wantBuild ? '買地興建' : '豪宅置產', `🏠 ${p.name} 斥資 $${totalCost} 買下「${BOARD[q.i].name}」${wantBuild ? `並蓋起【${LEVEL_NAME[1]}】` : ''}！`, '地產成交', p.color);
+              }
             }
           } else {
-            G.tiles[q.i].level++;
-            const lv = G.tiles[q.i].level;
-            log(G, `${p.name} 把 ${BOARD[q.i].name} 蓋成${LEVEL_NAME[lv]}（$${q.cost}）`);
-            G.fx = { k: 'build', i: q.i };
-            if (lv === MAX_LEVEL) {
-              pushNews(G, '地標落成', `🏙️ ${p.name} 將「${BOARD[q.i].name}」建成最高級摩天大樓！`, '建築完工', p.color);
+            const curLv = G.tiles[q.i].level || 0;
+            const maxAdd = Math.max(1, MAX_LEVEL - curLv);
+            const addLv = Math.max(1, Math.min(maxAdd, a.levels ? (a.levels | 0) : 1));
+            const totalCost = q.cost * addLv;
+            if (p.cash >= totalCost) {
+              p.cash -= totalCost;
+              G.tiles[q.i].level = curLv + addLv;
+              const lv = G.tiles[q.i].level;
+              log(G, `🏗️ ${p.name} 把 ${BOARD[q.i].name} 蓋成【${LEVEL_NAME[lv]}】（$${totalCost}）`);
+              G.fx = { k: 'build', i: q.i, lv };
+              if (lv === MAX_LEVEL) {
+                pushNews(G, '摩天大樓落成', `🏙️ 震撼地標！${p.name} 將「${BOARD[q.i].name}」正式蓋成最高級【摩天大樓】！過路費暴漲至 $${rentOf(G, q.i)}！`, '地產巔峰', p.color);
+              } else if (addLv >= 2 || lv === 3) {
+                pushNews(G, '加蓋擴建', `🏢 ${p.name} 豪砸 $${totalCost}，將「${BOARD[q.i].name}」擴建為【${LEVEL_NAME[lv]}】！`, '建築升級', p.color);
+              }
             }
           }
         }
@@ -810,7 +836,7 @@
   const API = {
     BOARD, GROUPS, ITEMS, GODS, CHARS, LEVEL_NAME, MAX_LEVEL, MAX_ITEMS, N,
     START_CASH, START_BONUS,
-    newGame, act, aiAction, rentOf, buildCost, buyPriceOf, buildCostOf, netWorth, lands, cur,
+    newGame, act, aiAction, rentOf, rentAt, buildCost, buyPriceOf, buildCostOf, netWorth, lands, cur,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.RICH = API;
 })(typeof window !== 'undefined' ? window : globalThis);
