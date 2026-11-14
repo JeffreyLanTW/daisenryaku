@@ -1183,29 +1183,75 @@ function stepDice(now) {
   if (t >= 1) diceAnim = null;
 }
 
-// ---------- 鏡頭：完整俯瞰立體台灣本島、支援單指旋轉、雙指縮放、三指平移棋盤 ----------
-const camS = { yaw: 0.36, pitch: 0.88, dist: 245, target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4), pan: new THREE.Vector3(0, 0, 0) };
+// ---------- 鏡頭：操作模式與大戰略 3D 一致（單指/左鍵平移、雙指鎖定縮放或旋轉傾斜、右鍵或 Shift+左鍵旋轉傾斜、Q/E/R/F 與右下角控制列） ----------
+const ROT_STEP = Math.PI / 12, TILT_STEP = 10;
+const DIST_MIN = 65, DIST_MAX = 420, TILT_MIN = 18, TILT_MAX = 85;
+const camS = {
+  yaw: 0.25, yawGoal: 0.25, tilt: 0, tiltGoal: 0, pitch: 0.92, dist: 235,
+  target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4),
+  hasGoal: true, follow: true,
+};
+let lastFocusTurn = -1;
+const camCtl = {
+  rotate(d) { camS.yawGoal += d; },
+  rotateBy(d) { camS.yaw += d; camS.yawGoal = camS.yaw; },
+  resetYaw() { const full = Math.PI * 2; camS.yawGoal = Math.round(camS.yaw / full) * full; },
+  tilt(d) { camS.tiltGoal += d; },
+  tiltBy(d) { camS.tilt += d; camS.tiltGoal = camS.tilt; },
+  resetTilt() { camS.tiltGoal = 0; },
+  setDist(d) { camS.dist = Math.max(DIST_MIN, Math.min(DIST_MAX, d)); },
+  zoom(factor) { camCtl.setDist(camS.dist * factor); },
+};
+function focusCurPlayer() {
+  camS.hasGoal = true;
+  const ct = G && tokens[G.cur];
+  if (ct) camS.goal.copy(ct.g.position).multiplyScalar(0.55).setY(0);
+  else camS.goal.set(-4, 0, 4);
+}
+function resetCamGoal() {
+  lastFocusTurn = -1;
+  camS.target.set(-4, 0, 4);
+  camS.goal.set(-4, 0, 4);
+  camS.hasGoal = camS.follow;
+}
 function panBoard(dx, dy) {
-  const scale = camS.dist * 0.0017;
-  const rx = Math.cos(camS.yaw), rz = -Math.sin(camS.yaw);
-  const fx = -Math.sin(camS.yaw), fz = -Math.cos(camS.yaw);
-  const mx = (-rx * dx + fx * dy) * scale;
-  const mz = (-rz * dx + fz * dy) * scale;
-  const nx = Math.max(-110, Math.min(110, camS.pan.x + mx));
-  const nz = Math.max(-130, Math.min(130, camS.pan.z + mz));
-  const ddx = nx - camS.pan.x, ddz = nz - camS.pan.z;
-  camS.pan.x = nx; camS.pan.z = nz;
-  camS.goal.x += ddx; camS.goal.z += ddz;
-  camS.target.x += ddx; camS.target.z += ddz;
+  camS.hasGoal = false;
+  const c = Math.cos(camS.yaw), sn = Math.sin(camS.yaw), k = 1 / Math.max(0.25, Math.sin(camS.pitch));
+  const vh = Math.max(200, canvas.clientHeight || innerHeight || 720);
+  const scale = (2 * camS.dist * Math.tan(camera.fov * Math.PI / 360)) / vh;
+  const mx = (c * dx + sn * dy * k) * scale;
+  const mz = (-sn * dx + c * dy * k) * scale;
+  camS.target.x = Math.max(-115, Math.min(115, camS.target.x - mx));
+  camS.target.z = Math.max(-135, Math.min(135, camS.target.z - mz));
+  camS.goal.copy(camS.target);
 }
 function updateCamera() {
-  camS.target.lerp(camS.goal, 0.06);
+  const t = Math.max(0, Math.min(1, (Math.log(DIST_MAX) - Math.log(camS.dist)) / (Math.log(DIST_MAX) - Math.log(DIST_MIN))));
+  const baseDeg = 60 - 18 * t;
+  if (camS.tilt !== camS.tiltGoal) {
+    camS.tilt += (camS.tiltGoal - camS.tilt) * 0.2;
+    if (Math.abs(camS.tiltGoal - camS.tilt) < 0.05) camS.tilt = camS.tiltGoal;
+  }
+  camS.tiltGoal = Math.max(TILT_MIN - baseDeg, Math.min(TILT_MAX - baseDeg, camS.tiltGoal));
+  camS.tilt = Math.max(TILT_MIN - baseDeg, Math.min(TILT_MAX - baseDeg, camS.tilt));
+  const elevDeg = Math.max(TILT_MIN, Math.min(TILT_MAX, baseDeg + camS.tilt));
+  camS.pitch = elevDeg * Math.PI / 180;
+  if (camS.yaw !== camS.yawGoal) {
+    camS.yaw += (camS.yawGoal - camS.yaw) * 0.2;
+    if (Math.abs(camS.yawGoal - camS.yaw) < 1e-3) camS.yaw = camS.yawGoal;
+  }
+  if (camS.hasGoal) camS.target.lerp(camS.goal, 0.08);
   const d = camS.dist, cp = Math.cos(camS.pitch);
-  camera.position.set(camS.target.x + Math.sin(camS.yaw) * cp * d, camS.target.y + Math.sin(camS.pitch) * d, camS.target.z + Math.cos(camS.yaw) * cp * d);
+  camera.position.set(
+    camS.target.x + Math.sin(camS.yaw) * cp * d,
+    camS.target.y + Math.sin(camS.pitch) * d,
+    camS.target.z + Math.cos(camS.yaw) * cp * d
+  );
   camera.lookAt(camS.target);
 }
 (function input() {
-  const pts = new Map(); let last = null, pinch = null, triCenter = null, touchTri = null;
+  const pts = new Map();
+  let down = null, dragging = false, pinch = null, triCenter = null, touchTri = null;
   const centroid = list => {
     let sx = 0, sy = 0;
     for (const p of list) { sx += p.x; sy += p.y; }
@@ -1216,14 +1262,15 @@ function updateCamera() {
     try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 忽略 */ }
     if (pts.size >= 3) {
       triCenter = centroid([...pts.values()]);
-      pinch = null; last = null;
+      pinch = null; down = null;
     } else if (pts.size === 2) {
       const [a, b] = [...pts.values()];
-      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: camS.dist };
-      triCenter = null; last = null;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      pinch = { d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), dist: camS.dist, mx, my, mx0: mx, my0: my, mode: null };
+      triCenter = null; down = null; dragging = true;
     } else {
-      last = { x: e.clientX, y: e.clientY };
-      triCenter = null; pinch = null;
+      down = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, btn: e.button, shift: e.shiftKey };
+      dragging = false; triCenter = null; pinch = null;
     }
   });
   canvas.addEventListener('pointermove', e => {
@@ -1237,31 +1284,66 @@ function updateCamera() {
     }
     if (pts.size === 2 && pinch) {
       const [a, b] = [...pts.values()];
-      camS.dist = Math.max(70, Math.min(440, pinch.dist * pinch.d / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))));
+      const nd = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      // 雙指手勢開始時鎖定一次：距離變化較大＝縮放；兩指同向移動較大＝旋轉／傾斜
+      if (!pinch.mode) {
+        const spread = Math.abs(nd - pinch.d), slide = Math.hypot(mx - pinch.mx0, my - pinch.my0);
+        if (Math.max(spread, slide) > 12) pinch.mode = spread > slide ? 'zoom' : 'turn';
+        else return;
+      }
+      if (pinch.mode === 'zoom') camCtl.setDist(pinch.dist * pinch.d / Math.max(1, nd));
+      else {
+        camCtl.rotateBy(-(mx - pinch.mx) * 0.006);
+        camCtl.tiltBy((my - pinch.my) * 0.25);
+      }
+      pinch.mx = mx; pinch.my = my;
       return;
     }
-    if (!last || pts.size !== 1) return;
-    camS.yaw -= (e.clientX - last.x) * 0.006; camS.pitch = Math.max(0.32, Math.min(1.45, camS.pitch + (e.clientY - last.y) * 0.004));
-    last = { x: e.clientX, y: e.clientY };
+    if (!down || pts.size !== 1) return;
+    const tdx = e.clientX - down.x, tdy = e.clientY - down.y;
+    if (!dragging && Math.hypot(tdx, tdy) > 6) { dragging = true; down.lx = down.x; down.ly = down.y; }
+    if (!dragging) return;
+    const dx = e.clientX - down.lx, dy = e.clientY - down.ly;
+    down.lx = e.clientX; down.ly = e.clientY;
+    // 右鍵或 Shift＋左鍵：旋轉與傾斜鏡頭；一般左鍵或單指拖曳：平移棋盤
+    if (down.btn === 2 || down.shift) {
+      camCtl.rotateBy(-dx * 0.005);
+      camCtl.tiltBy(dy * 0.25);
+      canvas.style.cursor = 'move';
+    } else {
+      panBoard(dx, dy);
+      canvas.style.cursor = 'grabbing';
+    }
   });
   const up = e => {
+    const hadPinch = !!pinch;
     pts.delete(e.pointerId);
-    if (pts.size >= 3) { triCenter = centroid([...pts.values()]); pinch = null; last = null; }
+    if (pts.size >= 3) { triCenter = centroid([...pts.values()]); pinch = null; down = null; }
     else { triCenter = null; }
-    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: camS.dist }; last = null; }
-    else if (pts.size < 2) pinch = null;
-    if (pts.size === 1) { const [p] = pts.values(); last = { ...p }; }
-    if (!pts.size) last = null;
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      pinch = { d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), dist: camS.dist, mx, my, mx0: mx, my0: my, mode: null };
+      down = null;
+    } else if (pts.size < 2) {
+      pinch = null;
+    }
+    if (pts.size === 1) {
+      const [rest] = pts.values();
+      down = { x: rest.x, y: rest.y, lx: rest.x, ly: rest.y, btn: 0, shift: false };
+      dragging = hadPinch || dragging;
+    }
+    if (!pts.size) { down = null; dragging = false; canvas.style.cursor = ''; }
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-  // TouchEvent 三指觸控備援：若平台未派出 3 個 pointerId，直接用 touches 計算三指中心平移棋盤
+  // TouchEvent 三指觸控相容平移備援
   const touchCenter = ts => {
     let sx = 0, sy = 0;
     for (let k = 0; k < ts.length; k++) { sx += ts[k].clientX; sy += ts[k].clientY; }
     return { x: sx / ts.length, y: sy / ts.length };
   };
   canvas.addEventListener('touchstart', e => {
-    if (e.touches.length >= 3) { e.preventDefault(); touchTri = touchCenter(e.touches); pinch = null; last = null; }
+    if (e.touches.length >= 3) { e.preventDefault(); touchTri = touchCenter(e.touches); pinch = null; down = null; }
   }, { passive: false });
   canvas.addEventListener('touchmove', e => {
     if (e.touches.length >= 3) {
@@ -1273,7 +1355,48 @@ function updateCamera() {
   }, { passive: false });
   const touchEnd = e => { touchTri = e.touches.length >= 3 ? touchCenter(e.touches) : null; };
   canvas.addEventListener('touchend', touchEnd); canvas.addEventListener('touchcancel', touchEnd);
-  canvas.addEventListener('wheel', e => { e.preventDefault(); if (e.ctrlKey) camS.dist *= Math.exp(e.deltaY * 0.01); else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) camS.yaw += e.deltaX * 0.004; else camS.dist *= Math.exp(e.deltaY * 0.0015); camS.dist = Math.max(70, Math.min(440, camS.dist)); }, { passive: false });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+    const dx = e.deltaX * px, dy = e.deltaY * px;
+    if (e.ctrlKey) { camCtl.setDist(camS.dist * Math.exp(dy * 0.01)); return; }
+    const wheelMouse = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50 && Number.isInteger(e.deltaY));
+    if (wheelMouse) { camCtl.setDist(camS.dist * Math.exp(dy * 0.0015)); return; }
+    // 觸控板雙指滑動：以主要方向決定旋轉或傾斜
+    if (Math.abs(dx) > Math.abs(dy)) camCtl.rotateBy(dx * 0.005);
+    else camCtl.tiltBy(-dy * 0.12);
+  }, { passive: false });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('gesturestart', e => e.preventDefault());
+
+  // 鍵盤快捷鍵：Q / E 左右旋轉，R / F 上下俯仰（與大戰略一致）
+  addEventListener('keydown', e => {
+    if (!$('#modal').classList.contains('hidden')) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.key === 'q' || e.key === 'Q') camCtl.rotate(-ROT_STEP);
+    else if (e.key === 'e' || e.key === 'E') camCtl.rotate(ROT_STEP);
+    else if (e.key === 'r' || e.key === 'R') camCtl.tilt(TILT_STEP);
+    else if (e.key === 'f' || e.key === 'F') camCtl.tilt(-TILT_STEP);
+  });
+
+  // 右下角浮動 3D 鏡頭控制列
+  const syncCamBtn = () => { const b = $('#zCam'); if (b) b.classList.toggle('on', camS.follow); };
+  syncCamBtn();
+  if ($('#zCam')) $('#zCam').onclick = () => {
+    camS.follow = !camS.follow;
+    syncCamBtn();
+    if (camS.follow) focusCurPlayer();
+    else camS.hasGoal = false;
+    toast(camS.follow ? '🎯 鏡頭：跟隨行動玩家' : '📌 鏡頭：固定視角');
+  };
+  if ($('#zRotL')) $('#zRotL').onclick = () => camCtl.rotate(-ROT_STEP);
+  if ($('#zRotR')) $('#zRotR').onclick = () => camCtl.rotate(ROT_STEP);
+  if ($('#zRotL') && $('#zRotR')) $('#zRotL').ondblclick = $('#zRotR').ondblclick = () => camCtl.resetYaw();
+  if ($('#zTiltU')) $('#zTiltU').onclick = () => camCtl.tilt(TILT_STEP);
+  if ($('#zTiltD')) $('#zTiltD').onclick = () => camCtl.tilt(-TILT_STEP);
+  if ($('#zTiltU') && $('#zTiltD')) $('#zTiltU').ondblclick = $('#zTiltD').ondblclick = () => camCtl.resetTilt();
+  if ($('#zIn')) $('#zIn').onclick = () => camCtl.zoom(1 / 1.2);
+  if ($('#zOut')) $('#zOut').onclick = () => camCtl.zoom(1.2);
 })();
 function resize() {
   const r = canvas.getBoundingClientRect(), w = Math.max(1, r.width), h = Math.max(1, r.height);
@@ -1364,9 +1487,16 @@ function frame(now) {
     }
 
     const ct = tokens[G.cur];
-    if (ct) camS.goal.copy(ct.g.position).multiplyScalar(0.55).setY(0).add(camS.pan);
-  } else {
-    camS.goal.set(-4 + camS.pan.x, 0, 4 + camS.pan.z);
+    if (ct) {
+      if (G.turn !== lastFocusTurn) {
+        lastFocusTurn = G.turn;
+        if (camS.follow) camS.hasGoal = true;
+      }
+      if (ct.path.length && camS.follow) camS.hasGoal = true;
+      if (camS.hasGoal) camS.goal.copy(ct.g.position).multiplyScalar(0.55).setY(0);
+    }
+  } else if (camS.hasGoal) {
+    camS.goal.set(-4, 0, 4);
   }
   stepDice(now);
   updateCamera();
@@ -1869,7 +1999,7 @@ function openHelp() {
   ・<b>神明與地圖 NPC</b>：地圖上會巡邏「土地公、財神爺、福神、窮神、衰神、野狗」6 位 NPC！路過或使用請神卡可獲得附身：<b>土地公附身時踩到別人的地可免費強佔</b>！送神卡則可把壞神明轉送給對手。<br>
   ・<b>Breaking News 快訊</b>：任何玩家的重大購地、強佔、使用道具與破產都會即時廣播給全場玩家。<br>
   ・<b>可調整回合</b>：開局與遊戲中點擊上方輪數皆可隨時修改回合上限（0 為無限）；每 20 回合會自動公布一次財富排行榜，亦可隨時點擊上方「🏆 排行」查看。<br>
-  ・<b>觸控與視角操作</b>：單指拖曳旋轉 3D 視角、滾輪或雙指縮放、<b>三指觸控拖曳可自由移動棋盤</b>。</div>
+  ・<b>3D 鏡頭操作（與大戰略完全一致）</b>：單指／滑鼠左鍵拖曳平移棋盤；滑鼠右鍵或 <b>Shift＋左鍵</b>拖曳可旋轉與上下傾斜視角；雙指手勢自動鎖定縮放或雙指同向滑動旋轉／傾斜（支援觸控板與三指平移）；右下角控制列與 <b>Q / E / R / F</b> 可旋轉、俯仰、縮放並切換 <b>🎯 鏡頭跟隨</b>。</div>
   <div class="row"><button class="close">知道了</button></div>`, box => { box.querySelector('.close').onclick = closeModal; });
 }
 
@@ -1940,7 +2070,7 @@ function startGame(seats, rounds) {
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
   buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); clearWalkTimers();
   lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
-  camS.pan.set(0, 0, 0);
+  resetCamGoal();
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
 
@@ -2127,7 +2257,7 @@ function openJoin() {
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
               buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); clearWalkTimers();
               lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
-              camS.pan.set(0, 0, 0);
+              resetCamGoal();
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b);
             if (G.move && G.move.n !== lastMoveN) { lastMoveN = G.move.n; moveAt = performance.now(); }
@@ -2145,4 +2275,4 @@ function openJoin() {
 resize();
 requestAnimationFrame(frame);
 openLobby();
-window.__rich = { get G() { return G; }, send, NET, camS, renderUI, openLeaderboardModal };
+window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal };

@@ -11,7 +11,7 @@
 <meta http-equiv="Expires" content="0">
 <title>環島富豪 3D</title>
 <link rel="icon" href="../favicon.svg">
-<link rel="stylesheet" href="rich.css?v=6">
+<link rel="stylesheet" href="rich.css?v=7">
 </head>
 <body>
 <div id="app">
@@ -49,11 +49,20 @@
     <div id="newsToast" class="hidden"></div>
     <div id="logBox" class="hidden"></div>
     <div id="toast" class="hidden"></div>
+    <div id="zoomCtl">
+      <button id="zCam" class="on" title="切換鏡頭跟隨行動玩家／固定視角（開啟時對準目前玩家）">🎯</button>
+      <button id="zRotL" title="向左旋轉 15°（Q；雙擊回正北）">⟲</button>
+      <button id="zRotR" title="向右旋轉 15°（E；雙擊回正北）">⟳</button>
+      <button id="zTiltU" title="鏡頭更俯視（R；雙擊回預設角度）">▲</button>
+      <button id="zTiltD" title="鏡頭更平視（F；雙擊回預設角度）">▼</button>
+      <button id="zIn" title="放大">＋</button>
+      <button id="zOut" title="縮小">－</button>
+    </div>
   </main>
 </div>
 <div id="modal" class="hidden"><div id="modalBox"></div></div>
-<script src="../vendor/peerjs.min.js?v=6"></script>
-<script src="logic.js?v=6"></script>
-<script type="module" src="app.js?v=6"></script>
+<script src="../vendor/peerjs.min.js?v=7"></script>
+<script src="logic.js?v=7"></script>
+<script type="module" src="app.js?v=7"></script>
 </body>
 </html>

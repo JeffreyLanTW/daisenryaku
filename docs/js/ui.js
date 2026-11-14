@@ -1277,7 +1277,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v138</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v139</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1309,6 +1309,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v139</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 鏡頭操作與大戰略完全一致】單指觸控或滑鼠左鍵拖曳改為平移棋盤；滑鼠右鍵或 Shift＋左鍵拖曳可旋轉與上下俯仰視角；雙指觸控自動鎖定縮放或同向滑動旋轉／傾斜（相容觸控板與三指平移）；新增右下角浮動 3D 鏡頭控制列（⟲ ⟳ 旋轉、▲ ▼ 俯仰與雙擊回正、＋ － 縮放、🎯 切換鏡頭跟隨）及 Q／E／R／F 快捷鍵。</p></div>
         <div class="cl-item"><span class="cl-ver">v138</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 同地蓋樓變摩天大樓】所有地段與車站再度走回同位置即可一階階蓋樓升級（空地 → 一樓平房 → 二樓透天 → 高層大樓 → 摩天大樓），支援買地時加蓋一樓與同地加蓋直衝最高級摩天大樓；全面強化五階段進度條彈窗、3D 拔地而起建造動畫與三段退縮式發光玻璃帷幕摩天大樓模型。</p></div>
         <div class="cl-item"><span class="cl-ver">v137</span><span class="cl-date">2026.11.14</span><p>【迷霧也限制電腦】開啟戰爭迷霧時，電腦 AI 只會瞄準、追擊、搶灘與計算威脅自己（含盟友共享）看得見的敵軍，不再掌握全場；據點位置與歸屬仍是公開情報。</p></div>
         <div class="cl-item"><span class="cl-ver">v136</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 操作與實況體驗升級】新增三指觸控拖曳自由平移台灣棋盤視角；Breaking News 突發新聞快訊改為畫面正中央彈出，並依事件類型顯示鮮明彩色插畫與醒目大字標題；新增每 20 回合自動結算並彈出財富排行榜（含頂部「🏆 排行」按鈕可隨時檢視）。</p></div>
@@ -1510,7 +1511,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v138</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v139</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>

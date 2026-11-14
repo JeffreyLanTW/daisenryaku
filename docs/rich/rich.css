@@ -75,6 +75,9 @@ main { position: relative; flex: 1; min-height: 0; width: 100%; }
 @keyframes pop { from { transform: translateX(-50%) scale(.85); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 #logBox { position: absolute; right: 10px; top: 10px; width: min(340px, 75%); max-height: 58%; overflow-y: auto; font-size: 13px; line-height: 1.6; z-index: 11;
   background: rgba(18, 24, 32, .95); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+#zoomCtl { position: absolute; right: 10px; bottom: 14px; z-index: 6; display: flex; flex-direction: column; gap: 4px; }
+#zoomCtl button { width: 36px; height: 36px; padding: 0; font-size: 18px; background: rgba(30, 40, 52, .88); display: grid; place-items: center; }
+#zoomCtl button.on { color: #1a1205; background: var(--gold); border-color: var(--gold); }
 #toast { position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%); background: rgba(18, 24, 32, .95); border: 1px solid var(--gold); border-radius: 10px; padding: 8px 16px; font-size: 14px; z-index: 25; }
 
 #modal { position: fixed; inset: 0; z-index: 20; background: rgba(5, 8, 12, .74); display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -135,6 +138,8 @@ button.sky:hover:not(:disabled) { filter: brightness(1.08); background: linear-g
   .pcard { min-width: 158px; padding: 4px 8px; } .pcard .av { width: 26px; height: 26px; }
   #bar .title { font-size: 15px; } .acts button { min-width: 74px; padding: 8px 10px; font-size: 14px; }
   #players { gap: 4px; } #dock { bottom: 8px; padding: 6px 10px; }
+  #zoomCtl { right: 8px; bottom: 8px; gap: 3px; }
+  #zoomCtl button { width: 32px; height: 32px; font-size: 15px; }
   #newsToast { padding: 10px 12px; } #newsToast .nt-art { width: 78px; height: 78px; } #newsToast .nt-title { font-size: 17px; } #newsToast .nt-body { font-size: 13px; }
   .items, .shop-grid { grid-template-columns: 1fr; }
   .seat { grid-template-columns: 20px 1fr; gap: 6px; }
