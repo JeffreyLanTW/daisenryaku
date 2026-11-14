@@ -3,8 +3,8 @@
 (function (root) {
   'use strict';
 
-  // ----- 棋盤：56 格真實台灣順時針環島路線（0 為南端鵝鑾鼻起點，順時針：高屏 → 嘉南 → 澎湖 → 中彰投 → 桃竹苗 → 金門 → 北北基 → 宜花東 → 綠島蘭嶼）-----
-  // type: start / land / chance / fate / tax / jail / gojail / park / shop / temple / hospital / station
+  // ----- 棋盤：64 格真實台灣順時針環島路線（0 為南端鵝鑾鼻起點，順時針：高屏小琉球 → 嘉南 → 澎湖 → 中彰投 → 桃竹苗 → 馬祖・海峽賭場・金門 → 北北基 → 龜山島宜花東 → 綠島蘭嶼）-----
+  // type: start / land / chance / fate / tax / jail / gojail / park / shop / temple / hospital / station / casino
   const GROUPS = {
     south: { name: '高屏南', color: '#3fb6c8' },
     yunjia: { name: '雲嘉南', color: '#6cc070' },
@@ -17,32 +17,34 @@
   };
   const L = (name, group, price) => ({ type: 'land', name, group, price });
   const BOARD = [
-    // 南台灣・高屏嘉南（鵝鑾鼻起點 → 順時針北上，0..11）
+    // 南台灣・高屏小琉球嘉南（鵝鑾鼻起點 → 順時針北上，0..12）
     { type: 'start', name: '起點' },
     L('墾丁', 'south', 1200), L('恆春', 'south', 1300), { type: 'fate', name: '命運' },
-    L('屏東', 'south', 1500), L('高雄', 'south', 1800), { type: 'station', name: '高鐵左營', price: 2200 },
+    L('屏東', 'south', 1500), L('小琉球', 'island', 1700), L('高雄', 'south', 1800), { type: 'station', name: '高鐵左營', price: 2200 },
     L('台南', 'yunjia', 1900), L('安平', 'yunjia', 2000), { type: 'chance', name: '機會' },
     { type: 'shop', name: '道具屋' }, L('嘉義', 'yunjia', 2100),
-    // 阿里山・雲林北港・跨海澎湖・鹿港彰化南投日月潭・台中（12..24）
+    // 阿里山・雲林北港・跨海澎湖・鹿港彰化南投日月潭・台中（13..25）
     { type: 'jail', name: '監獄' },
     L('阿里山', 'scenic', 2600), L('雲林', 'yunjia', 2000), { type: 'temple', name: '北港廟宇' },
     L('澎湖', 'island', 2500), L('鹿港', 'central', 2400), L('彰化', 'central', 2300),
     L('南投', 'central', 2200), L('日月潭', 'scenic', 2800), { type: 'hospital', name: '醫院' },
     { type: 'station', name: '台中高鐵', price: 2400 }, L('台中', 'central', 3000), { type: 'chance', name: '機會' },
-    // 桃竹苗・跨海金門・大台北都會區（25..39）
-    L('苗栗', 'taoyuan', 2400), L('竹科', 'taoyuan', 3200), L('新竹', 'taoyuan', 2800),
-    { type: 'fate', name: '命運' }, L('桃園', 'taoyuan', 3100), L('金門', 'island', 2900),
+    // 桃竹苗・馬祖・海峽賭場・金門・大台北都會區（26..44）
+    L('三義', 'taoyuan', 2300), L('苗栗', 'taoyuan', 2400), L('竹科', 'taoyuan', 3200), L('新竹', 'taoyuan', 2800),
+    { type: 'fate', name: '命運' }, L('桃園', 'taoyuan', 3100),
+    L('馬祖', 'island', 2700), { type: 'casino', name: '賭場' }, L('金門', 'island', 2900),
     { type: 'station', name: '桃園機場', price: 2600 }, { type: 'shop', name: '道具屋' },
     L('淡水', 'north', 3500), { type: 'park', name: '國家公園' }, { type: 'temple', name: '行天宮' },
     L('新北', 'north', 4200), L('台北', 'north', 5400), L('信義區', 'north', 6200),
-    { type: 'chance', name: '機會' },
-    // 基隆港・東北角・宜花東・綠島蘭嶼南迴（40..55）
-    { type: 'station', name: '基隆港', price: 2500 }, { type: 'gojail', name: '入獄' },
-    L('九份', 'scenic', 3500), { type: 'tax', name: '國稅局' },
-    L('宜蘭', 'east', 3000), L('羅東', 'east', 2900), { type: 'fate', name: '命運' },
+    { type: 'chance', name: '機會' }, { type: 'station', name: '基隆港', price: 2500 },
+    // 東北角・平溪・龜山島・宜花東・綠島蘭嶼南迴（45..63）
+    { type: 'gojail', name: '入獄' },
+    L('九份', 'scenic', 3500), L('平溪', 'scenic', 3200), { type: 'tax', name: '國稅局' },
+    L('龜山島', 'island', 2800), L('宜蘭', 'east', 3000), L('羅東', 'east', 2900), { type: 'fate', name: '命運' },
     { type: 'temple', name: '迎神殿' }, L('太魯閣', 'scenic', 3800), L('花蓮', 'east', 3300),
-    { type: 'shop', name: '道具屋' }, { type: 'chance', name: '機會' }, L('台東', 'east', 3100),
-    L('綠島', 'island', 3300), L('蘭嶼', 'island', 3400), { type: 'fate', name: '命運' },
+    { type: 'shop', name: '道具屋' }, L('玉里', 'east', 2900), { type: 'chance', name: '機會' },
+    L('台東', 'east', 3100), L('知本', 'scenic', 3000), L('綠島', 'island', 3300), L('蘭嶼', 'island', 3400),
+    { type: 'fate', name: '命運' },
   ];
   const N = BOARD.length;
   const START_BONUS = 2000, START_CASH = 18000, MAX_LEVEL = 4, JAIL_TURNS = 2, MAX_ITEMS = 8;
@@ -433,6 +435,14 @@
       G.ask = { k: 'shop', i, freeItem, bought: [] };
       return;
     }
+    if (t.type === 'casino') {
+      if (p.cash < 500) {
+        log(G, `🎰 ${p.name} 抵達海峽賭場，可惜現金不足 $500 只好在甲板觀望`);
+        return;
+      }
+      G.ask = { k: 'casino', i, bets: [500, 1500, 3000] };
+      return;
+    }
     if (t.type === 'temple') {
       if (p.god && !p.god.good) {
         const badName = GODS[p.god.kind].name;
@@ -487,7 +497,7 @@
       fx: null,
       dice: null,
       newsSeq: 1,
-      news: [{ id: 1, cat: '開局快訊', title: `🎲 環島富豪 3D 正式開賽！共 ${seats.length} 位玩家角逐台灣地產王！`, body: '56 格全台灣地圖＋神明附身＋道具屋全面啟動！', color: '#f1c40f', round: 1 }],
+      news: [{ id: 1, cat: '開局快訊', title: `🎲 環島富豪 3D 正式開賽！共 ${seats.length} 位玩家角逐台灣地產王！`, body: '64 格全台灣地圖＋海峽賭場＋神明附身＋道具屋全面啟動！', color: '#f1c40f', round: 1 }],
       tiles: BOARD.map(() => ({ owner: null, level: 0 })),
       blocks: [],
       npcs: GOD_NPC_INIT.map((n, id) => ({ id, kind: n.kind, pos: n.pos, from: n.pos, attachedTo: null, moveN: 0 })),
@@ -606,6 +616,37 @@
         }
         if (q.k === 'shop') {
           G.phase = 'done';
+          return null;
+        }
+        if (q.k === 'casino') {
+          if (!a.yes) {
+            log(G, `🎰 ${p.name} 在海峽賭場冷靜收手離開`);
+            G.phase = 'done';
+            return null;
+          }
+          const validBets = [500, 1500, 3000];
+          const rawBet = validBets.includes(Number(a.bet)) ? Number(a.bet) : 500;
+          const bet = Math.min(rawBet, p.cash >= 500 ? (p.cash >= rawBet ? rawBet : 500) : 0);
+          if (bet < 500) { G.phase = 'done'; return null; }
+          const d1 = roll(G), d2 = roll(G), sum = d1 + d2;
+          if (d1 === d2) {
+            const winAmt = bet * 2;
+            gain(G, p, winAmt);
+            log(G, `🎰 ${p.name} 在海峽賭場下注 $${bet} 擲出雙骰豹子【${d1}・${d2}】，暴賺 $${winAmt}！`);
+            pushNews(G, '賭場豹子大獎', `🎰 狂喜！${p.name} 在前往金門的海峽賭場擲出豹子【${d1}・${d2}】，抱走 $${winAmt} 獎金！`, '海峽賭場', '#f59e0b');
+            G.fx = { k: 'casino_win', i: q.i, d1, d2, amt: winAmt };
+          } else if (sum >= 8) {
+            gain(G, p, bet);
+            log(G, `🎰 ${p.name} 在海峽賭場下注 $${bet} 擲出 ${d1}+${d2}=${sum}（大），贏得 $${bet}！`);
+            pushNews(G, '賭場開大', `🎰 ${p.name} 在海峽賭場手氣正旺，擲出 ${sum} 點贏得 $${bet}！`, '海峽賭場', '#2ecc71');
+            G.fx = { k: 'casino_win', i: q.i, d1, d2, amt: bet };
+          } else {
+            pay(G, p, bet, null, '海峽賭場輸掉籌碼');
+            log(G, `🎰 ${p.name} 在海峽賭場下注 $${bet} 擲出 ${d1}+${d2}=${sum}（小），輸掉 $${bet}`);
+            pushNews(G, '賭場失利', `🎰 ${p.name} 在海峽賭場押注 $${bet} 卻擲出 ${sum} 點（小），黯然離場！`, '海峽賭場', '#e74c3c');
+            G.fx = { k: 'casino_lose', i: q.i, d1, d2, amt: bet };
+          }
+          G.phase = G.winner != null ? 'over' : 'done';
           return null;
         }
         if (a.yes) {
@@ -834,6 +875,11 @@
         }
         return { type: 'answer', yes: false };
       }
+      if (q.k === 'casino') {
+        if (p.cash >= 5000) return { type: 'answer', yes: true, bet: 1500 };
+        if (p.cash >= 2500) return { type: 'answer', yes: true, bet: 500 };
+        return { type: 'answer', yes: false };
+      }
       const reserve = q.k === 'buy' ? (p.god && p.god.kind === 'tudigong' ? 600 : 1200) : 1800;
       return { type: 'answer', yes: p.cash - q.cost >= reserve };
     }
@@ -870,7 +916,7 @@
             else if (s.owner === p.id) sc = 350;
             else sc = p.god && p.god.kind === 'tudigong' ? 800 + valueOf(G, i) / 5 : -rentOf(G, i);
           } else if (t.type === 'gojail' || t.type === 'tax') sc = -800;
-          else if (t.type === 'chance' || t.type === 'shop' || t.type === 'temple') sc = 220;
+          else if (t.type === 'chance' || t.type === 'shop' || t.type === 'temple' || t.type === 'casino') sc = 220;
           const npc = (G.npcs || []).find(x => x.attachedTo == null && x.pos === i);
           if (npc) sc += npc.kind === 'dog' || !GODS[npc.kind].good ? -900 : 500;
           if (sc > bs) { bs = sc; best = n; }

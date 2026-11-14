@@ -132,68 +132,76 @@ const FUJIAN_POLY = [
   [117.10, 27.10],
 ];
 
-// 56 格真實世界台灣經緯度座標 [lon, lat, 地形高程]（嚴格對應 logic.js 順時針環島序，含平原／台地／峽谷／高山地形起伏）
+// 64 格真實世界台灣經緯度座標 [lon, lat, 地形高程]（嚴格對應 logic.js 順時針環島序，含平原／台地／峽谷／高山與離島海峽賭場）
 const ROUTE_COORDS = [
-  // 0..11 南台灣・高屏嘉南（鵝鑾鼻起點 → 高雄台南安平嘉義）
+  // 0..12 南台灣・高屏小琉球嘉南（鵝鑾鼻起點 → 高雄台南安平嘉義）
   [120.85, 21.92, 1.55], // 0 起點（鵝鑾鼻）
   [120.76, 21.97, 1.50], // 1 墾丁
   [120.71, 22.07, 1.75], // 2 恆春
   [120.67, 22.25, 1.65], // 3 命運（枋山海岸）
   [120.51, 22.58, 1.60], // 4 屏東
-  [120.29, 22.61, 1.55], // 5 高雄（高雄港 85 大樓）
-  [120.30, 22.72, 1.70], // 6 高鐵左營
-  [120.23, 22.94, 1.65], // 7 台南（赤崁樓）
-  [120.14, 23.04, 1.50], // 8 安平（安平古堡）
-  [120.15, 23.18, 1.55], // 9 機會（七股潟湖）
-  [120.30, 23.31, 2.30], // 10 道具屋（關子嶺溫泉台地）
-  [120.45, 23.47, 1.85], // 11 嘉義（北回歸線）
-  // 12..24 阿里山・雲林北港・澎湖群島・鹿港彰化南投日月潭台中
-  [120.59, 23.43, 2.25], // 12 監獄（竹崎山麓）
-  [120.81, 23.51, 5.20], // 13 阿里山（高山林鐵雲海）
-  [120.49, 23.71, 1.65], // 14 雲林
-  [120.30, 23.58, 1.55], // 15 北港廟宇（北港朝天宮）
-  [119.58, 23.58, 1.48], // 16 澎湖（馬公真實經緯度）
-  [120.42, 24.04, 1.50], // 17 鹿港（彰化海線）
-  [120.55, 23.99, 1.80], // 18 彰化（八卦山麓）
-  [120.70, 23.87, 2.20], // 19 南投（丘陵盆地）
-  [120.92, 23.86, 4.00], // 20 日月潭（高山明潭）
-  [120.95, 23.98, 3.20], // 21 醫院（埔里山地醫療站）
-  [120.63, 24.10, 1.65], // 22 台中高鐵（烏日）
-  [120.70, 24.20, 1.75], // 23 台中
-  [120.58, 24.32, 1.55], // 24 機會（大甲／高美）
-  // 25..39 桃竹苗・跨海金門・大台北都會區
-  [120.81, 24.54, 2.35], // 25 苗栗（勝興山城）
-  [121.03, 24.75, 2.05], // 26 竹科（寶山丘陵）
-  [120.94, 24.83, 1.60], // 27 新竹
-  [121.11, 24.89, 2.20], // 28 命運（湖口台地）
-  [121.30, 24.97, 1.85], // 29 桃園（台地）
-  [118.38, 24.45, 1.52], // 30 金門（真實海峽金門座標）
-  [121.22, 25.07, 1.50], // 31 桃園機場
-  [121.33, 25.13, 1.85], // 32 道具屋（林口台地／八里）
-  [121.44, 25.21, 1.50], // 33 淡水
-  [121.56, 25.25, 3.40], // 34 國家公園（陽明山火山區）
-  [121.55, 25.15, 1.70], // 35 行天宮
-  [121.41, 25.00, 1.60], // 36 新北（板橋）
-  [121.50, 25.05, 1.65], // 37 台北（中正紀念堂）
-  [121.59, 25.00, 1.70], // 38 信義區（台北 101）
-  [121.69, 25.05, 1.85], // 39 機會（汐止山谷）
-  // 40..55 基隆九份・宜花東・綠島蘭嶼南迴
-  [121.77, 25.14, 1.50], // 40 基隆港
-  [121.90, 25.11, 1.80], // 41 入獄（東北角三貂角岬）
-  [121.86, 25.01, 3.60], // 42 九份（基隆山黃金山城）
-  [121.81, 24.89, 1.60], // 43 國稅局（頭城）
-  [121.76, 24.75, 1.55], // 44 宜蘭
-  [121.78, 24.64, 1.55], // 45 羅東
-  [121.82, 24.51, 3.00], // 46 命運（蘇花斷崖山道）
-  [121.76, 24.36, 2.70], // 47 迎神殿（南澳山谷）
-  [121.60, 24.16, 3.80], // 48 太魯閣（大理石高山峽谷）
-  [121.59, 23.98, 1.55], // 49 花蓮
-  [121.43, 23.66, 2.40], // 50 道具屋（花東縱谷瑞穗）
-  [121.28, 23.14, 2.20], // 51 機會（池上縱谷台地）
-  [121.15, 22.77, 1.55], // 52 台東
-  [121.50, 22.66, 1.55], // 53 綠島（真實座標）
-  [121.55, 22.05, 1.65], // 54 蘭嶼（真實座標）
-  [120.88, 22.14, 2.40], // 55 命運（旭海南迴山嶺）
+  [120.37, 22.34, 1.50], // 5 小琉球（離島珊瑚礁）
+  [120.29, 22.61, 1.55], // 6 高雄（高雄港 85 大樓）
+  [120.30, 22.72, 1.70], // 7 高鐵左營
+  [120.23, 22.94, 1.65], // 8 台南（赤崁樓）
+  [120.14, 23.04, 1.50], // 9 安平（安平古堡）
+  [120.15, 23.18, 1.55], // 10 機會（七股潟湖）
+  [120.30, 23.31, 2.30], // 11 道具屋（關子嶺溫泉台地）
+  [120.45, 23.47, 1.85], // 12 嘉義（北回歸線）
+  // 13..25 阿里山・雲林北港・澎湖群島・鹿港彰化南投日月潭台中
+  [120.59, 23.43, 2.25], // 13 監獄（竹崎山麓）
+  [120.81, 23.51, 5.20], // 14 阿里山（高山林鐵雲海）
+  [120.49, 23.71, 1.65], // 15 雲林
+  [120.30, 23.58, 1.55], // 16 北港廟宇（北港朝天宮）
+  [119.58, 23.58, 1.48], // 17 澎湖（馬公真實經緯度）
+  [120.42, 24.04, 1.50], // 18 鹿港（彰化海線）
+  [120.55, 23.99, 1.80], // 19 彰化（八卦山麓）
+  [120.70, 23.87, 2.20], // 20 南投（丘陵盆地）
+  [120.92, 23.86, 4.00], // 21 日月潭（高山明潭）
+  [120.95, 23.98, 3.20], // 22 醫院（埔里山地醫療站）
+  [120.63, 24.10, 1.65], // 23 台中高鐵（烏日）
+  [120.70, 24.20, 1.75], // 24 台中
+  [120.58, 24.32, 1.55], // 25 機會（大甲／高美）
+  // 26..44 桃竹苗・馬祖・海峽賭場・金門・大台北都會區
+  [120.77, 24.41, 2.25], // 26 三義（木雕山城）
+  [120.81, 24.54, 2.35], // 27 苗栗（勝興山城）
+  [121.03, 24.75, 2.05], // 28 竹科（寶山丘陵）
+  [120.94, 24.83, 1.60], // 29 新竹
+  [121.11, 24.89, 2.20], // 30 命運（湖口台地）
+  [121.30, 24.97, 1.85], // 31 桃園（台地）
+  [119.93, 26.15, 1.52], // 32 馬祖（南竿北竿真實座標）
+  [119.12, 25.15, 1.48], // 33 賭場（前往金門途中的台灣海峽郵輪賭場）
+  [118.38, 24.45, 1.52], // 34 金門（真實海峽金門座標）
+  [121.22, 25.07, 1.50], // 35 桃園機場
+  [121.33, 25.13, 1.85], // 36 道具屋（林口台地／八里）
+  [121.44, 25.21, 1.50], // 37 淡水
+  [121.56, 25.25, 3.40], // 38 國家公園（陽明山火山區）
+  [121.55, 25.15, 1.70], // 39 行天宮
+  [121.41, 25.00, 1.60], // 40 新北（板橋）
+  [121.50, 25.05, 1.65], // 41 台北（中正紀念堂）
+  [121.59, 25.00, 1.70], // 42 信義區（台北 101）
+  [121.69, 25.05, 1.85], // 43 機會（汐止山谷）
+  [121.77, 25.14, 1.50], // 44 基隆港
+  // 45..63 東北角・平溪・龜山島・宜花東・綠島蘭嶼南迴
+  [121.90, 25.11, 1.80], // 45 入獄（東北角三貂角岬）
+  [121.86, 25.01, 3.60], // 46 九份（基隆山黃金山城）
+  [121.74, 24.97, 2.30], // 47 平溪（天燈山谷）
+  [121.81, 24.89, 1.60], // 48 國稅局（頭城）
+  [121.95, 24.84, 1.65], // 49 龜山島（外海火山島）
+  [121.76, 24.75, 1.55], // 50 宜蘭
+  [121.78, 24.64, 1.55], // 51 羅東
+  [121.82, 24.51, 3.00], // 52 命運（蘇花斷崖山道）
+  [121.76, 24.36, 2.70], // 53 迎神殿（南澳山谷）
+  [121.60, 24.16, 3.80], // 54 太魯閣（大理石高山峽谷）
+  [121.59, 23.98, 1.55], // 55 花蓮
+  [121.43, 23.66, 2.40], // 56 道具屋（花東縱谷瑞穗）
+  [121.32, 23.34, 2.15], // 57 玉里（客城稻浪小鎮）
+  [121.28, 23.14, 2.20], // 58 機會（池上縱谷台地）
+  [121.15, 22.77, 1.55], // 59 台東
+  [121.02, 22.69, 1.95], // 60 知本（溫泉山谷）
+  [121.50, 22.66, 1.55], // 61 綠島（真實座標）
+  [121.55, 22.05, 1.65], // 62 蘭嶼（真實座標）
+  [120.88, 22.14, 2.40], // 63 命運（旭海南迴山嶺）
 ];
 // 各段真實多模態交通路網（highway=國道/省道, rail=台鐵, hsr=高鐵, mrt=捷運, forest_rail=阿里山林鐵, cliff_road=蘇花/山區隧道, ferry=藍色公路渡輪, air=離島航線）
 const SEG_MODE = [
@@ -201,58 +209,66 @@ const SEG_MODE = [
   'highway',     // 1  墾丁 -> 恆春
   'highway',     // 2  恆春 -> 枋山海岸
   'highway',     // 3  枋山 -> 屏東
-  'rail',        // 4  屏東 -> 高雄 (台鐵屏東線)
-  'mrt',         // 5  高雄 -> 高鐵左營 (高雄捷運紅線)
-  'hsr',         // 6  高鐵左營 -> 台南 (高鐵南段走廊)
-  'highway',     // 7  台南 -> 安平
-  'highway',     // 8  安平 -> 七股 (台61西濱)
-  'highway',     // 9  七股 -> 關子嶺
-  'rail',        // 10 關子嶺 -> 嘉義 (台鐵縱貫南段)
-  'forest_rail', // 11 嘉義 -> 竹崎 (阿里山林鐵平地山麓)
-  'forest_rail', // 12 竹崎 -> 阿里山 (阿里山森林鐵路木橋)
-  'cliff_road',  // 13 阿里山 -> 雲林 (高山蜿蜒山道)
-  'highway',     // 14 雲林 -> 北港廟宇
-  'ferry',       // 15 北港 -> 澎湖 (台海藍色公路渡輪)
-  'ferry',       // 16 澎湖 -> 鹿港 (澎湖跨海客輪)
-  'highway',     // 17 鹿港 -> 彰化
-  'highway',     // 18 彰化 -> 南投
-  'cliff_road',  // 19 南投 -> 日月潭 (中橫/山區公路)
-  'cliff_road',  // 20 日月潭 -> 埔里醫院 (山谷公路)
-  'highway',     // 21 埔里 -> 台中高鐵 (國6高速直達)
-  'mrt',         // 22 台中高鐵 -> 台中 (台中捷運綠線)
-  'rail',        // 23 台中 -> 大甲 (台鐵海線大甲溪橋)
-  'rail',        // 24 大甲 -> 苗栗勝興 (台鐵舊山線)
-  'highway',     // 25 苗栗 -> 竹科 (國道1/3號)
-  'rail',        // 26 竹科 -> 新竹 (台鐵六家支線)
-  'hsr',         // 27 新竹 -> 湖口 (台灣高鐵脊線)
-  'hsr',         // 28 湖口 -> 桃園 (高鐵青埔走廊)
-  'air',         // 29 桃園 -> 金門 (台灣海峽國內航線)
-  'air',         // 30 金門 -> 桃園機場 (金門返航航線)
-  'mrt',         // 31 桃園機場 -> 林口八里 (桃園機場捷運)
-  'ferry',       // 32 八里 -> 淡水 (淡水河藍色公路渡輪)
-  'cliff_road',  // 33 淡水 -> 陽明山 (巴拉卡高山道)
-  'highway',     // 34 陽明山 -> 行天宮 (仰德大道)
-  'mrt',         // 35 行天宮 -> 新北板橋 (台北捷運網)
-  'mrt',         // 36 板橋 -> 台北 (捷運板南線)
-  'mrt',         // 37 台北 -> 信義區 (捷運淡水信義線)
-  'rail',        // 38 信義區 -> 汐止 (台鐵縱貫北段)
-  'rail',        // 39 汐止 -> 基隆港 (台鐵基隆線)
-  'highway',     // 40 基隆港 -> 東北角 (台2濱海公路)
-  'cliff_road',  // 41 東北角 -> 九份 (金九山城彎道)
-  'rail',        // 42 九份 -> 頭城國稅局 (台鐵宜蘭線)
-  'rail',        // 43 頭城 -> 宜蘭 (蘭陽高架鐵道)
-  'rail',        // 44 宜蘭 -> 羅東 (台鐵宜蘭線)
-  'cliff_road',  // 45 羅東 -> 蘇花斷崖 (蘇花改隧道)
-  'cliff_road',  // 46 蘇花 -> 南澳迎神殿 (臨海斷崖隧道)
-  'cliff_road',  // 47 南澳 -> 太魯閣 (中橫大理石峽谷隧道)
-  'rail',        // 48 太魯閣 -> 花蓮 (台鐵北迴線)
-  'rail',        // 49 花蓮 -> 瑞穗 (台鐵花東縱谷線)
-  'rail',        // 50 瑞穗 -> 池上 (花東稻浪鐵道)
-  'rail',        // 51 池上 -> 台東 (花東線南段)
-  'ferry',       // 52 台東 -> 綠島 (富岡—綠島客輪)
-  'ferry',       // 53 綠島 -> 蘭嶼 (太平洋島嶼客輪)
-  'ferry',       // 54 蘭嶼 -> 旭海 (南台灣太平洋航線)
-  'cliff_road',  // 55 旭海 -> 鵝鑾鼻起點 (南迴海岸山道)
+  'ferry',       // 4  屏東 -> 小琉球 (東港琉球客輪)
+  'ferry',       // 5  小琉球 -> 高雄 (西子灣海上客輪)
+  'mrt',         // 6  高雄 -> 高鐵左營 (高雄捷運紅線)
+  'hsr',         // 7  高鐵左營 -> 台南 (高鐵南段走廊)
+  'highway',     // 8  台南 -> 安平
+  'highway',     // 9  安平 -> 七股 (台61西濱)
+  'highway',     // 10 七股 -> 關子嶺
+  'rail',        // 11 關子嶺 -> 嘉義 (台鐵縱貫南段)
+  'forest_rail', // 12 嘉義 -> 竹崎 (阿里山林鐵平地山麓)
+  'forest_rail', // 13 竹崎 -> 阿里山 (阿里山森林鐵路木橋)
+  'cliff_road',  // 14 阿里山 -> 雲林 (高山蜿蜒山道)
+  'highway',     // 15 雲林 -> 北港廟宇
+  'ferry',       // 16 北港 -> 澎湖 (台海藍色公路渡輪)
+  'ferry',       // 17 澎湖 -> 鹿港 (澎湖跨海客輪)
+  'highway',     // 18 鹿港 -> 彰化
+  'highway',     // 19 彰化 -> 南投
+  'cliff_road',  // 20 南投 -> 日月潭 (中橫/山區公路)
+  'cliff_road',  // 21 日月潭 -> 埔里醫院 (山谷公路)
+  'highway',     // 22 埔里 -> 台中高鐵 (國6高速直達)
+  'mrt',         // 23 台中高鐵 -> 台中 (台中捷運綠線)
+  'rail',        // 24 台中 -> 大甲 (台鐵海線大甲溪橋)
+  'rail',        // 25 大甲 -> 三義 (台鐵舊山線)
+  'rail',        // 26 三義 -> 苗栗勝興 (勝興山線鐵道)
+  'highway',     // 27 苗栗 -> 竹科 (國道1/3號)
+  'rail',        // 28 竹科 -> 新竹 (台鐵六家支線)
+  'hsr',         // 29 新竹 -> 湖口 (台灣高鐵脊線)
+  'hsr',         // 30 湖口 -> 桃園 (高鐵青埔走廊)
+  'air',         // 31 桃園 -> 馬祖 (台灣海峽北部航線)
+  'ferry',       // 32 馬祖 -> 海峽賭場 (去金門途中的豪華郵輪航道)
+  'ferry',       // 33 海峽賭場 -> 金門 (海峽郵輪進金門)
+  'air',         // 34 金門 -> 桃園機場 (金門返航航線)
+  'mrt',         // 35 桃園機場 -> 林口八里 (桃園機場捷運)
+  'ferry',       // 36 八里 -> 淡水 (淡水河藍色公路渡輪)
+  'cliff_road',  // 37 淡水 -> 陽明山 (巴拉卡高山道)
+  'highway',     // 38 陽明山 -> 行天宮 (仰德大道)
+  'mrt',         // 39 行天宮 -> 新北板橋 (台北捷運網)
+  'mrt',         // 40 板橋 -> 台北 (捷運板南線)
+  'mrt',         // 41 台北 -> 信義區 (捷運淡水信義線)
+  'rail',        // 42 信義區 -> 汐止 (台鐵縱貫北段)
+  'rail',        // 43 汐止 -> 基隆港 (台鐵基隆線)
+  'highway',     // 44 基隆港 -> 東北角 (台2濱海公路)
+  'cliff_road',  // 45 東北角 -> 九份 (金九山城彎道)
+  'rail',        // 46 九份 -> 平溪 (台鐵平溪天燈支線)
+  'rail',        // 47 平溪 -> 頭城國稅局 (台鐵宜蘭線)
+  'ferry',       // 48 頭城 -> 龜山島 (烏石港賞鯨客輪)
+  'ferry',       // 49 龜山島 -> 宜蘭 (蘭陽海岸航線)
+  'rail',        // 50 宜蘭 -> 羅東 (台鐵宜蘭線)
+  'cliff_road',  // 51 羅東 -> 蘇花斷崖 (蘇花改隧道)
+  'cliff_road',  // 52 蘇花 -> 南澳迎神殿 (臨海斷崖隧道)
+  'cliff_road',  // 53 南澳 -> 太魯閣 (中橫大理石峽谷隧道)
+  'rail',        // 54 太魯閣 -> 花蓮 (台鐵北迴線)
+  'rail',        // 55 花蓮 -> 瑞穗 (台鐵花東縱谷線)
+  'rail',        // 56 瑞穗 -> 玉里 (花東客城鐵道)
+  'rail',        // 57 玉里 -> 池上 (花東稻浪鐵道)
+  'rail',        // 58 池上 -> 台東 (花東線南段)
+  'highway',     // 59 台東 -> 知本 (台9線溫泉公路)
+  'ferry',       // 60 知本 -> 綠島 (太平洋客輪航線)
+  'ferry',       // 61 綠島 -> 蘭嶼 (太平洋島嶼客輪)
+  'ferry',       // 62 蘭嶼 -> 旭海 (南台灣太平洋航線)
+  'cliff_road',  // 63 旭海 -> 鵝鑾鼻起點 (南迴海岸山道)
 ];
 // ---------- 立體地形高度場（v145 重製：以真實海岸線、五大山脈稜線與噪聲生成連續地形，路網與棋格處自動整平）----------
 const smooth01 = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -347,7 +363,8 @@ const TILE_PTS = ROUTE_COORDS.map(([lon, lat], i) => {
 });
 function tilePos(i) { return TILE_PTS[i].clone(); }
 function tileAngle(i) {
-  const a = TILE_PTS[(i + 55) % 56], b = TILE_PTS[(i + 1) % 56];
+  const n = TILE_PTS.length;
+  const a = TILE_PTS[(i + n - 1) % n], b = TILE_PTS[(i + 1) % n];
   return Math.atan2(b.x - a.x, b.z - a.z);
 }
 function inward(i) {
@@ -374,6 +391,7 @@ const TYPE_STYLE = {
   temple: ['#ffe9e3', '#c0392b', '', '求神祈福'],
   hospital: ['#eef8ff', '#e74c3c', '醫院', '就醫休養'],
   station: ['#eef2f6', '#334155', '', '交通轉運'],
+  casino: ['#f3e8ff', '#d97706', '賭場', '海峽博弈'],
 };
 
 const board = new THREE.Group();
@@ -802,7 +820,7 @@ function makeTransportSegment(idx, a, b, mode) {
       beacon.position.copy(pt);
       g.add(beacon);
     }
-    if (idx === 29) {
+    if (R.BOARD[idx] && R.BOARD[idx].name === '桃園') {
       const plane = new THREE.Group();
       const bodyM = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.28, metalness: 0.2 });
       const tailM = new THREE.MeshStandardMaterial({ color: '#16a34a', roughness: 0.35 });
@@ -847,7 +865,8 @@ function makeTransportSegment(idx, a, b, mode) {
         g.add(buoy);
       }
     }
-    if (idx === 15 || idx === 52) {
+    const segNm = R.BOARD[idx] ? R.BOARD[idx].name : '';
+    if (segNm === '北港廟宇' || segNm === '知本' || segNm === '馬祖') {
       const boat = new THREE.Group();
       const hull = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.55, 2.7), new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.35 }));
       hull.position.y = 0.35;
@@ -1264,9 +1283,9 @@ function buildTaiwanIsland() {
   // 海面真實地理經緯度網格、北回歸線、海域標註與指北羅盤
   tw.add(buildWorldSeaGrid());
 
-  // 56 格真實多模態海陸空交通路網＋西部高鐵脊線動畫列車
-  for (let i = 0; i < 56; i++) {
-    tw.add(makeTransportSegment(i, TILE_PTS[i], TILE_PTS[(i + 1) % 56], SEG_MODE[i]));
+  // 64 格真實多模態海陸空交通路網＋西部高鐵脊線動畫列車
+  for (let i = 0; i < TILE_PTS.length; i++) {
+    tw.add(makeTransportSegment(i, TILE_PTS[i], TILE_PTS[(i + 1) % TILE_PTS.length], SEG_MODE[i]));
   }
   tw.add(buildHsrCorridor());
 
@@ -1574,26 +1593,73 @@ function makeTileProp(t, idx) {
     const c1 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.34, 0.16), red); c1.position.set(0, 1.75, 1.05);
     const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.34, 1.1, 0.16), red); c2.position.set(0, 1.75, 1.05);
     g.add(b, c1, c2);
-  } else if (idx === 10) {
-    // 關子嶺道具屋：紫頂道具屋＋冒蒸氣泥漿溫泉湯池
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: '#fde68a' })); body.position.set(-0.4, 0.8, -0.2);
-    const awn = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.3, 0.9), new THREE.MeshStandardMaterial({ color: '#9333ea' })); awn.position.set(-0.4, 1.6, 0.55); awn.rotation.x = 0.25;
-    const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#78716c' })); pool.position.set(0.95, 0.24, 0.4);
-    const water = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.48, 10), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7' })); water.position.set(0.95, 0.25, 0.4);
-    g.add(body, awn, pool, water);
-  } else if (idx === 32) {
-    // 八里左岸道具屋：水岸斜頂文創屋＋藍白條紋遮陽棚
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.75, 1.7), makeWinMat('#f8fafc', '#fde047')); body.position.y = 0.88;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#7c3aed' })); roof.rotation.y = Math.PI / 4; roof.position.y = 2.2;
-    const gift = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#713f12' })); gift.position.set(0.9, 0.38, 1.0);
-    g.add(body, roof, gift);
-  } else if (idx === 50) {
-    // 瑞穗牧場道具屋：紅白農舍穀倉＋黑白乳牛斑紋鮮奶筒倉
-    const barn = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: '#dc2626' })); barn.position.set(-0.45, 0.8, 0);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.75, 0.9, 4), new THREE.MeshStandardMaterial({ color: '#78350f' })); roof.rotation.y = Math.PI / 4; roof.position.set(-0.45, 2.05, 0);
-    const silo = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 2.1, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); silo.position.set(1.0, 1.05, -0.2);
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.53, 0.53, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#1e293b' })); band.position.set(1.0, 1.25, -0.2);
-    g.add(barn, roof, silo, band);
+  } else if (t.type === 'casino') {
+    // 去金門途中的海峽豪華郵輪賭場（雙層霓虹甲板＋金幣輪盤塔＋旋轉幸運骰）
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.85, 1.7), new THREE.MeshStandardMaterial({ color: '#1e1b4b', metalness: 0.35, roughness: 0.35 }));
+    hull.position.y = 0.45;
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.9, 1.3), makeWinMat('#312e81', '#fde047'));
+    deck.position.y = 1.3;
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.28, 12), new THREE.MeshStandardMaterial({ color: '#f59e0b', emissive: '#92400e', metalness: 0.65, roughness: 0.25 }));
+    crown.position.y = 2.05;
+    const neonRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.1, 6, 16), new THREE.MeshStandardMaterial({ color: '#ec4899', emissive: '#be185d' }));
+    neonRing.rotation.x = Math.PI / 2; neonRing.position.y = 2.35;
+    const die = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.68, 0.68), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#ca8a04', roughness: 0.25 }));
+    die.position.y = 2.85;
+    animProps.push(now => { crown.rotation.y = now * 0.002; die.rotation.y = -now * 0.003; die.rotation.x = now * 0.002; });
+    g.add(hull, deck, crown, neonRing, die);
+  } else if (nm === '小琉球') {
+    // 小琉球花瓶岩（珊瑚礁海蝕柱＋綠意頂冠）
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.65, 1.1, 8), new THREE.MeshStandardMaterial({ color: '#a8a29e', flatShading: true })); stem.position.y = 0.55;
+    const top = new THREE.Mesh(new THREE.DodecahedronGeometry(0.92, 0), new THREE.MeshStandardMaterial({ color: '#78716c', flatShading: true })); top.position.y = 1.45;
+    const bush = new THREE.Mesh(new THREE.SphereGeometry(0.65, 7, 6), new THREE.MeshStandardMaterial({ color: '#16a34a', flatShading: true })); bush.position.y = 2.1;
+    g.add(stem, top, bush);
+  } else if (nm === '馬祖') {
+    // 馬祖東湧白色燈塔＋八八坑道酒甕
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.54, 2.3, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); tower.position.set(-0.45, 1.15, 0);
+    const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b' })); lantern.position.set(-0.45, 2.45, 0);
+    const jar = new THREE.Mesh(new THREE.SphereGeometry(0.58, 8, 8), new THREE.MeshStandardMaterial({ color: '#92400e', roughness: 0.5 })); jar.scale.set(1, 1.25, 1); jar.position.set(0.8, 0.68, 0.2);
+    g.add(tower, lantern, jar);
+  } else if (nm === '龜山島') {
+    // 龜山島雙峰火山頭＋牛奶海環圈
+    const shell = new THREE.Mesh(new THREE.ConeGeometry(1.55, 1.85, 7), new THREE.MeshStandardMaterial({ color: '#15803d', flatShading: true })); shell.position.set(-0.2, 0.92, 0);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.15, 6), new THREE.MeshStandardMaterial({ color: '#166534', flatShading: true })); head.position.set(1.05, 0.58, 0.15);
+    g.add(shell, head);
+  } else if (nm === '平溪') {
+    // 平溪祈福天燈（發光金橘大天燈上下漂浮）
+    const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.45, 1.35, 4), new THREE.MeshStandardMaterial({ color: '#fb923c', emissive: '#ea580c', roughness: 0.4 }));
+    lan.rotation.y = Math.PI / 4; lan.position.y = 1.65;
+    animProps.push(now => { lan.position.y = 1.65 + Math.sin(now * 0.003) * 0.32; lan.rotation.y = Math.PI / 4 + Math.sin(now * 0.0015) * 0.25; });
+    g.add(lan);
+  } else if (nm === '三義' || nm === '玉里' || nm === '知本') {
+    // 龍騰斷橋／客城紅橋／知本溫泉湯屋
+    const col = nm === '玉里' ? '#dc2626' : nm === '知本' ? '#0ea5e9' : '#9a3412';
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 1.0), new THREE.MeshStandardMaterial({ color: col })); deck.position.y = 1.05;
+    const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.05, 0.8), new THREE.MeshStandardMaterial({ color: '#78350f' })); p1.position.set(-0.9, 0.52, 0);
+    const p2 = p1.clone(); p2.position.x = 0.9;
+    g.add(deck, p1, p2);
+  } else if (t.type === 'shop') {
+    const shopOrder = R.BOARD.slice(0, idx).filter(x => x.type === 'shop').length;
+    if (shopOrder === 0) {
+      // 關子嶺道具屋：紫頂道具屋＋冒蒸氣泥漿溫泉湯池
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: '#fde68a' })); body.position.set(-0.4, 0.8, -0.2);
+      const awn = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.3, 0.9), new THREE.MeshStandardMaterial({ color: '#9333ea' })); awn.position.set(-0.4, 1.6, 0.55); awn.rotation.x = 0.25;
+      const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#78716c' })); pool.position.set(0.95, 0.24, 0.4);
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.48, 10), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7' })); water.position.set(0.95, 0.25, 0.4);
+      g.add(body, awn, pool, water);
+    } else if (shopOrder === 1) {
+      // 八里左岸道具屋：水岸斜頂文創屋＋藍白條紋遮陽棚
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.75, 1.7), makeWinMat('#f8fafc', '#fde047')); body.position.y = 0.88;
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#7c3aed' })); roof.rotation.y = Math.PI / 4; roof.position.y = 2.2;
+      const gift = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#713f12' })); gift.position.set(0.9, 0.38, 1.0);
+      g.add(body, roof, gift);
+    } else {
+      // 瑞穗牧場道具屋：紅白農舍穀倉＋黑白乳牛斑紋鮮奶筒倉
+      const barn = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: '#dc2626' })); barn.position.set(-0.45, 0.8, 0);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.75, 0.9, 4), new THREE.MeshStandardMaterial({ color: '#78350f' })); roof.rotation.y = Math.PI / 4; roof.position.set(-0.45, 2.05, 0);
+      const silo = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 2.1, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); silo.position.set(1.0, 1.05, -0.2);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.53, 0.53, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#1e293b' })); band.position.set(1.0, 1.25, -0.2);
+      g.add(barn, roof, silo, band);
+    }
   } else if (t.type === 'jail') {
     const wall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.0, 0.4), new THREE.MeshStandardMaterial({ color: '#64748b' }));
     wall.position.set(0, 1.0, -0.5); g.add(wall);
@@ -1666,38 +1732,39 @@ function makeTileProp(t, idx) {
     );
     gem.position.y = 2.45; g.add(gem);
     animProps.push(now => { gem.rotation.y = now * 0.0025; gem.position.y = 2.35 + Math.sin(now * 0.004) * 0.22; });
-    if (idx === 3) {
+    const cfOrder = R.BOARD.slice(0, idx).filter(x => x.type === 'chance' || x.type === 'fate').length;
+    if (cfOrder === 0) {
       // 枋山海景夕陽愛情拱框
       const arch = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.12, 6, 16), new THREE.MeshStandardMaterial({ color: '#fb7185' }));
       arch.position.y = 0.88; g.add(arch);
-    } else if (idx === 9) {
+    } else if (cfOrder === 1) {
       // 七股白色鹽山雙金字塔
       const salt = new THREE.Mesh(new THREE.ConeGeometry(1.25, 1.45, 4), new THREE.MeshStandardMaterial({ color: '#f8fafc', flatShading: true }));
       salt.rotation.y = Math.PI / 4; salt.position.set(0, 0.72, 0); g.add(salt);
-    } else if (idx === 24) {
+    } else if (cfOrder === 2) {
       // 大甲高美濕地紅白條紋燈塔＋木棧道
       const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.48, 1.75, 8), new THREE.MeshStandardMaterial({ color: '#ef4444' }));
       tower.position.set(-0.5, 0.88, 0);
       const boardWalk = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.14, 0.65), new THREE.MeshStandardMaterial({ color: '#92400e' }));
       boardWalk.position.set(0.4, 0.2, 0.2);
       g.add(tower, boardWalk);
-    } else if (idx === 28) {
+    } else if (cfOrder === 3) {
       // 湖口老街紅磚巴洛克牌樓
       const wall = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.35, 0.7), new THREE.MeshStandardMaterial({ color: '#b45309' }));
       wall.position.y = 0.68;
       const crest = new THREE.Mesh(new THREE.ConeGeometry(0.8, 0.65, 4), new THREE.MeshStandardMaterial({ color: '#d97706' }));
       crest.rotation.y = Math.PI / 4; crest.position.y = 1.6;
       g.add(wall, crest);
-    } else if (idx === 39) {
+    } else if (cfOrder === 4) {
       // 汐止山谷雲海六角涼亭
       const pav = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.75, 6), new THREE.MeshStandardMaterial({ color: '#059669' })); pav.position.y = 1.35;
       const baseP = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.75, 0.9, 6), new THREE.MeshStandardMaterial({ color: '#78350f' })); baseP.position.y = 0.45;
       g.add(pav, baseP);
-    } else if (idx === 46) {
+    } else if (cfOrder === 5) {
       // 蘇花清水斷崖青灰山海石壁
       const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.15, 2.0, 5), new THREE.MeshStandardMaterial({ color: '#64748b', flatShading: true }));
       c1.position.set(-0.3, 1.0, -0.2); g.add(c1);
-    } else if (idx === 51) {
+    } else if (cfOrder === 6) {
       // 池上伯朗大道金城武樹＋金色稻田
       const pad = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 1.8), new THREE.MeshStandardMaterial({ color: '#eab308' })); pad.position.y = 0.1;
       const tr = tree(0.85, '#16a34a'); tr.position.set(0, 0.15, 0);
@@ -1802,7 +1869,7 @@ const tileLabels = new Array(R.BOARD.length).fill(null);
 const TILE_R = 5.6;
 const LM_OFF = new THREE.Vector3(-1.9, 0, -2.5);   // 地標位置（棋格後方偏左）
 const HOUSE_OFF = new THREE.Vector3(2.6, 0, -2.4); // 地產建築（後方偏右）
-const COAST_TILES = new Set(['墾丁', '安平', '澎湖', '淡水', '基隆港', '綠島', '蘭嶼', '金門', '鹿港']);
+const COAST_TILES = new Set(['墾丁', '安平', '澎湖', '淡水', '基隆港', '綠島', '蘭嶼', '金門', '鹿港', '小琉球', '馬祖', '賭場', '龜山島']);
 const URBAN_TILES = new Set(['台北', '信義區', '高雄', '台中', '新北', '台南', '竹科', '桃園', '新竹', '桃園機場', '屏東', '彰化', '嘉義', '宜蘭', '花蓮', '台東']);
 function tileTheme(t, i) {
   if (t.type === 'temple') return 'temple';
@@ -3438,7 +3505,7 @@ function renderUI() {
   if (G.fx && JSON.stringify(G.fx) + G.turn !== lastFx) {
     lastFx = JSON.stringify(G.fx) + G.turn;
     const fk = G.fx.k;
-    whenWalkDone(() => snd({ rent: 'pay', buy: 'cash', build: 'build', jail: 'bad', demolish: 'bad', god_good: 'god', god_bad: 'badgod', seize: 'seize' }[fk] || 'turn'));
+    whenWalkDone(() => snd({ rent: 'pay', buy: 'cash', build: 'build', jail: 'bad', demolish: 'bad', god_good: 'god', god_bad: 'badgod', seize: 'seize', casino_win: 'cash', casino_lose: 'bad' }[fk] || 'turn'));
   }
   if (G.phase !== 'over' && G.round >= 20 && G.round % 20 === 0 && G.round !== lastRankRound && !G.ask) {
     lastRankRound = G.round;
@@ -3502,6 +3569,22 @@ function askPrompt(q) {
       <div class="card-box" style="--c:${isChance ? '#e67e22' : '#4f7fe0'}">${q.text}</div>
       <div class="row"><button class="primary" id="aOk">確定執行</button></div>`, box => {
       box.querySelector('#aOk').onclick = () => { closeModal(); send({ type: 'answer', yes: true }); };
+    });
+    return;
+  }
+  if (q.k === 'casino') {
+    const bets = q.bets || [500, 1500, 3000];
+    openModal(`<h2>🎰 海峽郵輪賭場</h2>
+      <div class="sub">前往金門途中的海上博弈殿堂！目前現金：<b style="color:var(--gold)">$${p.cash.toLocaleString()}</b><br>規則：擲 2 顆骰子，總和 <b>≥ 8 點</b> 贏 <b>1 倍</b>；擲出<b>雙骰豹子</b>贏 <b>2 倍</b>；≤ 7 點輸掉籌碼。</div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;justify-content:center">
+        ${bets.map(b => `<button class="${b === 3000 ? 'sky' : 'primary'}" data-bet="${b}" ${p.cash < b ? 'disabled' : ''}>🎲 下注 $${b.toLocaleString()}</button>`).join('')}
+        <button id="cNo">冷靜離開</button>
+      </div>`, box => {
+      box.querySelector('#cNo').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
+      box.querySelectorAll('[data-bet]').forEach(btn => btn.onclick = () => {
+        closeModal();
+        send({ type: 'answer', yes: true, bet: Number(btn.dataset.bet) });
+      });
     });
     return;
   }
@@ -3731,7 +3814,7 @@ $('#btnMenu').onclick = () => openModal(`<h2>選單</h2><div class="row" style="
 
 function openHelp() {
   openModal(`<h2>玩法說明</h2><div class="sub" style="font-size:14px;color:var(--text)">
-  ・<b>56 格全台灣多模態環島地圖</b>：包含高鐵、台鐵、捷運、阿里山森林鐵路、蘇花山岳隧道、跨海渡輪與金門國內航線！<br>
+  ・<b>64 格全台灣多模態環島地圖</b>：包含高鐵、台鐵、捷運、阿里山森林鐵路、蘇花山岳隧道、跨海渡輪（小琉球／澎湖／馬祖・海峽賭場／龜山島／綠島蘭嶼）與金門國內航線！<br>
   ・<b>1 顆骰子開局・道具屋升級雙骰</b>：開局使用 1 顆骰子（1～6 點），前往道具屋可購買「<b>🎲 加購骰子</b>」永久升級為雙骰（2～12 點）！<br>
   ・<b>買地蓋樓變摩天大樓</b>：買下土地或車站後，每次再走到同位置即可一階階蓋樓（<b>空地 → 一樓平房 → 二樓透天 → 高層大樓 → 摩天大樓</b>），也可以直接蓋成最高級摩天大樓收高額過路費！<br>
   ・<b>機會、命運與道具屋</b>：踩到機會／命運會跳出卡片視窗確認執行；踩到道具屋會送一張隨機卡片，並開啟商店讓你購買「加購骰子、請神卡、送神卡、遙控骰子、路障、免租卡、迴轉卡、拆除卡、徵收卡」。<br>
@@ -3837,7 +3920,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D</h2><div class="sub">原創 3D 台灣地產桌遊：56 格全台灣地圖、神明附身（土地公強佔土地）、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D</h2><div class="sub">原創 3D 台灣地產桌遊：64 格全台灣與離島地圖（去金門途中有海峽賭場）、神明附身、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
