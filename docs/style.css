@@ -1144,10 +1144,3 @@ html { background: #0b0f14; }
   #modalBox:has(.brief-grid) .mtitle { margin-bottom: 4px; }
 }
 
-/* ===== iOS／iPadOS 主畫面 App：系統在狀態列下方約 40pt 疊一層模糊。
-   命令列上方多留一段實色空白，讓按鈕與文字落在模糊範圍之外 ===== */
-html.ios-app { --haze: 34px; }
-html.ios-app #topbar { padding-top: calc(var(--haze) + env(safe-area-inset-top)); height: calc(var(--tbh) + var(--haze) + env(safe-area-inset-top)); }
-html.ios-app #app { padding-top: calc(var(--tbh) + var(--haze) + env(safe-area-inset-top)); }
-html.ios-app #modal { padding-top: calc(16px + var(--haze) + env(safe-area-inset-top)); }
-html.ios-app #modalBox { max-height: calc(100dvh - 32px - var(--haze) - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
