@@ -3396,7 +3396,8 @@ function frame(now) {
         if (!waitingPass && !waitingBite && npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
         if (nt.t < 1) {
           if (!diceAnim && !biteAnim) {
-            nt.t = Math.min(1, nt.t + dt / (stepDurMs(nt.from, nt.pos) * (npc.kind === 'dog' ? 3.8 : 1.6)));
+            const dogDur = isIslandLeg(nt.from, nt.pos) ? stepDurMs(nt.from, nt.pos) * 0.55 : stepDurMs(nt.from, nt.pos) * 3.8;
+            nt.t = Math.min(1, nt.t + dt / (npc.kind === 'dog' ? dogDur : stepDurMs(nt.from, nt.pos) * 1.6));
             if (npc.kind === 'dog') nt.g.scale.setScalar(2.5);
             const a = npcWorld(nt.from), b = npcWorld(nt.pos);
             nt.g.position.lerpVectors(a, b, nt.t);
@@ -4339,7 +4340,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v163</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v164</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
