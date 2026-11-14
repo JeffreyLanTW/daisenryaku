@@ -384,6 +384,7 @@ function draw(now) {
   drawPlaceNames();
   // 夜間：地形與據點蒙上一層夜色，部隊仍清楚可見
   if (isNight()) { ctx.fillStyle = 'rgba(8,16,48,0.38)'; ctx.fillRect(0, 0, terrainCvs.width / TS, terrainCvs.height / TS); }
+  drawFog2D();
   drawMissionMarks(now, false);
   drawOverlays(now);
   drawUnits();
@@ -393,7 +394,17 @@ function draw(now) {
 }
 
 // 3D：地形、建物、部隊由 Three.js 畫；2D 畫布疊在上面，只畫文字與小型標示
+// 戰爭迷霧：看不見的格子蓋一層暗色
+function drawFog2D() {
+  const vis = fogVis();
+  if (!vis) return;
+  ctx.fillStyle = 'rgba(6,10,16,0.55)';
+  ctx.beginPath();
+  for (let i = 0; i < vis.length; i++) if (!vis[i]) { const [cx, cy] = idxCenter(i); for (let k = 0; k < 6; k++) { const a = Math.PI / 180 * (60 * k - 90); const x = cx + (R + 0.6) * Math.cos(a), y = cy + (R + 0.6) * Math.sin(a); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); }
+  ctx.fill();
+}
 function draw3D(now) {
+  { const vis = fogVis(); if (vis) for (let i = 0; i < vis.length; i++) if (!vis[i]) R3D.fillHex(i, 'rgba(4,8,14,0.62)'); }
   drawMissionMarks(now, false);
   drawOverlays(now);
   R3D.setUnits(unitDrawList(true));
@@ -482,7 +493,7 @@ function drawMissionMarks(now, top) {
     });
   }
   for (const u of G.units) {
-    if (!u.tag || !mt.tags.includes(u.tag)) continue;
+    if (!u.tag || !mt.tags.includes(u.tag) || !unitSeen(u)) continue;
     const [cx, cy] = u._anim || tileCenter(u.x, u.y), r = 24 + 2 * p;
     at(cx, cy, () => {
       const oy = in3D ? -14 : -3;
@@ -595,7 +606,7 @@ function drawUnits() {
 }
 // 每個部隊這一幀要畫的樣子；key 相同代表外觀相同（3D 立牌貼圖以此快取）
 function unitDrawList(for3D) {
-  const list = [...G.units].sort((a, b) => (UNITS[a.type].cat === 'air') - (UNITS[b.type].cat === 'air') || a.y - b.y);
+  const list = G.units.filter(unitSeen).sort((a, b) => (UNITS[a.type].cat === 'air') - (UNITS[b.type].cat === 'air') || a.y - b.y);
   const out = [];
   for (const u of list) {
     const d = UNITS[u.type];
@@ -697,6 +708,8 @@ function centerOn(wx, wy) {
 // 電腦回合的鏡頭：平滑移動到目標（不瞬間跳轉，觀戰時眼睛較舒服）；玩家拖曳或縮放時取消
 let camGoal = null;
 function ensureVisible(x, y) {
+  // 迷霧中看不見的敵軍行動：鏡頭不跟過去（否則等於洩漏位置）
+  if (typeof tileSeen === 'function' && !tileSeen(idxOf(x, y))) return;
   // 固定鏡頭：不自動移動（電腦行動、代理指揮、回合開始的移動命令都一樣）
   if (!SETTINGS.followCam) return;
   const [cx, cy] = tileCenter(x, y), [vw, vh] = viewSize();
@@ -758,7 +771,11 @@ function drawMini() {
       : t === 'road' ? '#cdbf8f' : TCOLOR[t];
     mctx.fill();
   }
+  // 小地圖：迷霧中的格子變暗、看不見的敵軍不畫
+  const fv = fogVis();
+  if (fv) { mctx.fillStyle = 'rgba(6,10,16,0.55)'; for (let i = 0; i < fv.length; i++) if (!fv[i]) { const [cx, cy] = idxCenter(i); hexPath(mctx, cx, cy, R + 1); mctx.fill(); } }
   for (const u of G.units) {
+    if (!unitSeen(u)) continue;
     const [cx, cy] = tileCenter(u.x, u.y), ud = UNITS[u.type];
     mctx.fillStyle = typeof nationColor === 'function' ? nationColor(ud.nation, u.side) : SIDES[u.side].color;
     circle(mctx, cx, cy, R * 0.65); mctx.fill();

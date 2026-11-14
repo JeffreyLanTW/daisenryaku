@@ -245,3 +245,107 @@ function generateMap(w, h, seed) {
   const rails = [...railEdges].map(k => [Math.floor(k / N), k % N]);
   return { terrain, owner, caps: [bc, rc], start, roads, rails };
 }
+
+// ===== 三方以上的自由對戰地圖 =====
+// 各方首都平均分布在地圖周圍（橢圓上），每格歸屬最近的首都；
+// 每方各有工廠、機場、港口與起始城市，中間留中立城市；道路連接各首都與鄰近的首都。
+function generateMapMulti(w, h, seed, n) {
+  const rand = mulberry32(seed);
+  const N = w * h, I = (x, y) => y * w + x, XY = i => [i % w, (i / w) | 0];
+  const dist = (a, b) => { const [ax, ay] = XY(a), [bx, by] = XY(b); return hexDist(ax, ay, bx, by); };
+  const nbs = i => { const [x, y] = XY(i); return neighbors(x, y, w, h).map(([nx, ny]) => I(nx, ny)); };
+  function field(cell) {
+    const gw = Math.ceil(w / cell) + 3, g = new Float32Array(gw * (Math.ceil(h / cell) + 3));
+    for (let k = 0; k < g.length; k++) g[k] = rand();
+    const out = new Float32Array(N);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const fx = (x + 0.5 * (y & 1)) / cell, fy = (y * 0.866) / cell, ix = Math.floor(fx), iy = Math.floor(fy);
+      let tx = fx - ix, ty = fy - iy; tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+      const a = g[iy * gw + ix], b = g[iy * gw + ix + 1], c = g[(iy + 1) * gw + ix], d = g[(iy + 1) * gw + ix + 1];
+      out[I(x, y)] = (a + (b - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
+    }
+    return out;
+  }
+  const e1 = field(7), e2 = field(3.5), e3 = field(1.6), m1 = field(5), m2 = field(2.2);
+  const elev = new Float32Array(N), moist = new Float32Array(N);
+  for (let i = 0; i < N; i++) { elev[i] = e1[i] * 0.55 + e2[i] * 0.3 + e3[i] * 0.15; moist[i] = m1[i] * 0.65 + m2[i] * 0.35; }
+  const q = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s[Math.floor(p * (N - 1))]; };
+  const seaT = q(elev, 0.18), hillT = q(elev, 0.8), mtnT = q(elev, 0.92), forT = q(moist, 0.7);
+  const terrain = new Array(N);
+  for (let i = 0; i < N; i++) terrain[i] = elev[i] < seaT ? 'sea' : elev[i] > mtnT ? 'mountain' : elev[i] > hillT ? 'hills' : moist[i] > forT ? 'forest' : 'plain';
+  const isProp = i => !!TERRAIN[terrain[i]].prop;
+  const isLand = i => ['plain', 'forest', 'hills'].includes(terrain[i]);
+
+  // 首都：橢圓上平均分布（離邊 2–3 格），起始角度隨機
+  const caps = [], a0 = rand() * Math.PI * 2;
+  for (let k = 0; k < n; k++) {
+    const a = a0 + k * 2 * Math.PI / n;
+    const x = Math.round((w - 1) / 2 + Math.cos(a) * ((w - 1) / 2 - 2.5)), y = Math.round((h - 1) / 2 + Math.sin(a) * ((h - 1) / 2 - 2.5));
+    caps.push(I(Math.max(1, Math.min(w - 2, x)), Math.max(1, Math.min(h - 2, y))));
+  }
+  for (const c of caps) for (let i = 0; i < N; i++) if (dist(i, c) <= 2 && !isLand(i)) terrain[i] = 'plain';
+  for (const c of caps) terrain[c] = 'capital';
+  const region = new Int8Array(N);
+  for (let i = 0; i < N; i++) { let b = 0, bd = Infinity; caps.forEach((c, k) => { const d = dist(i, c); if (d < bd) { bd = d; b = k; } }); region[i] = b; }
+
+  function placeNear(k, type, dmin, dmax) {
+    const c = [];
+    for (let i = 0; i < N; i++) { const d = dist(i, caps[k]); if (region[i] === k && d >= dmin && d <= dmax && isLand(i) && !nbs(i).some(isProp)) c.push(i); }
+    if (!c.length) return -1;
+    c.sort((a, b) => (terrain[a] === 'plain' ? 0 : 1) - (terrain[b] === 'plain' ? 0 : 1) || rand() - 0.5);
+    terrain[c[0]] = type; return c[0];
+  }
+  const owner = new Array(N).fill(-1);
+  for (let k = 0; k < n; k++) {
+    for (const [t, a, b] of [['factory', 2, 3], ['airport', 3, 5], ['city', 2, 4], ['city', 3, 6]]) { const i = placeNear(k, t, a, b); if (i >= 0) owner[i] = k; }
+    // 港口：區域內靠近首都的海岸
+    let best = -1, bd = Infinity;
+    for (let i = 0; i < N; i++) {
+      if (region[i] !== k || !isLand(i) || isProp(i) || nbs(i).some(isProp) || !nbs(i).some(j => terrain[j] === 'sea')) continue;
+      const d = dist(i, caps[k]); if (d <= 9 && d < bd) { bd = d; best = i; }
+    }
+    if (best >= 0) { terrain[best] = 'port'; owner[best] = k; }
+  }
+  caps.forEach((c, k) => { owner[c] = k; });
+  // 中立城市
+  const far = i => { for (let j = 0; j < N; j++) if (isProp(j) && dist(i, j) < 3) return false; return true; };
+  const cand = [];
+  for (let i = 0; i < N; i++) if (isLand(i)) cand.push(i);
+  for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(rand() * (k + 1)); [cand[k], cand[j]] = [cand[j], cand[k]]; }
+  let neutral = Math.round(N / 50);
+  for (const i of cand) { if (neutral <= 0) break; if (far(i) && caps.every(c => dist(i, c) >= 5)) { terrain[i] = 'city'; neutral--; } }
+
+  // 道路：首都到自己的設施、首都到相鄰的兩個首都
+  const roadCost = { road: 0.4, bridge: 0.4, plain: 1, forest: 2, hills: 3, mountain: 5, sea: 7 };
+  function cheapPath(from, to) {
+    const d = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N), open = new MinHeap();
+    d[from] = 0; open.push(0, from);
+    while (open.size) {
+      const cur = open.pop(); if (done[cur]) continue; done[cur] = 1; if (cur === to) break;
+      for (const nb of nbs(cur)) { if (done[nb]) continue; const nd = d[cur] + (roadCost[terrain[nb]] ?? 1); if (nd < d[nb]) { d[nb] = nd; prev[nb] = cur; open.push(nd, nb); } }
+    }
+    const p = []; for (let c = to; c !== -1; c = prev[c]) p.push(c); return p;
+  }
+  const roadEdges = new Set(), edgeKey = (a, b) => a < b ? a * N + b : b * N + a;
+  const layRoad = path => {
+    for (let k = 1; k < path.length; k++) roadEdges.add(edgeKey(path[k - 1], path[k]));
+    for (const i of path) if (!isProp(i)) terrain[i] = terrain[i] === 'sea' || terrain[i] === 'bridge' ? 'bridge' : 'road';
+  };
+  for (let k = 0; k < n; k++) layRoad(cheapPath(caps[k], caps[(k + 1) % n]));
+  for (let i = 0; i < N; i++) if (isProp(i) && owner[i] >= 0 && !caps.includes(i)) layRoad(cheapPath(caps[owner[i]], i));
+  for (let i = 0; i < N; i++) if (terrain[i] === 'port' && !nbs(i).some(j => terrain[j] === 'sea')) terrain[i] = 'city';
+
+  // 起始部隊：每方相同編成，放在自己首都附近
+  const scale = Math.sqrt(N / 360 / Math.max(1, n / 2));
+  const roster = ['inf', 'inf', 'inf', 'tank', 'tank', 'arty', 'recon', 'aa'];
+  if (scale > 1.3) roster.push('inf', 'tank', 'atinf', 'arty');
+  const start = [];
+  for (let k = 0; k < n; k++) {
+    const spots = [];
+    for (let i = 0; i < N; i++) if (region[i] === k && !isProp(i) && moveCost(terrain[i], 'tread') !== Infinity) spots.push(i);
+    spots.sort((a, b) => dist(a, caps[k]) - dist(b, caps[k]));
+    roster.forEach((type, j) => { if (j < spots.length) start.push([type, spots[j], k]); });
+  }
+  const roads = [...roadEdges].map(k => [Math.floor(k / N), k % N]);
+  return { terrain, owner, caps, start, roads, rails: [] };
+}

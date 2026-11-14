@@ -9,10 +9,18 @@ const CLASS_NAME = { soft: '步兵', hard: '裝甲', air: '空軍', ship: '艦�
 const CLASS_SHORT = ['步', '甲', '空', '艦'];
 
 // 兩方的顯示色（名稱於開局時依國家設定）
+// 最多 8 方（自由對戰）；劇情只用前兩方
 const SIDES = [
   { name: '藍軍', color: '#2f6fd0', dark: '#163a78', light: '#9cc0f5', trim: '#d8e4f2' },
   { name: '紅軍', color: '#b8322c', dark: '#3d0f0f', light: '#f3a5a5', trim: '#d4a94a' },
+  { name: '綠軍', color: '#2f9e4f', dark: '#14432a', light: '#9fe0b4', trim: '#d8f0e0' },
+  { name: '橙軍', color: '#e08a1e', dark: '#5c3608', light: '#f8c98a', trim: '#f6e2c4' },
+  { name: '紫軍', color: '#8e44d6', dark: '#3a1660', light: '#d1a8f5', trim: '#ead9fb' },
+  { name: '青軍', color: '#1aa6b5', dark: '#0b4a52', light: '#9ee3ea', trim: '#d4f3f6' },
+  { name: '粉軍', color: '#d6489a', dark: '#5a1640', light: '#f5a9d2', trim: '#fbdcee' },
+  { name: '褐軍', color: '#9a7b2f', dark: '#3f3010', light: '#e2cf96', trim: '#f2e8c8' },
 ];
+const MAX_SIDES = SIDES.length;
 
 // cost: 各移動類型進入此地形的消耗（未列出 = 不可進入）
 // def: 地面部隊防禦加成 %

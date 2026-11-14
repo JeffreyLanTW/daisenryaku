@@ -1154,3 +1154,17 @@ html { background: #0b0f14; }
 #topbar #btnMore { display: inline-block !important; }
 /* 窄螢幕（iPad 直向）：最上列放不下時先隱藏「大戰略」字樣，讓 ☰ 留在畫面內 */
 @media (max-width: 900px) { #topbar .brand { display: none; } }
+
+/* ===== 三方以上自由對戰 ===== */
+.ng-sides { display: grid; gap: 6px; margin: 10px 0; }
+.ng-side { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 8px; align-items: center; padding: 4px 8px; border-left: 4px solid var(--c); background: #0f151c; border-radius: 6px; }
+.ng-side select { font: inherit; background: #151c24; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; }
+#funds .pill.out { opacity: 1; color: #6b7686; }
+#battleStats:has(.bs-multi) { width: 330px; }
+.bs-multi { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.bs-multi th { color: var(--muted); font-weight: 600; text-align: right; padding: 1px 3px; }
+.bs-multi td { text-align: right; padding: 2px 3px; white-space: nowrap; }
+.bs-multi td:first-child { text-align: left; }
+.bs-multi td .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+.bs-multi tr.cur td:first-child { font-weight: 800; }
+.bs-multi tr.out td { color: #5d6877; }

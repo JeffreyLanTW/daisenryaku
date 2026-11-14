@@ -470,8 +470,8 @@ function doCapture(u) {
   if (G.stats && (u.shipped || UNITS[u.type].mt === 'amph')) G.stats.amphibious_captures = (G.stats.amphibious_captures || 0) + 1;
   addLog(`${SIDES[u.side].name}佔領了${tname}！`, u.side);
   if (!G.missionId && G.terrain[i] === 'capital' && prev >= 0) {
-    G.winner = u.side;
-    G.winReason = `攻陷${SIDES[prev].name}首都`;
+    if (G.players.length > 2) eliminate(prev, u.side, `首都被${SIDES[u.side].name}攻陷`);
+    else { G.winner = u.side; G.winReason = `攻陷${SIDES[prev].name}首都`; }
   }
   checkVictory();
   return true;
@@ -699,14 +699,34 @@ function startTurn() {
   if (G.missionId) missionTurnStart();
   checkVictory();
 }
+// 下一個還沒被淘汰的一方；繞回第一方時回合數 +1
 function endTurn() {
-  G.cur = 1 - G.cur;
-  if (G.cur === 0) G.turn++;
+  const n = G.players.length;
+  for (let k = 0; k < n; k++) {
+    G.cur = (G.cur + 1) % n;
+    if (G.cur === 0) G.turn++;
+    if (!G.out || !G.out[G.cur]) break;
+  }
   startTurn();
+}
+// 淘汰一方（三方以上）：部隊撤出，據點變中立；只剩一方時該方獲勝
+function eliminate(s, by, reason) {
+  if (!G.out) G.out = new Array(G.players.length).fill(false);
+  if (G.out[s]) return;
+  G.out[s] = true;
+  G.units = G.units.filter(u => u.side !== s);
+  for (let i = 0; i < G.owner.length; i++) if (G.owner[i] === s) G.owner[i] = by != null && G.terrain[i] === 'capital' ? by : -1;
+  addLog(`${SIDES[s].name}${reason}，退出戰局`, s);
+  const alive = G.players.map((p, k) => k).filter(k => !G.out[k]);
+  if (alive.length === 1) { G.winner = alive[0]; G.winReason = `${SIDES[alive[0]].name}擊敗所有對手`; }
 }
 function checkVictory() {
   if (G.winner != null) return;
   if (G.missionId) return evalMission();
+  if (G.players.length > 2) {
+    for (let s = 0; s < G.players.length; s++) if (!(G.out && G.out[s]) && !G.units.some(u => u.side === s)) eliminate(s, null, '全軍覆沒');
+    return;
+  }
   for (let s = 0; s < 2; s++) {
     if (!G.units.some(u => u.side === s)) {
       G.winner = 1 - s;
@@ -739,7 +759,7 @@ function initState(m, opts) {
     // 規則選項：engineer 是否可生產工兵（預設依玩家設定，無設定時開啟）
     rules: Object.assign({ engineer: typeof SETTINGS === 'undefined' || SETTINGS.engineer !== false }, opts.rules || {}),
     stats: { loads: 0, unloads: 0, amphibious_captures: 0, crashes: 0 },
-    airFuelCrashCount: [0, 0],
+    airFuelCrashCount: new Array(players.length).fill(0), out: new Array(players.length).fill(false),
   };
   applyNations(G.nations, G.allies);
   for (let i = 0; i < G.owner.length; i++) {
@@ -754,10 +774,11 @@ function initState(m, opts) {
   }
 }
 function newGame(opts) {
-  const m = generateMap(opts.w, opts.h, opts.seed);
+  const n = (opts.players || []).length || 2;
+  const m = n > 2 ? generateMapMulti(opts.w, opts.h, opts.seed, n) : generateMap(opts.w, opts.h, opts.seed);
   m.w = opts.w; m.h = opts.h;
-  const f = Math.round(START_FUNDS * Math.sqrt(opts.w * opts.h / 360) / 100) * 100;
-  initState(m, Object.assign({ funds: [f, f] }, opts));
+  const f = Math.round(START_FUNDS * Math.sqrt(opts.w * opts.h / 360 / Math.max(1, n / 2)) / 100) * 100;
+  initState(m, Object.assign({ funds: new Array(n).fill(Math.max(1000, f)) }, opts));
   addLog('作戰開始！攻陷敵方首都或殲滅全部敵軍即可獲勝。');
   startTurn();
 }

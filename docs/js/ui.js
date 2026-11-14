@@ -16,6 +16,9 @@ SETTINGS.stats = true; SETTINGS.statsPos = 'bl'; SETTINGS.statsMin = false; SETT
 try { SETTINGS.engineer = localStorage.getItem('daisenryaku_engineer2') === '1'; } catch (e) { /* 忽略 */ }   // 預設關閉
 // 鏡頭是否自動移動：電腦行動、代理指揮、回合切換時移到行動中的部隊（預設開啟）；關閉＝固定鏡頭
 SETTINGS.followCam = true;
+// 戰爭迷霧（預設關閉）
+SETTINGS.fog = false;
+try { SETTINGS.fog = localStorage.getItem('daisenryaku_fog') === '1'; } catch (e) { /* 忽略 */ }
 // 3D 戰鬥特效（射擊彈道、命中爆炸、擊毀殘骸），預設開啟
 SETTINGS.fx3d = true;
 try { SETTINGS.fx3d = localStorage.getItem('daisenryaku_fx3d') !== '0'; } catch (e) { /* 忽略 */ }
@@ -77,11 +80,11 @@ function selectUnit(u) {
   UIS.mode = 'selected';
   UIS.reach = computeReach(u);
   UIS.attackSet = new Set();
-  if (isIndirect(u.type)) for (const t of targetsFrom(u, u.x, u.y)) UIS.attackSet.add(t.id);
+  if (isIndirect(u.type)) for (const t of targetsFrom(u, u.x, u.y)) { if (unitSeen(t)) UIS.attackSet.add(t.id); }
   else for (const [i, v] of UIS.reach) {
     if (!v.canStop) continue;
     const [x, y] = ixy(i);
-    for (const t of targetsFrom(u, x, y)) UIS.attackSet.add(t.id);
+    for (const t of targetsFrom(u, x, y)) if (unitSeen(t)) UIS.attackSet.add(t.id);
   }
   refreshPanel();
 }
@@ -275,9 +278,9 @@ function doRepairAction(u) {
 // ----- 點擊處理 -----
 function handleClick(x, y) {
   if (!G || !inMap(x, y) || UIS.mode === 'busy') return;
-  { const cu = unitAt(x, y); if (cu) UIS.lastUnit = cu; }
+  { const cu = seenUnitAt(x, y); if (cu) UIS.lastUnit = cu; }
   if (UIS.mode === 'deploy') return deployClick(x, y);
-  const u = unitAt(x, y);
+  const u = seenUnitAt(x, y);
   if (!isHumanTurn()) { setInspect(u && UIS.inspect !== u ? u : null); refreshPanel(); return; }
   switch (UIS.mode) {
     case 'idle':
@@ -348,7 +351,7 @@ function showMenu(u) {
   const m = $('#actionMenu');
   m.innerHTML = '';
   const movedAway = u.autoMoved || u.x !== UIS.origin.x || u.y !== UIS.origin.y;
-  const tg = !isIndirect(u.type) || !movedAway ? targetsFrom(u, u.x, u.y) : [];
+  const tg = (!isIndirect(u.type) || !movedAway ? targetsFrom(u, u.x, u.y) : []).filter(unitSeen);
   const add = (label, fn, cls = '') => {
     const b = document.createElement('button');
     b.innerHTML = label; b.className = cls;
@@ -631,7 +634,7 @@ function updateAutoPilotUI() {
       bar.dataset.built = '1';
       const seg = (attrs, opts) => `<span class="ap-seg">${opts.map(([v, n, t]) => `<button type="button" ${attrs} data-v="${v}" title="${t || n}">${n}</button>`).join('')}</span>`;
       const per = [['A', 'A', 'A 攻擊型：極限殲敵'], ['B', 'B', 'B 綜合型：平衡協同'], ['C', 'C', 'C 保守型：要塞扼守'], ['L', '藍發', '藍發：高勝率適配']];
-      $('#apSides').innerHTML = [0, 1].map(k => `<div class="ap-side" style="--c:${SIDES[k].color}">
+      $('#apSides').innerHTML = [...G.players.keys()].map(k => `<div class="ap-side" style="--c:${SIDES[k].color}">
           <span class="ap-side-name" style="color:${SIDES[k].light}">${SIDES[k].name}<i class="ap-turn"></i></span>
           ${seg(`data-ap="ctl" data-k="${k}"`, [['h', '玩家'], ['ai', '電腦']])}
           ${seg(`data-ap="per" data-k="${k}"`, per)}
@@ -665,7 +668,7 @@ function renderApTune() {
   const key = G.players.map(p => p.persona + JSON.stringify(p.tune || {})).join('|');
   if (box.dataset.key === key) return;   // 拖曳中不重建，避免打斷操作
   box.dataset.key = key;
-  box.innerHTML = [0, 1].map(k => {
+  box.innerHTML = [...G.players.keys()].map(k => {
     const per = getPersona(k);
     return `<div class="ap-tune-side" style="--c:${SIDES[k].color}"><div class="ap-tune-h" style="color:${SIDES[k].light}">${SIDES[k].name}・${per.badge || per.id}
         <button type="button" class="btn-ap-sub" data-reset="${k}" title="恢復此風格預設">重設</button></div>
@@ -796,6 +799,14 @@ function battleStatsData() {
     }
     return { units: units.length, val: Math.round(val), props, income: incomeOf(k), funds: G.funds[k], sites, idle };
   };
+  if (G.players.length > 2) {
+    // 三方以上：各方勝率＝實力平方占比
+    const d = G.players.map((p, k) => Object.assign(side(k), { k, out: !!(G.out && G.out[k]) }));
+    const str = x => x.out ? 0 : (x.val + x.income * 6 + x.props * 100 + x.funds * 0.25) ** 2;
+    const tot = d.reduce((t, x) => t + str(x), 0) || 1;
+    d.forEach(x => { x.p = G.winner != null ? (G.winner === x.k ? 1 : 0) : str(x) / tot; });
+    return { d, multi: true };
+  }
   const d = [side(0), side(1)];
   // 估計勝率：兵力價值為主，加上收入（未來兵力）、據點與資金；平方後比較（集中兵力的優勢不是線性的）
   const str = x => x.val + x.income * 6 + x.props * 100 + x.funds * 0.25;
@@ -824,8 +835,26 @@ function renderBattleStats() {
   });
 }
 // 面板內容；withBtns＝獨立面板（含位置與收合按鈕），false＝嵌入代理視窗
+function battleStatsMulti(d, withBtns) {
+  const k = v => v >= 10000 ? (v / 1000).toFixed(0) + 'k' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(v);
+  // 環圖：各方估計勝率
+  const R = 14, C = 2 * Math.PI * R;
+  let acc = 0;
+  const segs = d.filter(x => x.p > 0).map(x => { const s = `<circle cx="18" cy="18" r="${R}" fill="none" stroke="${SIDES[x.k].color}" stroke-width="6" stroke-dasharray="${(C * x.p).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-C * acc).toFixed(2)}" transform="rotate(-90 18 18)"/>`; acc += x.p; return s; }).join('');
+  const lead = [...d].sort((a, b) => b.p - a.p)[0];
+  return `<div class="bs-head"><svg class="bs-donut" viewBox="0 0 36 36" aria-hidden="true">${segs}</svg>
+      <span class="bs-win" title="估計勝率（依兵力價值、收入、據點與資金估算）"><small>領先</small> <b style="color:${SIDES[lead.k].light}">${SIDES[lead.k].name} ${Math.round(lead.p * 100)}%</b></span>
+      ${withBtns ? `<button class="bs-btn" data-bs="pos" title="移到${SETTINGS.statsPos === 'tl' ? '左下' : '左上'}">⇅</button>
+      <button class="bs-btn" data-bs="min" title="${SETTINGS.statsMin ? '展開' : '收合'}">${SETTINGS.statsMin ? '▸' : '▾'}</button>` : ''}</div>
+    <div class="bs-body"><table class="bs-multi"><tr><th></th><th>勝率</th><th>部隊</th><th>兵力</th><th>據點</th><th>收入</th><th>資金</th></tr>
+      ${d.map(x => `<tr class="${x.out ? 'out' : ''} ${x.k === G.cur ? 'cur' : ''}"><td><span class="dot" style="background:${SIDES[x.k].color}"></span>${SIDES[x.k].name}</td>
+        ${x.out ? '<td colspan="6">已淘汰</td>' : `<td>${Math.round(x.p * 100)}%</td><td>${x.units}</td><td>${k(x.val)}</td><td>${x.props}</td><td>+${k(x.income)}</td><td>${k(x.funds)}</td>`}</tr>`).join('')}
+    </table></div>`;
+}
 function battleStatsInner(withBtns) {
-  const { d, p0 } = battleStatsData(), c = [SIDES[0].color, SIDES[1].color];
+  const data = battleStatsData();
+  if (data.multi) return battleStatsMulti(data.d, withBtns);
+  const { d, p0 } = data, c = [SIDES[0].color, SIDES[1].color];
   const pct0 = Math.round(p0 * 100);
   // 環圖：藍方估計勝率
   const R = 14, C = 2 * Math.PI * R;
@@ -856,8 +885,11 @@ function refreshPanel() {
   renderBattleStats();
   const S = SIDES[G.cur];
   $('#turnInfo').innerHTML = `第 <b>${G.turn}</b> 回合${isNight() ? ' · 🌙 夜間' : ''} · <span style="color:${S.light}">${S.name}${G.players[G.cur].ai ? '（電腦）' : ''}</span>`;
-  $('#funds').innerHTML = SIDES.map((s, k) =>
-    `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${s.name} 💰${G.funds[k]} <small>+${incomeOf(k)}</small> · ${G.units.filter(u => u.side === k).length}隊</span>`).join('');
+  // 三方以上時只顯示簡短資訊（名稱、資金、部隊數），已淘汰的一方劃掉
+  const many = G.players.length > 2;
+  $('#funds').innerHTML = G.players.map((p, k) => { const s = SIDES[k];
+    if (G.out && G.out[k]) return many ? `<span class="pill out" style="--c:${s.color}"><s>${s.name}</s></span>` : '';
+    return `<span class="pill ${k === G.cur ? 'active' : ''}" style="--c:${s.color}">${s.name} 💰${G.funds[k]}${many ? '' : ` <small>+${incomeOf(k)}</small>`} · ${G.units.filter(u => u.side === k).length}隊</span>`; }).join('');
   $('#btnEnd').disabled = !isHumanTurn() || UIS.mode === 'busy' || UIS.mode === 'deploy';
   const btnAlly = $('#btnAllyCtrl');
   if (btnAlly) {
@@ -1021,7 +1053,8 @@ function openBattleSettings() {
     <label>AI 風格<select id="bsPersona${k}">${personaOptions(G.players[k].persona)}</select></label>`;
   openModal(`<h2>⚙️ 戰場設定</h2>
     <div class="sub">雙方都設為「電腦」即可觀戰；隨時可改回玩家接手。</div>
-    <div class="form">${side(0)}${side(1)}
+    <div class="form">${G.players.map((p, k) => side(k)).join('')}
+      <label>戰爭迷霧<select id="bsFog"><option value="1">開啟</option><option value="0" ${SETTINGS.fog ? '' : 'selected'}>關閉</option></select></label>
       <label>工兵（基地建設）<select id="bsEng"><option value="1">開啟</option><option value="0" ${G.rules && G.rules.engineer === false ? 'selected' : ''}>關閉</option></select></label>
       <label>電腦速度<select id="bsSpeed"><option value="380">極慢</option><option value="200">慢</option><option value="110">普通</option><option value="45">快</option><option value="10">極快</option></select></label>
       <label>3D 戰鬥特效<select id="bsFx"><option value="1">開啟</option><option value="0" ${SETTINGS.fx3d ? '' : 'selected'}>關閉</option></select></label>
@@ -1033,7 +1066,8 @@ function openBattleSettings() {
     box.querySelector('.close').onclick = closeModal;
     box.querySelector('#bsOk').onclick = () => {
       const wasAI = !!G.players[G.cur].ai;
-      for (const k of [0, 1]) {
+      setFog(box.querySelector('#bsFog').value === '1');
+      for (const k of G.players.keys()) {
         G.players[k].ai = box.querySelector('#bsP' + k).value === 'ai';
         G.players[k].persona = box.querySelector('#bsPersona' + k).value;
       }
@@ -1052,44 +1086,74 @@ function openBattleSettings() {
     };
   }, true);
 }
+// 各方數量對應的最小地圖（避免八國擠在小地圖上）
+const MIN_SIZE_FOR = n => n <= 2 ? 's' : n <= 4 ? 'l' : n <= 6 ? 'xl' : 'xxl';
+const DEFAULT_NATS = ['TW', 'CN', 'US', 'JP', 'KR', 'RU', 'GB', 'FR'];
 function openNewGame() {
-  const p = G ? G.players : [{ ai: false }, { ai: true }];
-  const nat = G && G.nations && !G.missionId ? G.nations : ['TW', 'CN'];
+  const prevP = G && !G.missionId ? G.players : null;
+  const prevN = G && G.nations && !G.missionId ? G.nations : null;
+  // 參戰國數：預設 4 國，之後記住上次的選擇
+  let count = 4;
+  try { count = Math.max(2, Math.min(8, +(localStorage.getItem('daisenryaku_ncount') || 4))); } catch (e) { /* 忽略 */ }
+  const sideRow = k => {
+    const pp = prevP && prevP.length === count && prevP[k] ? prevP[k] : { ai: k > 0 };
+    const nat = prevN && prevN[k] ? prevN[k] : DEFAULT_NATS[k];
+    return `<div class="ng-side" style="--c:${SIDES[k].color}"><span class="dot" style="background:${SIDES[k].color}"></span>
+      <select id="ngN${k}" class="ng-nat">${nationOptions(nat)}</select>
+      <select id="ngP${k}"><option value="h">玩家</option><option value="ai" ${pp.ai ? 'selected' : ''}>電腦</option></select>
+      <select id="ngPersona${k}">${personaOptions(pp.persona || (pp.ai ? 'B' : 'L'))}</select></div>`;
+  };
   openModal(`<h2>新遊戲</h2>
     <div class="form">
-      <label>地圖大小<select id="ngSize">${Object.entries(SIZES).map(([k, [w, h, n]]) => `<option value="${k}" ${k === 'm' ? 'selected' : ''}>${n}（${w}×${h}）</option>`).join('')}</select></label>
+      <label>參戰國數<select id="ngCount">${[2, 3, 4, 5, 6, 7, 8].map(n => `<option value="${n}" ${n === count ? 'selected' : ''}>${n} 國${n === 4 ? '（預設）' : ''}</option>`).join('')}</select></label>
+      <label>地圖大小<select id="ngSize">${Object.entries(SIZES).map(([k, [w, h, n]]) => `<option value="${k}">${n}（${w}×${h}）</option>`).join('')}</select></label>
       <label>地圖種子<span class="inline"><input id="ngSeed" type="number" value="${Math.floor(Math.random() * 99999)}"><button id="ngRand" type="button">🎲</button></span></label>
-      <label><span><span class="dot" style="background:${SIDES[0].color}"></span>藍方（先攻）</span><select id="ngN0">${nationOptions(nat[0])}</select></label>
-      <label>操作<select id="ngP0"><option value="h">玩家</option><option value="ai" ${p[0].ai ? 'selected' : ''}>電腦</option></select></label>
-      <label>AI 風格<select id="ngPersona0">${personaOptions(p[0].persona || (p[0].ai ? 'B' : 'L'))}</select></label>
-      <label><span><span class="dot" style="background:${SIDES[1].color}"></span>紅方</span><select id="ngN1">${nationOptions(nat[1])}</select></label>
-      <label>操作<select id="ngP1"><option value="h">玩家</option><option value="ai" ${p[1].ai ? 'selected' : ''}>電腦</option></select></label>
-      <label>AI 風格<select id="ngPersona1">${personaOptions(p[1].persona || (p[1].ai ? 'B' : 'L'))}</select></label>
+    </div>
+    <div class="ng-sides" id="ngSides"></div>
+    <div class="form">
       <label>電腦速度<select id="ngSpeed"><option value="380">極慢</option><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option><option value="10">極快</option></select></label>
       <label>工兵（基地建設）<select id="ngEng"><option value="1">開啟</option><option value="0" ${SETTINGS.engineer === false ? 'selected' : ''}>關閉</option></select></label>
+      <label>戰爭迷霧<select id="ngFog"><option value="1">開啟</option><option value="0" ${SETTINGS.fog ? '' : 'selected'}>關閉</option></select></label>
     </div>
-    <div class="desc">兩方都選「電腦」即可觀戰；遊戲中可由右下 ⚙️ 隨時切換雙方操作與 AI 風格。</div>
+    <div class="desc" id="ngDesc"></div>
     <div class="facs" id="ngCards"></div>
     <div class="row"><button class="close">取消</button><button id="ngStart" class="primary">開始作戰</button></div>`, box => {
-    const cards = () => { box.querySelector('#ngCards').innerHTML = nationCard(box.querySelector('#ngN0').value, 0) + nationCard(box.querySelector('#ngN1').value, 1); };
-    cards();
-    box.querySelector('#ngN0').onchange = cards; box.querySelector('#ngN1').onchange = cards;
-    box.querySelector('#ngSpeed').value = String(SETTINGS.aiStep);
-    box.querySelector('#ngRand').onclick = () => box.querySelector('#ngSeed').value = Math.floor(Math.random() * 99999);
-    box.querySelector('.close').onclick = closeModal;
-    box.querySelector('#ngStart').onclick = () => {
-      const [w, h] = SIZES[box.querySelector('#ngSize').value];
-      SETTINGS.aiStep = +box.querySelector('#ngSpeed').value;
-      SETTINGS.engineer = box.querySelector('#ngEng').value === '1';
+    const $b = s => box.querySelector(s);
+    const sizeOrder = Object.keys(SIZES);
+    const draw = () => {
+      count = +$b('#ngCount').value;
+      const keep = [...box.querySelectorAll('.ng-side')].map((el, k) => ({ n: $b('#ngN' + k).value, p: $b('#ngP' + k).value, s: $b('#ngPersona' + k).value }));
+      $b('#ngSides').innerHTML = Array.from({ length: count }, (_, k) => sideRow(k)).join('');
+      keep.forEach((v, k) => { if (k < count) { $b('#ngN' + k).value = v.n; $b('#ngP' + k).value = v.p; $b('#ngPersona' + k).value = v.s; } });
+      // 地圖太小時自動放大到建議尺寸
+      const min = MIN_SIZE_FOR(count);
+      if (sizeOrder.indexOf($b('#ngSize').value) < sizeOrder.indexOf(min)) $b('#ngSize').value = min;
+      $b('#ngDesc').textContent = count > 2
+        ? `${count} 國混戰：各自為戰，首都被攻陷或全軍覆沒的一方退出，最後留下的一方獲勝。${count} 國建議地圖至少「${SIZES[min][2]}」。全部設為電腦即可觀戰。`
+        : '兩方都選「電腦」即可觀戰；遊戲中可由右下 ⚙️ 隨時切換操作與 AI 風格。';
+      cards();
+      box.querySelectorAll('.ng-nat').forEach(el => { el.onchange = cards; });
+    };
+    const cards = () => { $b('#ngCards').innerHTML = count === 2 ? nationCard($b('#ngN0').value, 0) + nationCard($b('#ngN1').value, 1) : ''; };
+    $b('#ngSize').value = count === 2 ? 'm' : MIN_SIZE_FOR(count);
+    draw();
+    $b('#ngCount').onchange = draw;
+    $b('#ngSpeed').value = String(SETTINGS.aiStep);
+    $b('#ngRand').onclick = () => $b('#ngSeed').value = Math.floor(Math.random() * 99999);
+    $b('.close').onclick = closeModal;
+    $b('#ngStart').onclick = () => {
+      const [w, h] = SIZES[$b('#ngSize').value];
+      SETTINGS.aiStep = +$b('#ngSpeed').value;
+      SETTINGS.engineer = $b('#ngEng').value === '1';
+      setFog($b('#ngFog').value === '1');
+      try { localStorage.setItem('daisenryaku_ncount', String(count)); } catch (e) { /* 忽略 */ }
       try { localStorage.setItem('daisenryaku_engineer2', SETTINGS.engineer ? '1' : '0'); } catch (e) { /* 忽略 */ }
       closeModal();
+      const ks = Array.from({ length: count }, (_, k) => k);
       startGame({
-        w, h, seed: +box.querySelector('#ngSeed').value || 1,
-        nations: [box.querySelector('#ngN0').value, box.querySelector('#ngN1').value],
-        players: [
-          { ai: box.querySelector('#ngP0').value === 'ai', persona: box.querySelector('#ngPersona0').value },
-          { ai: box.querySelector('#ngP1').value === 'ai', persona: box.querySelector('#ngPersona1').value },
-        ],
+        w, h, seed: +$b('#ngSeed').value || 1,
+        nations: ks.map(k => $b('#ngN' + k).value),
+        players: ks.map(k => ({ ai: $b('#ngP' + k).value === 'ai', persona: $b('#ngPersona' + k).value })),
       });
     };
   });
@@ -1192,7 +1256,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v128</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v129</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1288,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v129</span><span class="cl-date">2026.11.14</span><p>【八國混戰】自由對戰可選 2–8 國參戰（預設 4 國），各自為戰：首都被攻陷或全軍覆沒的一方退出，最後留下的一方獲勝；國數多時自動選用較大地圖，各方以不同陣營顏色區分，戰場資訊改為各國一覽。【戰爭迷霧】新增戰爭迷霧（新遊戲與 ⚙️ 戰場設定可開關，預設關閉）：只看得到己方部隊與據點周圍，敵軍在視野外會隱藏；偵察類單位視野較遠。電腦 AI 不受迷霧影響。</p></div>
         <div class="cl-item"><span class="cl-ver">v128</span><span class="cl-date">2026.11.14</span><p>【新遊戲：環島富豪 3D】首頁新增原創 3D 地產桌遊：擲骰繞行台灣 40 格、買地蓋樓（平房到大樓）、收過路費、機會命運卡與道具（路障、遙控骰子、免租卡、迴轉卡、拆除卡）；可對電腦、同一台輪流，或用房間代碼線上多人對戰（最多 4 人）。</p></div>
         <div class="cl-item"><span class="cl-ver">v127</span><span class="cl-date">2026.11.14</span><p>取消全螢幕主畫面 App 的命令列下移。</p></div>
         <div class="cl-item"><span class="cl-ver">v126</span><span class="cl-date">2026.11.14</span><p>最上列的選單按鈕 ☰ 在橫向 iPad 與桌機也會顯示（原本只有直向才看得到）。</p></div>
@@ -1414,7 +1479,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v128</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v129</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
@@ -1534,10 +1599,12 @@ function startGame(opts) {
   UIS.lastBaseIdx = -1;
   clearSel(); setInspect(null); FX.length = 0;
   newGame(opts);
+  { const bar = $('#autoPilotBar'); if (bar) bar.dataset.built = ''; }
   buildTerrain();
   resize();
   fitView();
-  const [cx, cy] = idxCenter(G.caps[G.players[0].ai && !G.players[1].ai ? 1 : 0]);
+  const firstHuman = G.players.findIndex(p => !p.ai);
+  const [cx, cy] = idxCenter(G.caps[firstHuman >= 0 ? firstHuman : 0]);
   centerOn(cx, cy);
   if (typeof playContextBGM === 'function') playContextBGM('combat', true);
   turnIntro();

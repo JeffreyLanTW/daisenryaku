@@ -65,6 +65,8 @@ function getRepresentativeUnits(nid, side = 0) {
 }
 
 function nationColor(nid, side) {
+  // 三方以上：各方使用自己的陣營顏色，才分得清楚
+  if (typeof G !== 'undefined' && G && G.players && G.players.length > 2 && SIDES[side]) return SIDES[side].color;
   let c = NATION_PALETTE[nid] || (side === 1 ? '#dc2626' : '#2563eb');
   if (typeof G !== 'undefined' && G && G.nations && side === 1 && G.nations[0] === G.nations[1]) {
     c = c === '#dc2626' ? '#9333ea' : '#dc2626';

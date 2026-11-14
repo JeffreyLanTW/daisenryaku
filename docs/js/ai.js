@@ -336,7 +336,7 @@ function aiGoals(u, baseField) {
   }
   if (!d.capture && d.cat !== 'air') {
     for (let i = 0; i < G.owner.length; i++) {
-      if (G.owner[i] === 1 - s) {
+      if (G.owner[i] >= 0 && G.owner[i] !== s) {
         // B 綜合型 / 藍發：持續向敵方首都與前線據點推進掩護；藍發兵力佔優時全面壓上
         const press = persona.id === 'L' && G.lfPower && G.lfPower[s] >= persona.pressRatio;
         // 圍攻：只朝敵方首都推進，其他據點交給奪城部隊
@@ -758,7 +758,8 @@ function lanfaAssign(s) {
   const val = side => G.units.filter(u => u.side === side).reduce((t, u) => t + UNITS[u.type].cost * u.hp / (u.maxHp || UNITS[u.type].maxHp || 10), 0);
   G.lfPower = G.lfPower || [1, 1];
   // 開局兵力相近時比值容易因一次生產而跳動：第 6 回合後、比值 1.4 以上且領先 2500 以上才轉入壓上
-  const mv = val(s), ev = val(1 - s);
+  // 三方以上：和最強的對手比
+  const mv = val(s), ev = Math.max(...G.players.map((p, k) => k === s || (G.out && G.out[k]) ? 0 : val(k)));
   const P = AI_PERSONAS.L;
   G.lfPower[s] = G.turn >= P.pressTurn && mv - ev >= P.pressLead ? mv / Math.max(1, ev) : Math.min(P.pressRatio - 0.01, mv / Math.max(1, ev));
   const press = G.lfPower[s] >= P.pressRatio;
@@ -799,7 +800,13 @@ function lanfaAssign(s) {
   // 敵方首都位置（圍攻目標）
   G.lfSiege = G.lfSiege || [null, null];
   let cap = -1;
-  for (let i = 0; i < G.owner.length; i++) if (G.terrain[i] === 'capital' && G.owner[i] >= 0 && G.owner[i] !== s) { cap = i; break; }
+  // 最近的敵方首都（三方以上時不會繞遠路打地圖另一邊）
+  const myCap = G.caps && G.caps[s] >= 0 ? ixy(G.caps[s]) : null;
+  let capD = Infinity;
+  for (let i = 0; i < G.owner.length; i++) if (G.terrain[i] === 'capital' && G.owner[i] >= 0 && G.owner[i] !== s) {
+    const d = myCap ? hexDist(...ixy(i), ...myCap) : 0;
+    if (d < capD) { capD = d; cap = i; }
+  }
   // 劇情任務有各自的勝利條件，不套用首都圍攻
   G.lfSiege[s] = press && cap >= 0 && !G.missionId ? cap : null;
   // 總攻：首都周圍 7 格內我方兵力達守軍 1.4 倍時，不再閃避火力、一齊壓上；未達前在外圍集結
@@ -813,7 +820,8 @@ function lanfaAssign(s) {
     G.lfStage = G.lfStage || [0, 0];
     G.lfStage[s]++;
     const need = G.lfStage[s] >= P.stageTurns ? P.stageRatio : P.assaultRatio;
-    G.lfAssault[s] = local(s) >= local(1 - s) * need;
+    const capOwner = G.owner[cap];
+    G.lfAssault[s] = local(s) >= local(capOwner >= 0 ? capOwner : 1 - s) * need;
   } else if (G.lfStage) {
     G.lfStage[s] = 0;
   }
