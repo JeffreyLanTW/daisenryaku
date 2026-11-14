@@ -110,6 +110,48 @@
   };
   const ITEM_KEYS = Object.keys(ITEMS).filter(k => !ITEMS[k].shopOnly);
 
+  // ----- 各地特色特產（可收集並修飾 3D 棋子外觀）-----
+  const SLOT_NAMES = { hand: '手持', head: '頭飾', back: '背飾', halo: '伴隨' };
+  const SPECIALTIES = {
+    bubble_tea: { name: '珍珠奶茶', icon: '🧋', slot: 'hand', origin: '台中 / 台北', color: '#c08457', desc: '手捧濃醇黑糖珍珠奶茶，環島必備手搖飲！' },
+    pineapple_cake: { name: '鳳梨酥禮盒', icon: '🍍', slot: 'hand', origin: '南投 / 彰化 / 桃園', color: '#f59e0b', desc: '金黃酥香的台灣名產鳳梨酥伴手禮！' },
+    mango_ice: { name: '愛文芒果冰', icon: '🥭', slot: 'hand', origin: '台南 / 高屏', color: '#fbbf24', desc: '堆滿鮮甜芒果塊與煉乳的消暑剉冰！' },
+    kinmen_kaoliang: { name: '金門高粱酒', icon: '🏺', slot: 'hand', origin: '金門 / 馬祖', color: '#38bdf8', desc: '經典青花瓷瓶裝陳年高粱，豪氣干雲！' },
+    yilan_scallion: { name: '宜蘭三星蔥', icon: '🧅', slot: 'hand', origin: '宜蘭 / 南迴', color: '#22c55e', desc: '翠綠飽滿的三星蔥束，最接地氣的台灣味！' },
+    sun_moon_jade: { name: '原民彩羽冠', icon: '🪶', slot: 'head', origin: '日月潭 / 花東', color: '#ef4444', desc: '融合山海色彩的部落精緻羽飾頭冠！' },
+    penghu_cactus: { name: '澎湖仙人掌', icon: '🌵', slot: 'head', origin: '澎湖 / 離島', color: '#10b981', desc: '開著紅果實的迷你仙人掌盆栽頭飾！' },
+    alishan_tea: { name: '阿里山茶簍', icon: '🍵', slot: 'back', origin: '阿里山 / 高山', color: '#16a34a', desc: '背上竹編採茶簍與高山烏龍茶葉清香！' },
+    hsinchu_wind: { name: '竹科光翼', icon: '💠', slot: 'back', origin: '竹科 / 新竹', color: '#0ea5e9', desc: '閃耀電藍電路紋的台灣護國神山科技光翼！' },
+    yunlin_talisman: { name: '北港平安令旗', icon: '🚩', slot: 'back', origin: '北港 / 廟宇', color: '#eab308', desc: '媽祖廟求得的金龍護身平安令旗背飾！' },
+    sky_lantern: { name: '平溪祈福天燈', icon: '🏮', slot: 'halo', origin: '平溪 / 九份', color: '#fb923c', desc: '暖光微閃、隨身伴飛的平溪祈福天燈！' },
+    wood_carving: { name: '三義木雕貓頭鷹', icon: '🦉', slot: 'halo', origin: '三義 / 苗栗 / 鹿港', color: '#a16207', desc: '手工原木雕刻的幸運守護貓頭鷹伴飛！' },
+  };
+  const SPECIALTY_KEYS = Object.keys(SPECIALTIES);
+  const TILE_SPECIALTY = {
+    '台中': 'bubble_tea', '台北': 'bubble_tea', '信義區': 'bubble_tea', '新北': 'bubble_tea', '台中高鐵': 'bubble_tea', '高鐵左營': 'bubble_tea',
+    '南投': 'pineapple_cake', '彰化': 'pineapple_cake', '桃園': 'pineapple_cake', '大溪': 'pineapple_cake',
+    '台南': 'mango_ice', '安平': 'mango_ice', '高雄': 'mango_ice', '屏東': 'mango_ice', '墾丁': 'mango_ice', '恆春': 'mango_ice',
+    '金門': 'kinmen_kaoliang', '烈嶼': 'kinmen_kaoliang', '馬祖': 'kinmen_kaoliang', '東引': 'kinmen_kaoliang',
+    '宜蘭': 'yilan_scallion', '羅東': 'yilan_scallion', '甲仙': 'yilan_scallion', '梅山': 'yilan_scallion', '埡口': 'yilan_scallion', '向陽': 'yilan_scallion',
+    '日月潭': 'sun_moon_jade', '太魯閣': 'sun_moon_jade', '花蓮': 'sun_moon_jade', '台東': 'sun_moon_jade', '知本': 'sun_moon_jade', '玉里': 'sun_moon_jade',
+    '澎湖': 'penghu_cactus', '七美': 'penghu_cactus', '小琉球': 'penghu_cactus', '綠島': 'penghu_cactus', '蘭嶼': 'penghu_cactus', '龜山島': 'penghu_cactus',
+    '阿里山': 'alishan_tea', '谷關': 'alishan_tea', '梨山': 'alishan_tea', '合歡山': 'alishan_tea', '天祥': 'alishan_tea', '拉拉山': 'alishan_tea', '明池': 'alishan_tea', '國家公園': 'alishan_tea',
+    '竹科': 'hsinchu_wind', '新竹': 'hsinchu_wind', '桃園機場': 'hsinchu_wind',
+    '北港廟宇': 'yunlin_talisman', '行天宮': 'yunlin_talisman', '迎神殿': 'yunlin_talisman', '雲林': 'yunlin_talisman', '嘉義': 'yunlin_talisman',
+    '平溪': 'sky_lantern', '九份': 'sky_lantern', '基隆港': 'sky_lantern', '淡水': 'sky_lantern',
+    '三義': 'wood_carving', '苗栗': 'wood_carving', '鹿港': 'wood_carving',
+  };
+  function specialtyOfTile(i) {
+    const t = BOARD[i];
+    if (!t) return null;
+    if (TILE_SPECIALTY[t.name]) return TILE_SPECIALTY[t.name];
+    if (t.group === 'island') return 'penghu_cactus';
+    if (t.group === 'east') return 'sun_moon_jade';
+    if (t.group === 'north') return 'bubble_tea';
+    if (t.group === 'south') return 'mango_ice';
+    return null;
+  }
+
   // ----- 機會與命運卡 -----
   const CHANCE = [
     { t: '投資台灣半導體大賺，獲得 $3500', f: (G, p) => { gain(G, p, 3500); pushNews(G, '機會快報', `${p.name} 投資台灣科技股大賺 $3500！`, '財經喜訊', '#2ecc71'); } },
@@ -203,6 +245,18 @@
       pushNews(G, '稀有道具', `${p.name} 獲得強力道具「${ITEMS[k].icon} ${ITEMS[k].name}」！`, source || '道具補給', '#9b59b6');
     }
     return k;
+  }
+  function giveSpecialty(G, p, key, source = '') {
+    if (!key || !SPECIALTIES[key]) return null;
+    if (!p.specialties) p.specialties = [];
+    if (!p.equipped) p.equipped = {};
+    if (p.specialties.includes(key)) return null;
+    p.specialties.push(key);
+    const sp = SPECIALTIES[key];
+    const autoEq = !p.equipped[sp.slot];
+    if (autoEq) p.equipped[sp.slot] = key;
+    log(G, `🎁 ${p.name} ${source ? source + '，' : ''}獲得地方特產「${sp.icon} ${sp.name}」${autoEq ? '（已自動裝飾棋子）' : '（可於玩家資訊／道具欄修飾棋子）'}`);
+    return key;
   }
   function freeUpgrade(G, p) {
     const own = lands(G, p).filter(i => (BOARD[i].type === 'land' || BOARD[i].type === 'station') && G.tiles[i].level < MAX_LEVEL);
@@ -567,6 +621,7 @@
         const card = rnd(G) < 0.5 ? 'summon_god' : 'dismiss_god';
         giveItem(G, p, card, `${t.name} 祈福獲贈`);
       }
+      giveSpecialty(G, p, specialtyOfTile(i), `${t.name} 參拜結緣`);
       return;
     }
     if (t.type === 'tax') {
@@ -577,7 +632,10 @@
     }
     if (t.type === 'gojail') { goJail(G, p, '踩到入獄格'); return; }
     if (t.type === 'hospital') { log(G, `🏥 ${p.name} 經過醫院探病`); return; }
-    if (t.type === 'park') { log(G, `🌲 ${p.name} 在國家公園休息賞景`); }
+    if (t.type === 'park') {
+      log(G, `🌲 ${p.name} 在國家公園休息賞景`);
+      giveSpecialty(G, p, specialtyOfTile(i), '造訪國家公園獲贈伴手禮');
+    }
   }
 
   // ----- 新遊戲 -----
@@ -628,6 +686,8 @@
           jail: 0,
           skip: 0,
           items: ['remote'],
+          specialties: [],
+          equipped: {},
           god: null,
           reverse: false,
           remote: 0,
@@ -663,6 +723,25 @@
       if (tp.kind !== nk) {
         tp.kind = nk;
         log(G, `🎛️ ${tp.name} 已切換為「${nk === 'ai' ? '電腦 AI' : '手動操作'}」`);
+        return null;
+      }
+      return null;
+    }
+    if (a.type === 'equipSpecialty') {
+      const tp = G.players[pid];
+      if (!tp || tp.bankrupt) return '找不到玩家';
+      const k = a.specialty;
+      const sp = SPECIALTIES[k];
+      if (!sp) return '沒有這個特產道具';
+      if (!tp.specialties) tp.specialties = [];
+      if (!tp.equipped) tp.equipped = {};
+      if (!tp.specialties.includes(k)) return '尚未獲得此特產道具';
+      if (a.unequip || tp.equipped[sp.slot] === k) {
+        delete tp.equipped[sp.slot];
+        log(G, `🎀 ${tp.name} 卸下了棋子裝飾「${sp.name}」`);
+      } else {
+        tp.equipped[sp.slot] = k;
+        log(G, `✨ ${tp.name} 為棋子裝備了地方特產「${sp.icon} ${sp.name}」`);
       }
       return null;
     }
@@ -702,6 +781,18 @@
       }
       case 'buyItem': {
         if (!G.ask || G.ask.k !== 'shop') return '目前不在道具屋';
+        if (a.item === 'specialty_box') {
+          const boxPrice = 500;
+          if (p.cash < boxPrice) return '現金不足';
+          const unowned = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
+          if (!unowned.length) return '已集滿全部 12 種台灣地方特產！';
+          p.cash -= boxPrice;
+          const picked = unowned[Math.floor(rnd(G) * unowned.length)];
+          giveSpecialty(G, p, picked, '在道具屋開啟台灣特產盲盒');
+          G.ask.bought = G.ask.bought || [];
+          G.ask.bought.push('specialty_box');
+          return null;
+        }
         const item = ITEMS[a.item];
         if (!item) return '沒有這個道具';
         if (a.item === 'add_die') {
@@ -806,6 +897,7 @@
               } else if (BOARD[q.i].price >= 3500 || wantBuild) {
                 pushNews(G, wantBuild ? '買地興建' : '豪宅置產', `🏠 ${p.name} 斥資 $${totalCost} 買下「${BOARD[q.i].name}」${wantBuild ? `並蓋起【${LEVEL_NAME[1]}】` : ''}！`, '地產成交', p.color);
               }
+              giveSpecialty(G, p, specialtyOfTile(q.i), `購入「${BOARD[q.i].name}」獲贈地方特產`);
             }
           } else {
             const curLv = G.tiles[q.i].level || 0;
@@ -823,6 +915,7 @@
               } else if (addLv >= 2 || lv === 3) {
                 pushNews(G, '加蓋擴建', `🏢 ${p.name} 豪砸 $${totalCost}，將「${BOARD[q.i].name}」擴建為【${LEVEL_NAME[lv]}】！`, '建築升級', p.color);
               }
+              giveSpecialty(G, p, specialtyOfTile(q.i), `建設「${BOARD[q.i].name}」獲贈地方特產`);
             }
           }
         }
@@ -1096,9 +1189,9 @@
   }
 
   const API = {
-    BOARD, GROUPS, ITEMS, GODS, CHARS, LEVEL_NAME, MAX_LEVEL, MAX_ITEMS, N,
+    BOARD, GROUPS, ITEMS, SPECIALTIES, SLOT_NAMES, GODS, CHARS, LEVEL_NAME, MAX_LEVEL, MAX_ITEMS, N,
     START_CASH, START_BONUS,
-    newGame, act, aiAction, rentOf, rentAt, buildCost, buyPriceOf, buildCostOf, netWorth, lands, cur,
+    newGame, act, aiAction, rentOf, rentAt, buildCost, buyPriceOf, buildCostOf, netWorth, lands, cur, specialtyOfTile,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.RICH = API;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -2312,6 +2312,151 @@ function syncBuildings() {
   }
 }
 
+// ---------- 各地特產 3D 棋子修飾配件（手持／頭飾／背飾／伴隨）----------
+function makeSpecialtyMesh(key) {
+  const grp = new THREE.Group();
+  const std = (color, opt = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.45, ...opt });
+  if (key === 'bubble_tea') {
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.21, 0.72, 12), std('#f5deb3', { transparent: true, opacity: 0.9 }));
+    const tea = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.19, 0.56, 12), std('#b47b48'));
+    tea.position.y = -0.04;
+    const boba = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.19, 0.18, 10), std('#1c1917'));
+    boba.position.y = -0.24;
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 12), std('#ffffff'));
+    lid.position.y = 0.37;
+    const straw = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.55, 8), std('#ef4444'));
+    straw.position.set(0.06, 0.56, 0); straw.rotation.z = -0.18;
+    grp.add(cup, tea, boba, lid, straw);
+    grp.position.set(0.05, -0.82, 0.44);
+  } else if (key === 'pineapple_cake') {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.34, 0.44), std('#f59e0b'));
+    const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.1, 0.12), std('#dc2626'));
+    ribbon.position.y = 0.13;
+    const tag = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 6), std('#fde047'));
+    tag.position.set(0, 0.18, 0);
+    grp.add(box, ribbon, tag);
+    grp.position.set(0.06, -0.86, 0.46);
+  } else if (key === 'mango_ice') {
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.2, 0.24, 12), std('#f8fafc'));
+    const ice = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.44, 10), std('#fffbeb'));
+    ice.position.y = 0.26;
+    for (const [mx, my, mz] of [[-0.14, 0.22, 0.12], [0.14, 0.22, 0.1], [0, 0.3, -0.12], [0.02, 0.46, 0.02]]) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.16), std('#facc15', { emissive: '#a16207', emissiveIntensity: 0.2 }));
+      m.position.set(mx, my, mz);
+      grp.add(m);
+    }
+    grp.add(bowl, ice);
+    grp.position.set(0.06, -0.84, 0.46);
+  } else if (key === 'kinmen_kaoliang') {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 0.62, 12), std('#f8fafc'));
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.22, 0.24, 12), std('#2563eb'));
+    band.position.y = -0.05;
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 0.22, 10), std('#f8fafc'));
+    neck.position.y = 0.4;
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.1, 10), std('#dc2626'));
+    cap.position.y = 0.54;
+    grp.add(body, band, neck, cap);
+    grp.position.set(0.04, -0.8, 0.42);
+  } else if (key === 'yilan_scallion') {
+    for (let s = -1; s <= 1; s++) {
+      const root = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.42, 8), std('#f8fafc'));
+      root.position.set(s * 0.1, -0.15, 0);
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.65, 8), std('#16a34a'));
+      leaf.position.set(s * 0.11, 0.35, 0); leaf.rotation.z = s * -0.12;
+      grp.add(root, leaf);
+    }
+    const tie = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.03, 6, 12), std('#ef4444'));
+    tie.rotation.x = Math.PI / 2;
+    grp.add(tie);
+    grp.position.set(0.05, -0.78, 0.42); grp.rotation.x = 0.35;
+  } else if (key === 'sun_moon_jade') {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.09, 6, 20), std('#b91c1c'));
+    band.rotation.x = Math.PI / 2;
+    grp.add(band);
+    const cols = ['#ef4444', '#facc15', '#38bdf8', '#22c55e', '#facc15', '#ef4444'];
+    for (let f = 0; f < cols.length; f++) {
+      const ang = (f - (cols.length - 1) / 2) * 0.28;
+      const feather = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.72, 0.05), std(cols[f]));
+      feather.position.set(Math.sin(ang) * 0.85, 0.42, -Math.cos(ang) * 0.4 - 0.1);
+      feather.rotation.z = -ang * 0.65;
+      grp.add(feather);
+    }
+    grp.position.set(0, 5.15, 0);
+  } else if (key === 'penghu_cactus') {
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.22, 0.3, 10), std('#c2410c'));
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.62, 10), std('#15803d'));
+    stem.position.y = 0.42;
+    const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.32, 8), std('#16a34a'));
+    armL.position.set(-0.22, 0.44, 0); armL.rotation.z = 0.55;
+    const armR = armL.clone(); armR.position.x = 0.22; armR.rotation.z = -0.55;
+    const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), std('#e11d48', { emissive: '#9f1239', emissiveIntensity: 0.3 }));
+    fruit.position.set(0, 0.78, 0);
+    grp.add(pot, stem, armL, armR, fruit);
+    grp.position.set(0, 5.38, 0);
+  } else if (key === 'alishan_tea') {
+    const basket = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.38, 1.05, 10), std('#b45309'));
+    const teaTop = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), std('#15803d'));
+    teaTop.scale.set(1, 0.45, 1); teaTop.position.y = 0.5;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.54, 0.06, 6, 14), std('#78350f'));
+    rim.rotation.x = Math.PI / 2; rim.position.y = 0.52;
+    grp.add(basket, teaTop, rim);
+    grp.position.set(0, 2.15, -1.15); grp.rotation.x = 0.14;
+  } else if (key === 'hsinchu_wind') {
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), std('#38bdf8', { emissive: '#0284c7', emissiveIntensity: 0.8 }));
+    grp.add(core);
+    for (const s of [-1, 1]) {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.72, 0.08), std('#0ea5e9', { emissive: '#0369a1', emissiveIntensity: 0.55, transparent: true, opacity: 0.88 }));
+      wing.position.set(s * 0.75, 0.18, -0.15);
+      wing.rotation.y = s * -0.42; wing.rotation.z = s * 0.25;
+      grp.add(wing);
+    }
+    grp.position.set(0, 2.35, -1.08);
+  } else if (key === 'yunlin_talisman') {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.35, 8), std('#b45309'));
+    pole.position.y = 0.65;
+    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.15, 0.06), std('#facc15', { emissive: '#ca8a04', emissiveIntensity: 0.25 }));
+    flag.position.set(0.48, 1.1, 0);
+    const seal = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.08), std('#dc2626'));
+    seal.position.set(0.48, 1.1, 0);
+    grp.add(pole, flag, seal);
+    grp.position.set(-0.35, 2.1, -1.05); grp.rotation.z = 0.12;
+  } else if (key === 'sky_lantern') {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.3, 0.78, 8), std('#fb923c', { emissive: '#ea580c', emissiveIntensity: 0.9 }));
+    const flame = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), std('#fef08a', { emissive: '#facc15', emissiveIntensity: 1.4 }));
+    flame.position.y = -0.34;
+    grp.add(body, flame);
+  } else if (key === 'wood_carving') {
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.36, 10, 10), std('#92400e'));
+    body.scale.set(0.95, 1.25, 0.9);
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 8), std('#fde68a'));
+    belly.position.set(0, -0.06, 0.16);
+    for (const ex of [-0.14, 0.14]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), std('#facc15'));
+      eye.position.set(ex, 0.22, 0.28);
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.16, 4), std('#78350f'));
+      ear.position.set(ex * 1.4, 0.44, 0.05);
+      grp.add(eye, ear);
+    }
+    grp.add(body, belly);
+  }
+  grp.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return grp;
+}
+function syncTokenDecor(tk, pl) {
+  if (!tk || !tk.decoSlots) return;
+  const eq = (pl && pl.equipped) || {};
+  const key = `${eq.hand || ''}|${eq.head || ''}|${eq.back || ''}|${eq.halo || ''}`;
+  if (tk.decoKey === key) return;
+  tk.decoKey = key;
+  for (const slot of ['hand', 'head', 'back', 'halo']) {
+    const holder = tk.decoSlots[slot];
+    if (!holder) continue;
+    while (holder.children.length) holder.remove(holder.children[0]);
+    const spKey = eq[slot];
+    if (spKey) holder.add(makeSpecialtyMesh(spKey));
+  }
+}
+
 // ---------- 玩家 3D 造型棋子（精細五官、可動四肢、專屬帽飾配件與神明光環）----------
 const tokens = [];
 function makeToken(pl) {
@@ -2451,10 +2596,21 @@ function makeToken(pl) {
   godVis.visible = false;
   g.add(godVis);
 
+  const decoHand = new THREE.Group();
+  rightArm.add(decoHand);
+  const decoHead = new THREE.Group();
+  const decoBack = new THREE.Group();
+  const decoHalo = new THREE.Group();
+  decoHalo.position.set(-1.65, 4.95, 0.25);
+  g.add(decoHead, decoBack, decoHalo);
+  const decoSlots = { hand: decoHand, head: decoHead, back: decoBack, halo: decoHalo };
+
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   g.scale.setScalar(1.38);
   scene.add(g);
-  return { g, leftArm, rightArm, leftLeg, rightLeg, godVis, ring, spirit, pos: pl.pos, path: [], t: 0, moveN: 0 };
+  const tkObj = { g, leftArm, rightArm, leftLeg, rightLeg, godVis, ring, spirit, decoSlots, decoKey: '', pos: pl.pos, path: [], t: 0, moveN: 0 };
+  syncTokenDecor(tkObj, pl);
+  return tkObj;
 }
 
 // ---------- 地圖移動 NPC 3D 精細模型（土地公、財神、福神、窮神、衰神、台灣土狗）----------
@@ -3449,6 +3605,11 @@ function frame(now) {
     }
     G.players.forEach((pl, k) => {
       const tk = tokens[k] || (tokens[k] = makeToken(pl));
+      syncTokenDecor(tk, pl);
+      if (tk.decoSlots && tk.decoSlots.halo.children.length) {
+        tk.decoSlots.halo.position.y = 4.95 + Math.sin(now * 0.004 + k) * 0.32;
+        tk.decoSlots.halo.rotation.y = now * 0.0014 + k;
+      }
       const inAmb = !!(ambAnim && ambAnim.p === k);
       const inTransport = !!(transportAnim && transportAnim.p === k);
       const inBankrupt = !!(bankruptAnim && bankruptAnim.p === k);
@@ -3964,6 +4125,23 @@ function itemSvg(k) {
   };
   return icons[k] || `<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="12" fill="#64748b"/></svg>`;
 }
+function specialtySvg(k) {
+  const icons = {
+    bubble_tea: `<svg viewBox="0 0 36 36"><path d="M11 12 H25 L23 31 H13 Z" fill="#d9a066" stroke="#fef3c7" stroke-width="1.6"/><rect x="9" y="10" width="18" height="3" rx="1.5" fill="#fff"/><line x1="20" y1="4" x2="18" y2="12" stroke="#ef4444" stroke-width="2.6" stroke-linecap="round"/><circle cx="15" cy="27" r="1.8" fill="#1c1917"/><circle cx="19" cy="28" r="1.8" fill="#1c1917"/><circle cx="21" cy="25" r="1.8" fill="#1c1917"/></svg>`,
+    pineapple_cake: `<svg viewBox="0 0 36 36"><rect x="6" y="10" width="24" height="18" rx="4" fill="#f59e0b" stroke="#fef08a" stroke-width="1.6"/><line x1="6" y1="19" x2="30" y2="19" stroke="#dc2626" stroke-width="3"/><circle cx="18" cy="19" r="3.5" fill="#fde047"/></svg>`,
+    mango_ice: `<svg viewBox="0 0 36 36"><path d="M7 22 H29 L25 31 H11 Z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.4"/><polygon points="18,7 28,22 8,22" fill="#fffbeb"/><rect x="13" y="14" width="5" height="5" rx="1" fill="#facc15"/><rect x="19" y="15" width="5" height="5" rx="1" fill="#f59e0b"/><circle cx="18" cy="11" r="2.6" fill="#fde047"/></svg>`,
+    kinmen_kaoliang: `<svg viewBox="0 0 36 36"><rect x="15" y="5" width="6" height="4" rx="1" fill="#dc2626"/><path d="M15 9 H21 L24 15 V30 H12 V15 Z" fill="#f8fafc" stroke="#2563eb" stroke-width="1.8"/><rect x="13" y="17" width="10" height="7" fill="#3b82f6" opacity=".8"/></svg>`,
+    yilan_scallion: `<svg viewBox="0 0 36 36"><line x1="14" y1="30" x2="14" y2="19" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round"/><line x1="18" y1="30" x2="18" y2="18" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round"/><line x1="22" y1="30" x2="22" y2="19" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round"/><line x1="14" y1="19" x2="11" y2="6" stroke="#22c55e" stroke-width="3.4" stroke-linecap="round"/><line x1="18" y1="18" x2="18" y2="5" stroke="#16a34a" stroke-width="3.4" stroke-linecap="round"/><line x1="22" y1="19" x2="25" y2="6" stroke="#22c55e" stroke-width="3.4" stroke-linecap="round"/><rect x="11" y="18" width="14" height="3" rx="1" fill="#ef4444"/></svg>`,
+    sun_moon_jade: `<svg viewBox="0 0 36 36"><path d="M9 24 Q18 19 27 24" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="12" cy="14" rx="2.4" ry="7" transform="rotate(-18 12 14)" fill="#ef4444"/><ellipse cx="18" cy="11" rx="2.5" ry="8" fill="#facc15"/><ellipse cx="24" cy="14" rx="2.4" ry="7" transform="rotate(18 24 14)" fill="#38bdf8"/></svg>`,
+    penghu_cactus: `<svg viewBox="0 0 36 36"><path d="M12 24 H24 L22 32 H14 Z" fill="#c2410c"/><rect x="15" y="10" width="6" height="14" rx="3" fill="#16a34a"/><path d="M15 17 H11 V13" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round"/><path d="M21 16 H25 V12" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="9" r="2.6" fill="#f43f5e"/></svg>`,
+    alishan_tea: `<svg viewBox="0 0 36 36"><path d="M10 15 H26 L23 30 H13 Z" fill="#b45309" stroke="#fde68a" stroke-width="1.4"/><ellipse cx="18" cy="14" rx="8" ry="4" fill="#16a34a"/><circle cx="15" cy="13" r="2.2" fill="#4ade80"/><circle cx="21" cy="13" r="2.2" fill="#22c55e"/></svg>`,
+    hsinchu_wind: `<svg viewBox="0 0 36 36"><polygon points="18,6 24,18 18,30 12,18" fill="#38bdf8" stroke="#bae6fd" stroke-width="1.6"/><polygon points="12,14 4,10 8,24" fill="#0ea5e9" opacity=".85"/><polygon points="24,14 32,10 28,24" fill="#0ea5e9" opacity=".85"/></svg>`,
+    yunlin_talisman: `<svg viewBox="0 0 36 36"><line x1="10" y1="5" x2="10" y2="32" stroke="#d97706" stroke-width="2.6" stroke-linecap="round"/><rect x="11" y="7" width="16" height="19" rx="2" fill="#facc15" stroke="#fef08a" stroke-width="1.4"/><rect x="15" y="11" width="8" height="10" fill="#dc2626"/></svg>`,
+    sky_lantern: `<svg viewBox="0 0 36 36"><polygon points="11,8 25,8 27,22 18,28 9,22" fill="#fb923c" stroke="#fed7aa" stroke-width="1.6"/><circle cx="18" cy="24" r="2.5" fill="#fef08a"/></svg>`,
+    wood_carving: `<svg viewBox="0 0 36 36"><ellipse cx="18" cy="19" rx="9" ry="11" fill="#92400e" stroke="#fde68a" stroke-width="1.2"/><circle cx="14" cy="15" r="3" fill="#facc15"/><circle cx="22" cy="15" r="3" fill="#facc15"/><circle cx="14" cy="15" r="1.2" fill="#111"/><circle cx="22" cy="15" r="1.2" fill="#111"/><polygon points="16,18 20,18 18,21" fill="#f59e0b"/></svg>`,
+  };
+  return icons[k] || `<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="12" fill="#eab308"/></svg>`;
+}
 
 function togglePlayerKind(pid) {
   const tp = G && G.players[pid];
@@ -4011,6 +4189,22 @@ function openPlayerDetail(pid) {
       }).join('')}</div>` : '<div class="sub" style="margin:4px 0">目前沒有持有任何道具</div>'}
     </div>
     <div class="pd-section">
+      <h4>🎁 各地特產收藏（${(p.specialties || []).length}/${Object.keys(R.SPECIALTIES).length}${mine(pid) && !p.bankrupt ? '・點擊即可穿戴／卸下修飾棋子' : ''}）</h4>
+      ${(p.specialties && p.specialties.length) ? `<div class="pd-items">${p.specialties.map(k => {
+        const sp = R.SPECIALTIES[k];
+        if (!sp) return '';
+        const eq = p.equipped && p.equipped[sp.slot] === k;
+        const canEquip = mine(pid) && !p.bankrupt;
+        return `<button class="sp-card ${eq ? 'equipped' : ''}" data-sp="${k}" ${canEquip ? '' : 'disabled'}>
+          <span class="item-ico">${specialtySvg(k)}</span>
+          <div class="item-meta">
+            <b>${sp.name}<span class="sp-slot">${R.SLOT_NAMES[sp.slot]}</span>${eq ? '<span class="sp-eq-tag">已裝備</span>' : ''}</b>
+            <small>${sp.origin}・${sp.desc}</small>
+          </div>
+        </button>`;
+      }).join('')}</div>` : '<div class="sub" style="margin:4px 0">購地、建設或造訪公園／廟宇／道具屋可獲得各地特產修飾棋子</div>'}
+    </div>
+    <div class="pd-section">
       <h4>🏙️ 名下地產（點擊地名跳轉地圖焦點）</h4>
       ${lands.length ? `<div class="pd-lands">${lands.map(i => {
         const t = R.BOARD[i], st = G.tiles[i];
@@ -4032,6 +4226,12 @@ function openPlayerDetail(pid) {
     if (tk) tk.onclick = () => { closeModal(); togglePlayerKind(pid); openPlayerDetail(pid); };
     const uiBtn = box.querySelector('#pdUseItems');
     if (uiBtn) uiBtn.onclick = () => { closeModal(); openItems(); };
+    box.querySelectorAll('[data-sp]').forEach(btn => {
+      btn.onclick = () => {
+        send({ type: 'equipSpecialty', specialty: btn.dataset.sp });
+        openPlayerDetail(pid);
+      };
+    });
     box.querySelectorAll('[data-jump]').forEach(btn => {
       btn.onclick = () => {
         const idx = +btn.dataset.jump;
@@ -4053,8 +4253,9 @@ function renderPlayersAndTurn() {
     const kindPill = canToggle
       ? `<button class="kind-btn ${p.kind === 'ai' ? 'ai' : 'manual'}" data-kind-pid="${k}" title="點擊切換 手動 / AI">${p.kind === 'ai' ? '🤖 AI' : '👤 手動'}</button>`
       : (p.kind === 'ai' ? ' <small>電腦</small>' : mine(k) && NET.role !== 'local' ? ' <small>你</small>' : '');
-    const itemsStrip = p.items.length
-      ? `<div class="p-items">${p.items.map(it => `<span class="p-item-chip" title="${R.ITEMS[it]?.name || it}">${itemSvg(it)}</span>`).join('')}</div>`
+    const eqList = Object.values(p.equipped || {}).filter(Boolean);
+    const itemsStrip = (p.items.length || eqList.length)
+      ? `<div class="p-items">${p.items.map(it => `<span class="p-item-chip" title="${R.ITEMS[it]?.name || it}">${itemSvg(it)}</span>`).join('')}${eqList.map(sp => `<span class="p-item-chip sp" title="已裝備特產：${R.SPECIALTIES[sp]?.name || sp}">${specialtySvg(sp)}</span>`).join('')}</div>`
       : '';
     return `<div class="pcard clickable ${k === G.cur && G.phase !== 'over' ? 'cur' : ''} ${p.bankrupt ? 'out' : ''}" data-pid="${k}" style="--c:${p.color}" title="點擊查看詳細資料、道具與名下地產">
       <div class="av">${p.name[0]}</div>
@@ -4218,7 +4419,17 @@ function askPrompt(q) {
             <small>${hasTwo ? '已擁有 2 顆骰子（上限）' : it.desc}</small>
           </div>
         </button>`;
-      }).join('')}</div>
+      }).join('')}${(() => {
+        const ownedSp = (p.specialties || []).length, totalSp = Object.keys(R.SPECIALTIES).length;
+        const spFull = ownedSp >= totalSp;
+        return `<button class="item-btn" data-buy="specialty_box" ${(spFull || p.cash < 500) ? 'disabled' : ''}>
+          <span class="item-ico">${specialtySvg('sky_lantern')}</span>
+          <div class="item-meta">
+            <b>🎁 台灣特產盲盒 <span class="price">$500</span></b>
+            <small>${spFull ? '已集滿全部 12 種地方特產！' : `隨機獲得未擁有的各地特產飾品來修飾棋子（已收集 ${ownedSp}/${totalSp}）`}</small>
+          </div>
+        </button>`;
+      })()}</div>
       <div class="row"><button class="primary" id="sDone">離開道具屋</button></div>`, box => {
       box.querySelector('#sDone').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
       box.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
@@ -4293,18 +4504,39 @@ function showResult() {
 
 function openItems() {
   const p = R.cur(G);
+  const mySpecialties = p.specialties || [];
   if (!mine(p.id) || (G.phase !== 'roll' && G.phase !== 'done')) return toast('現在無法使用道具');
-  openModal(`<h2>🎒 使用道具（${p.items.length}/${R.MAX_ITEMS}）</h2><div class="sub">請神卡／送神卡／拆除／徵收等道具可在自己回合使用；遙控骰子需在擲骰前使用；免租卡會自動生效。</div>
-    <div class="items">${p.items.map(k => {
+  openModal(`<h2>🎒 道具與特產裝飾（功能 ${p.items.length}/${R.MAX_ITEMS}・特產 ${mySpecialties.length}/${Object.keys(R.SPECIALTIES).length}）</h2>
+    <div class="sub">功能道具可在自己回合使用；各地獲得的特產不佔背包空間，可隨時穿戴修飾 3D 棋子！</div>
+    ${p.items.length ? `<div class="items">${p.items.map(k => {
       const it = R.ITEMS[k];
       const dis = k === 'free' || (k === 'remote' && G.phase !== 'roll');
       return `<button class="item-btn" data-k="${k}" ${dis ? 'disabled' : ''}>
         <span class="item-ico">${itemSvg(k)}</span>
         <div class="item-meta"><b>${it.name}</b><small>${it.desc}</small></div>
       </button>`;
-    }).join('')}</div>
+    }).join('')}</div>` : '<div class="sub" style="margin:6px 0">目前無功能道具</div>'}
+    <div class="pd-section">
+      <h4>🎁 各地特產飾品（點擊穿戴／卸下修飾棋子）</h4>
+      ${mySpecialties.length ? `<div class="pd-items">${mySpecialties.map(k => {
+        const sp = R.SPECIALTIES[k];
+        if (!sp) return '';
+        const eq = p.equipped && p.equipped[sp.slot] === k;
+        return `<button class="sp-card ${eq ? 'equipped' : ''}" data-sp="${k}">
+          <span class="item-ico">${specialtySvg(k)}</span>
+          <div class="item-meta">
+            <b>${sp.name}<span class="sp-slot">${R.SLOT_NAMES[sp.slot]}</span>${eq ? '<span class="sp-eq-tag">已裝備</span>' : ''}</b>
+            <small>${sp.origin}・${sp.desc}</small>
+          </div>
+        </button>`;
+      }).join('')}</div>` : '<div class="sub" style="margin:4px 0">買地、建設、參拜或逛道具屋即可獲得台灣各地特產！</div>'}
+    </div>
     <div class="row"><button class="close">關閉</button></div>`, box => {
     box.querySelector('.close').onclick = closeModal;
+    box.querySelectorAll('[data-sp]').forEach(btn => btn.onclick = () => {
+      send({ type: 'equipSpecialty', specialty: btn.dataset.sp });
+      openItems();
+    });
     box.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
       const k = b.dataset.k;
       if (k === 'reverse') { closeModal(); send({ type: 'item', item: k }); }
@@ -4496,7 +4728,7 @@ function renderUIButtons() {
   const p = R.cur(G), my = mine(p.id) && G.phase !== 'over';
   $('#btnRoll').textContent = (p.dice || 1) >= 2 ? '🎲🎲 擲雙骰' : '🎲 擲骰子';
   $('#btnRoll').disabled = !(my && G.phase === 'roll' && !animBusy());
-  $('#btnItem').disabled = !(my && (G.phase === 'roll' || G.phase === 'done') && p.items.length > 0 && !animBusy());
+  $('#btnItem').disabled = !(my && (G.phase === 'roll' || G.phase === 'done') && (p.items.length > 0 || (p.specialties && p.specialties.length > 0)) && !animBusy());
   $('#btnEnd').disabled = !(my && G.phase === 'done' && !animBusy());
 }
 
@@ -4540,7 +4772,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v167</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v168</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
