@@ -3,8 +3,8 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=107';
-import { createFX } from './fx3d.js?v=107';
+import { unitModel } from './models3d.js?v=108';
+import { createFX } from './fx3d.js?v=108';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -640,7 +640,8 @@ const API = {
     const a = pa.clone().add(new THREE.Vector3(0, da.cat === 'air' ? 0 : ha * 0.6, 0)).addScaledVector(dir, da.mt === 'foot' ? 4 : 12);
     const b = dd.base === 'submarine' ? new THREE.Vector3(pd.x, WATER_Y, pd.z) : pd.clone().add(new THREE.Vector3(0, dd.cat === 'air' ? 0 : hd * 0.45, 0));
     const w = fx.weaponFor({ base: da.base, nation: da.nation, cat: da.cat }, { base: dd.base, cat: dd.cat });
-    const k = Math.max(0.45, Math.min(1, speed));
+    // 彈體飛行時間倍率：極快時最短 0.45 倍以免看不到；極慢時最多放慢到 1.8 倍
+    const k = Math.max(0.45, Math.min(1.8, speed));
     return fx.fire(w, a, b, { k, onHit: () => { ed.hitT = performance.now(); } });
   },
   // 拖曳地圖時，垂直方向每個像素對應的地圖距離比水平大（因為鏡頭是斜的）

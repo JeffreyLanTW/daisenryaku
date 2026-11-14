@@ -1,4 +1,10 @@
 'use strict';
+// 極慢（觀戰）時，鏡頭在移向下一個部隊：等它到位再行動，避免動作發生在畫面外
+async function camSettle() {
+  if (SETTINGS.aiStep < 300 || !SETTINGS.followCam) return;
+  for (let i = 0; i < 40 && camGoal; i++) await sleep(25);
+  await sleep(150);
+}
 // ===== 電腦 AI =====
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -537,6 +543,7 @@ async function aiAct(u, token) {
   if (token !== gameToken || (G && G.autoPilotCancel)) return;
   if (best.dest !== start) {
     ensureVisible(u.x, u.y);
+    await camSettle();
     await doMove(u, reachPath(reach, best.dest), reach.get(best.dest).cost, SETTINGS.aiStep);
   }
   if (token !== gameToken || (G && G.autoPilotCancel)) return;
@@ -545,6 +552,7 @@ async function aiAct(u, token) {
   if (d.carry && !d.carry.deck) aiUnload(u);
   if (act && act.kind === 'attack' && act.target.hp > 0) {
     ensureVisible(u.x, u.y);
+    await camSettle();
     await performAttack(u, act.target, SETTINGS.aiStep / 110);
   } else if (act && act.kind === 'capture') {
     const [cx, cy] = tileCenter(u.x, u.y);

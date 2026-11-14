@@ -635,7 +635,7 @@ function updateAutoPilotUI() {
           <span class="ap-side-name" style="color:${SIDES[k].light}">${SIDES[k].name}<i class="ap-turn"></i></span>
           ${seg(`data-ap="ctl" data-k="${k}"`, [['h', '玩家'], ['ai', '電腦']])}
           ${seg(`data-ap="per" data-k="${k}"`, per)}
-        </div>`).join('') + `<div class="ap-speed"><span>速度</span>${seg('data-ap="spd"', [['200', '慢'], ['110', '普通'], ['45', '快'], ['10', '極快']])}</div>`
+        </div>`).join('') + `<div class="ap-speed"><span>速度</span>${seg('data-ap="spd"', [['380', '極慢', '極慢：觀戰用，移動、攻擊與彈道都放慢'], ['200', '慢'], ['110', '普通'], ['45', '快'], ['10', '極快']])}</div>`
         + `<div class="ap-speed ap-cam"><span>鏡頭</span>${seg('data-ap="cam"', [['1', '跟隨單位', '電腦行動與回合切換時，鏡頭自動移到行動中的部隊'], ['0', '固定', '鏡頭完全不自動移動（含回合切換），可自行拖曳、縮放、旋轉']])}</div>`
         + `<div class="ap-speed ap-eng"><span>工兵</span>${seg('data-ap="eng"', [['1', '開啟（可建基地）', '工兵可把己方城市建設為工廠、機場或港口'], ['0', '關閉', '不能生產工兵']])}</div>`;
       $('#apSides').onclick = e => { const b = e.target.closest('button[data-ap]'); if (b) apSegClick(b); };
@@ -1023,7 +1023,7 @@ function openBattleSettings() {
     <div class="sub">雙方都設為「電腦」即可觀戰；隨時可改回玩家接手。</div>
     <div class="form">${side(0)}${side(1)}
       <label>工兵（基地建設）<select id="bsEng"><option value="1">開啟</option><option value="0" ${G.rules && G.rules.engineer === false ? 'selected' : ''}>關閉</option></select></label>
-      <label>電腦速度<select id="bsSpeed"><option value="200">慢</option><option value="110">普通</option><option value="45">快</option><option value="10">極快</option></select></label>
+      <label>電腦速度<select id="bsSpeed"><option value="380">極慢</option><option value="200">慢</option><option value="110">普通</option><option value="45">快</option><option value="10">極快</option></select></label>
       <label>3D 戰鬥特效<select id="bsFx"><option value="1">開啟</option><option value="0" ${SETTINGS.fx3d ? '' : 'selected'}>關閉</option></select></label>
       <label>鏡頭<select id="bsCam"><option value="1">跟隨單位</option><option value="0" ${SETTINGS.followCam ? '' : 'selected'}>固定（含回合切換）</option></select></label>
     </div>
@@ -1065,7 +1065,7 @@ function openNewGame() {
       <label><span><span class="dot" style="background:${SIDES[1].color}"></span>紅方</span><select id="ngN1">${nationOptions(nat[1])}</select></label>
       <label>操作<select id="ngP1"><option value="h">玩家</option><option value="ai" ${p[1].ai ? 'selected' : ''}>電腦</option></select></label>
       <label>AI 風格<select id="ngPersona1">${personaOptions(p[1].persona || (p[1].ai ? 'B' : 'L'))}</select></label>
-      <label>電腦速度<select id="ngSpeed"><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option><option value="10">極快</option></select></label>
+      <label>電腦速度<select id="ngSpeed"><option value="380">極慢</option><option value="200">慢</option><option value="110" selected>普通</option><option value="45">快</option><option value="10">極快</option></select></label>
       <label>工兵（基地建設）<select id="ngEng"><option value="1">開啟</option><option value="0" ${SETTINGS.engineer === false ? 'selected' : ''}>關閉</option></select></label>
     </div>
     <div class="desc">兩方都選「電腦」即可觀戰；遊戲中可由右下 ⚙️ 隨時切換雙方操作與 AI 風格。</div>
@@ -1192,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v107</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v108</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v108</span><span class="cl-date">2026.11.14</span><p>【極慢速度】電腦速度新增「極慢」（觀戰用）：部隊移動、攻擊等待與 3D 彈道都放慢，鏡頭跟隨時會先移到部隊再行動。【手機工具列】右側工具按鈕在 iPhone 等矮畫面時自動往左排成多欄，不再被上方遮住。</p></div>
         <div class="cl-item"><span class="cl-ver">v107</span><span class="cl-date">2026.11.13</span><p>【3D 戰鬥特效】攻擊依兵種與目標使用符合現實的武器：步兵步槍曳光彈、戰車主砲（砲口焰與揚塵）、步戰車機砲、自走砲與迫砲拋物線彈、多管火箭齊射、彈道飛彈、防空砲曳光彈加黑色空爆、防空飛彈垂直發射近炸、反艦飛彈掠海、艦砲對岸射擊、潛艦魚雷水柱、戰機空對空飛彈、A-10 機砲掃射、轟炸機炸彈串、直升機反戰車飛彈與火箭、雷射光束等。命中有火球、煙、碎片、地面焦痕或水花，被擊中的部隊會晃動。【擊毀演出】車輛焦黑歪斜燃燒冒黑煙後沉入地面、飛機拖黑煙墜落爆炸、艦艇起火傾斜沉沒、步兵倒下；大爆炸有衝擊波與鏡頭震動。可在 ⚙️ 戰場設定「3D 戰鬥特效」開關。</p></div>
         <div class="cl-item"><span class="cl-ver">v106</span><span class="cl-date">2026.11.13</span><p>【觸控板旋轉】Mac 觸控板雙指左右滑改為旋轉 3D 鏡頭（上下滑仍是縮放，雙指開合縮放更靈敏）；不再因左右滑而觸發瀏覽器的上一頁／下一頁。</p></div>
         <div class="cl-item"><span class="cl-ver">v105</span><span class="cl-date">2026.11.13</span><p>【3D 記憶體】部隊資訊牌改用較省記憶體的方式產生（上傳後釋放畫布、每幀限量產生、最久未用的先淘汰），降低 iPad／iOS Safari 畫布記憶體超過上限而破圖的機會。</p></div>
@@ -1386,7 +1387,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v107</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v108</span></div><div class="tagline">第三次世界大戰 · 1990 年代現代戰爭</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>台海風雲 → 第三次世界大戰</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmTest">🧪 測試地圖<small>20×20 / 30×30 / 40×40 梯次平衡演練</small></button>
