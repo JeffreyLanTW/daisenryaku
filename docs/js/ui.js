@@ -1256,7 +1256,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v131</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v132</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1288,6 +1288,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v132</span><span class="cl-date">2026.11.14</span><p>【修正環島富豪 3D 無畫面問題】修正 #newsBar 隱藏時導致 CSS Grid 的 &lt;main&gt; 高度塌縮為 0 像素、WebGL 畫布未自動撐滿螢幕的問題，改用 Flex 佈局並加入 ResizeObserver 即時更新畫布尺寸。</p></div>
         <div class="cl-item"><span class="cl-ver">v131</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 大升級】棋盤擴增為 56 格全台灣環島地圖並以 Three.js 立體建模台灣本島、中央山脈、離島與 101／85 大樓／鵝鑾鼻燈塔／宮廟等特色地標；開放自由調整遊戲回合（含無限回合）、自訂玩家名稱與角色造型；修復機會、命運與道具屋互動商店，新增「請神卡」與「送神卡」；地圖新增土地公（可免費強佔他人土地）、財神爺、福神、窮神、衰神、野狗等 6 位 3D 巡邏 NPC；新增頂部 Breaking News 突發新聞台與即時廣播。</p></div>
         <div class="cl-item"><span class="cl-ver">v130</span><span class="cl-date">2026.11.14</span><p>【第四章回合延長】「跳，還是不跳」的固守目標由第 12 回合延長到第 22 回合，有足夠時間渡海反攻廈門港；第 12、16 回合各加一波敵軍增援，維持壓力。</p></div>
         <div class="cl-item"><span class="cl-ver">v129</span><span class="cl-date">2026.11.14</span><p>【八國混戰】自由對戰可選 2–8 國參戰（預設 4 國），各自為戰：首都被攻陷或全軍覆沒的一方退出，最後留下的一方獲勝；國數多時自動選用較大地圖，各方以不同陣營顏色區分，戰場資訊改為各國一覽。【戰爭迷霧】新增戰爭迷霧（新遊戲與 ⚙️ 戰場設定可開關，預設關閉）：只看得到己方部隊與據點周圍，敵軍在視野外會隱藏；偵察類單位視野較遠。電腦 AI 不受迷霧影響。</p></div>
@@ -1481,7 +1482,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v131</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v132</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
