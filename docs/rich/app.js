@@ -35,6 +35,8 @@ function snd(kind) {
     else if (kind === 'turn') tone(587, 0.12, 0, 'sine', 0.09);
     else if (kind === 'dog') { tone(190, 0.09, 0, 'sawtooth', 0.14); tone(145, 0.11, 0.11, 'sawtooth', 0.16); tone(260, 0.08, 0.24, 'square', 0.12); tone(120, 0.2, 0.34, 'sawtooth', 0.14); }
     else if (kind === 'siren') { for (let k = 0; k < 4; k++) { tone(660, 0.14, k * 0.32, 'sine', 0.11); tone(880, 0.14, k * 0.32 + 0.16, 'sine', 0.11); } }
+    else if (kind === 'hsr') { tone(587, 0.12, 0, 'sine', 0.12); tone(880, 0.14, 0.11, 'sine', 0.12); tone(1175, 0.25, 0.22, 'triangle', 0.14); }
+    else if (kind === 'heli') { for (let k = 0; k < 8; k++) tone(110 + (k % 2) * 18, 0.08, k * 0.14, 'sawtooth', 0.07); }
     else if (kind === 'bankrupt') { tone(440, 0.18, 0, 'sawtooth', 0.14); tone(311, 0.2, 0.16, 'sawtooth', 0.14); tone(220, 0.25, 0.34, 'sawtooth', 0.14); tone(110, 0.5, 0.56, 'sawtooth', 0.18); }
     else if (kind === 'bad') tone(220, 0.3, 0, 'sawtooth', 0.08);
   } catch (e) { /* 忽略 */ }
@@ -2887,7 +2889,7 @@ addEventListener('resize', resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
 
 // ---------- 每幀動畫 ----------
-let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0, lastBiteN = 0, lastHospitalN = 0, lastBankruptN = 0, lastGodFxN = 0;
+let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0, lastBiteN = 0, lastHospitalN = 0, lastBankruptN = 0, lastGodFxN = 0, lastTransportN = 0;
 function syncMoveStart() {
   if (!G || !G.move || !G.move.path || !G.move.path.length) return;
   if (G.move.n !== lastMoveN) {
@@ -3048,6 +3050,128 @@ function stepAmbulance(now) {
   const blink = Math.floor(now / 130) % 2 === 0;
   if (ambRed) ambRed.material.emissiveIntensity = blink ? 2.4 : 0.2;
   if (ambBlue) ambBlue.material.emissiveIntensity = blink ? 0.2 : 2.4;
+}
+
+// ---------- 機會移動專屬載具動畫（高鐵 700T 列車／環島直升機，不直接走棋子）----------
+let transportAnim = null, hsrGroup = null, heliGroup = null, heliMainRotor = null, heliTailRotor = null, transportBanner = null;
+function ensureTransportFx() {
+  if (!hsrGroup) {
+    hsrGroup = new THREE.Group();
+    const white = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.25, metalness: 0.1 });
+    const orange = new THREE.MeshStandardMaterial({ color: '#ea580c', emissive: '#9a3412', emissiveIntensity: 0.25, roughness: 0.3 });
+    const glass = new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.15, metalness: 0.4 });
+    const railM = new THREE.MeshStandardMaterial({ color: '#475569', roughness: 0.7 });
+    // 流線車頭＋兩節高鐵車廂
+    const lead = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.35, 3.6), white); lead.position.set(0, 0.9, 1.5);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.2, 8), white); nose.rotation.x = Math.PI / 2; nose.scale.set(0.95, 1, 0.72); nose.position.set(0, 0.75, 4.2);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.55, 1.2), glass); cab.position.set(0, 1.28, 3.1); cab.rotation.x = -0.35;
+    const car2 = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.35, 3.8), white); car2.position.set(0, 0.9, -2.5);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.26, 7.6), orange); stripe.position.set(0, 0.78, -0.5);
+    const win = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.36, 6.2), glass); win.position.set(0, 1.18, -0.8);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.28, 8.6), railM); beam.position.set(0, 0.14, -0.4);
+    const headLight = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#facc15', emissiveIntensity: 1.4 }));
+    headLight.position.set(0, 0.65, 5.15);
+    hsrGroup.add(lead, nose, cab, car2, stripe, win, beam, headLight);
+    hsrGroup.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    hsrGroup.scale.setScalar(2.35);
+    hsrGroup.visible = false;
+    scene.add(hsrGroup);
+  }
+  if (!heliGroup) {
+    heliGroup = new THREE.Group();
+    const bodyM = new THREE.MeshStandardMaterial({ color: '#0284c7', roughness: 0.3, metalness: 0.2 });
+    const whiteM = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.3 });
+    const glassM = new THREE.MeshStandardMaterial({ color: '#bae6fd', roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.85 });
+    const darkM = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.6 });
+    const hull = new THREE.Mesh(new THREE.SphereGeometry(1.25, 12, 10), bodyM); hull.scale.set(0.95, 0.9, 1.55); hull.position.set(0, 1.35, 0.2);
+    const cabin = new THREE.Mesh(new THREE.SphereGeometry(1.02, 10, 8), glassM); cabin.scale.set(0.9, 0.8, 1.15); cabin.position.set(0, 1.42, 0.85);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.32, 2.2), whiteM); stripe.position.set(0, 1.25, 0.1);
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.32, 3.2, 8), bodyM); tail.rotation.x = Math.PI / 2; tail.position.set(0, 1.55, -2.4);
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.1, 0.65), whiteM); fin.position.set(0, 1.95, -3.85);
+    for (const sx of [-0.9, 0.9]) {
+      const skid = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.8, 6), darkM); skid.rotation.x = Math.PI / 2; skid.position.set(sx, 0.2, 0.25);
+      const st1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.75, 6), darkM); st1.position.set(sx * 0.85, 0.55, 0.9);
+      const st2 = st1.clone(); st2.position.z = -0.4;
+      heliGroup.add(skid, st1, st2);
+    }
+    heliMainRotor = new THREE.Group();
+    heliMainRotor.position.set(0, 2.65, 0.15);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.45, 8), darkM);
+    const b1 = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.06, 0.28), darkM); b1.position.y = 0.22;
+    const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.06, 5.6), darkM); b2.position.y = 0.22;
+    heliMainRotor.add(mast, b1, b2);
+    heliTailRotor = new THREE.Group();
+    heliTailRotor.position.set(0.22, 2.1, -3.85);
+    const tb = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.15, 0.16), whiteM);
+    heliTailRotor.add(tb);
+    heliGroup.add(hull, cabin, stripe, tail, fin, heliMainRotor, heliTailRotor);
+    heliGroup.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    heliGroup.scale.setScalar(2.4);
+    heliGroup.visible = false;
+    scene.add(heliGroup);
+  }
+  if (!transportBanner) {
+    transportBanner = document.createElement('div');
+    transportBanner.className = 'amb-fx hidden';
+    document.querySelector('main').appendChild(transportBanner);
+  }
+}
+function clearTransportFx() {
+  if (transportAnim) {
+    const tk = tokens[transportAnim.p];
+    if (tk) {
+      tk.pos = transportAnim.to;
+      tk.from = transportAnim.to;
+      tk.path = [];
+      tk.g.position.copy(tokenWorld(transportAnim.to, transportAnim.p));
+      tk.g.visible = true;
+    }
+  }
+  transportAnim = null;
+  if (hsrGroup) hsrGroup.visible = false;
+  if (heliGroup) heliGroup.visible = false;
+  if (transportBanner) transportBanner.classList.add('hidden');
+}
+function startTransportFx(pId, fromPos, toPos, kind, now) {
+  ensureTransportFx();
+  const a = tilePos(fromPos), b = tilePos(toPos);
+  const dist = a.distanceTo(b);
+  const dur = Math.max(2000, Math.min(3600, dist * 16)) / Math.sqrt(SPEED);
+  transportAnim = { t0: now, dur, p: pId, from: fromPos, to: toPos, kind, a, b };
+  const tk = tokens[pId];
+  if (tk) tk.g.visible = false;
+  const grp = kind === 'hsr' ? hsrGroup : heliGroup;
+  grp.position.copy(a);
+  grp.visible = true;
+  if (kind === 'hsr' && heliGroup) heliGroup.visible = false;
+  if (kind === 'heli' && hsrGroup) hsrGroup.visible = false;
+  const pl = G && G.players[pId], toName = R.BOARD[toPos]?.name || '目的地';
+  transportBanner.textContent = kind === 'hsr'
+    ? `🚄 台灣高鐵 700T 全速出發！${pl ? pl.name : '玩家'} 直奔「${toName}」…`
+    : `🚁 環島直升機起飛！${pl ? pl.name : '玩家'} 飛往「${toName}」…`;
+  transportBanner.classList.remove('hidden');
+  snd(kind);
+}
+function stepTransportFx(now) {
+  if (!transportAnim) return;
+  const f = (now - transportAnim.t0) / transportAnim.dur;
+  if (f >= 1) {
+    clearTransportFx();
+    return;
+  }
+  const ease = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+  if (transportAnim.kind === 'hsr') {
+    hsrGroup.position.lerpVectors(transportAnim.a, transportAnim.b, ease);
+    hsrGroup.position.y += 0.65 + Math.sin(f * Math.PI) * 3.8;
+    hsrGroup.rotation.y = Math.atan2(transportAnim.b.x - transportAnim.a.x, transportAnim.b.z - transportAnim.a.z);
+  } else {
+    heliGroup.position.lerpVectors(transportAnim.a, transportAnim.b, ease);
+    heliGroup.position.y += 1.6 + Math.sin(f * Math.PI) * 18.5;
+    heliGroup.rotation.y = Math.atan2(transportAnim.b.x - transportAnim.a.x, transportAnim.b.z - transportAnim.a.z);
+    heliGroup.rotation.x = Math.sin(f * Math.PI) * 0.2;
+    if (heliMainRotor) heliMainRotor.rotation.y += 0.48;
+    if (heliTailRotor) heliTailRotor.rotation.x += 0.55;
+  }
 }
 
 // ---------- 破產特效（3D 棋子倒塌爆裂＋散落金幣碎片＋震撼橫幅）----------
@@ -3240,9 +3364,13 @@ function frame(now) {
       lastBankruptN = G.bankruptFx.n;
       startBankruptFx(G.bankruptFx.p, G.bankruptFx.at, now);
     }
-    if (G.godFx && G.godFx.n !== lastGodFxN && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !godAnim && !tokens.some(t => t && t.path && t.path.length)) {
+    if (G.godFx && G.godFx.n !== lastGodFxN && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !godAnim && !transportAnim && !tokens.some(t => t && t.path && t.path.length)) {
       lastGodFxN = G.godFx.n;
       startGodAttachFx(G.godFx.p, G.godFx.at, G.godFx.kind, now);
+    }
+    if (G.transportFx && G.transportFx.n !== lastTransportN && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !godAnim && !transportAnim && !tokens.some(t => t && t.path && t.path.length)) {
+      lastTransportN = G.transportFx.n;
+      startTransportFx(G.transportFx.p, G.transportFx.from, G.transportFx.to, G.transportFx.kind, now);
     }
     if (!isMoving() || !buildKey) syncBuildings();
     for (const ah of activeHouses) {
@@ -3261,8 +3389,9 @@ function frame(now) {
     G.players.forEach((pl, k) => {
       const tk = tokens[k] || (tokens[k] = makeToken(pl));
       const inAmb = !!(ambAnim && ambAnim.p === k);
+      const inTransport = !!(transportAnim && transportAnim.p === k);
       const inBankrupt = !!(bankruptAnim && bankruptAnim.p === k);
-      tk.g.visible = inBankrupt || (!pl.bankrupt && !inAmb);
+      tk.g.visible = inBankrupt || (!pl.bankrupt && !inAmb && !inTransport);
       const activeScale = k === G.cur ? 2.75 : 1.36;
       if (inBankrupt) {
         const bp = Math.min(1, (now - bankruptAnim.t0) / bankruptAnim.dur);
@@ -3293,11 +3422,16 @@ function frame(now) {
       const inBite = !!(biteAnim && biteAnim.p === k);
       const waitingBiteHold = !!(G.biteFx && G.biteFx.n !== lastBiteN && G.biteFx.p === k && !tk.path.length);
       const waitingAmbHold = !!(G.hospital && G.hospital.n !== lastHospitalN && G.hospital.p === k && !tk.path.length);
+      const waitingTransportHold = !!(G.transportFx && G.transportFx.n !== lastTransportN && G.transportFx.p === k);
       if (inBankrupt) {
         // 破產倒塌動畫由上方控制
       } else if (inAmb) {
         tk.pos = ambAnim.from;
         tk.g.position.copy(ambGroup.position);
+      } else if (inTransport || waitingTransportHold) {
+        const holdPos = inTransport ? transportAnim.from : G.transportFx.from;
+        tk.pos = holdPos;
+        tk.g.position.copy(tokenWorld(holdPos, k));
       } else if (inBite) {
         const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
         tk.g.position.copy(tokenWorld(biteAnim.at, k));
@@ -3417,6 +3551,8 @@ function frame(now) {
 
     const activeFxPos = (biteAnim && biteBurst && biteBurst.visible) ? biteBurst.position
       : (ambAnim && ambGroup && ambGroup.visible) ? ambGroup.position
+      : (transportAnim && hsrGroup && hsrGroup.visible) ? hsrGroup.position
+      : (transportAnim && heliGroup && heliGroup.visible) ? heliGroup.position
       : (bankruptAnim && bankruptGroup && bankruptGroup.visible) ? bankruptGroup.position
       : (godAnim && godFxGroup && godFxGroup.visible) ? godFxGroup.position
       : movingDogPos;
@@ -3455,6 +3591,7 @@ function frame(now) {
   stepDice(now);
   stepDogBite(now);
   stepAmbulance(now);
+  stepTransportFx(now);
   stepBankruptFx(now);
   stepGodAttachFx(now);
   updateCamera();
@@ -3464,11 +3601,12 @@ function frame(now) {
 // ============================================================ 介面與 Breaking News（移動後依序不重疊觸發）
 const mine = pid => NET.role === 'local' ? G.players[pid].kind !== 'ai' : NET.myIds.has(pid);
 const isMoving = () => {
-  if (diceAnim || biteAnim || ambAnim || bankruptAnim || godAnim) return true;
+  if (diceAnim || biteAnim || ambAnim || transportAnim || bankruptAnim || godAnim) return true;
   if (tokens.some(t => t && t.path && t.path.length)) return true;
   if (G && G.move && G.move.path && G.move.path.length && (!tokens[G.move.p] || tokens[G.move.p].moveN !== G.move.n)) return true;
   if (G && G.biteFx && G.biteFx.n !== lastBiteN) return true;
   if (G && G.hospital && G.hospital.n !== lastHospitalN) return true;
+  if (G && G.transportFx && G.transportFx.n !== lastTransportN) return true;
   if (G && G.bankruptFx && G.bankruptFx.n !== lastBankruptN) return true;
   if (G && G.godFx && G.godFx.n !== lastGodFxN) return true;
   if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
@@ -4312,7 +4450,7 @@ function startGame(seats, rounds) {
   tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
   buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-  lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+  lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; lastTransportN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
   resetCamGoal(); syncDiceVisible(1);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
@@ -4340,7 +4478,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v164</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v165</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
@@ -4498,7 +4636,7 @@ function openJoin() {
               tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
               buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-              lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+              lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; lastTransportN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
               resetCamGoal(); syncDiceVisible();
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b, G.dice.count);

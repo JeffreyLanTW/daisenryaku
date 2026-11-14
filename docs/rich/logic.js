@@ -114,8 +114,8 @@
   const CHANCE = [
     { t: '投資台灣半導體大賺，獲得 $3500', f: (G, p) => { gain(G, p, 3500); pushNews(G, '機會快報', `${p.name} 投資台灣科技股大賺 $3500！`, '財經喜訊', '#2ecc71'); } },
     { t: '中了統一發票特別獎，獲得 $2500', f: (G, p) => { gain(G, p, 2500); pushNews(G, '機會快報', `${p.name} 中了統一發票獲得獎金 $2500！`, '好運連連', '#2ecc71'); } },
-    { t: '搭高鐵快速北上，前進到台北', f: (G, p) => { pushNews(G, '交通快訊', `${p.name} 搭乘高鐵直奔「台北」！`, '機會移動', '#3498db'); moveTo(G, p, idx('台北')); } },
-    { t: '回到起點領取環島補助 $2000', f: (G, p) => { pushNews(G, '環島補助', `${p.name} 受邀回到起點領取環島獎勵！`, '機會移動', '#3498db'); moveTo(G, p, 0); } },
+    { t: '搭高鐵快速北上，前進到台北', f: (G, p) => { pushNews(G, '交通快訊', `${p.name} 搭乘高鐵 700T 直奔「台北」！`, '機會移動', '#3498db'); moveTo(G, p, idx('台北'), 'hsr'); } },
+    { t: '搭直升機回到起點領取環島補助 $2000', f: (G, p) => { pushNews(G, '環島補助', `${p.name} 搭乘環島直升機飛回起點領取補助！`, '機會移動', '#3498db'); moveTo(G, p, 0, 'heli'); } },
     { t: '獲得一張「請神卡」', f: (G, p) => giveItem(G, p, 'summon_god', '機會贈卡') },
     { t: '獲得一張「送神卡」', f: (G, p) => giveItem(G, p, 'dismiss_god', '機會贈卡') },
     { t: '獲得地方都更補助，免費升級一塊自己的地', f: (G, p) => freeUpgrade(G, p) },
@@ -422,8 +422,20 @@
     }
     return [];
   }
-  function moveTo(G, p, targetIdx) {
-    const from = p.pos, sp = shortestPath(from, targetIdx), path = [];
+  function moveTo(G, p, targetIdx, vehicle = null) {
+    const from = p.pos;
+    if (vehicle) {
+      if (targetIdx === 0 && from !== 0) {
+        gain(G, p, START_BONUS);
+        log(G, `${p.name} 抵達起點領取環島補助 $${START_BONUS}`);
+      }
+      p.pos = targetIdx;
+      G.moveSeq = (G.moveSeq || 0) + 1;
+      G.transportFx = { n: G.moveSeq, p: p.id, from, to: targetIdx, kind: vehicle };
+      if (!p.bankrupt) arrive(G, p);
+      return;
+    }
+    const sp = shortestPath(from, targetIdx), path = [];
     let interrupted = false, bite = null;
     for (let k = 0; k < sp.length; k++) {
       const res = stepToNode(G, p, sp[k], 1, path, k === sp.length - 1);
