@@ -8,20 +8,28 @@
 <meta name="theme-color" content="#121820">
 <title>環島富豪 3D</title>
 <link rel="icon" href="../favicon.svg">
-<link rel="stylesheet" href="rich.css?v=1">
+<link rel="stylesheet" href="rich.css?v=2">
 </head>
 <body>
 <div id="app">
   <header id="bar">
     <a class="brand" href="../" title="回到大戰略">← 大戰略</a>
     <span class="title">環島富豪 3D</span>
-    <span id="roundInfo" class="pill"></span>
+    <button id="roundInfo" class="pill clickable" title="點擊可調整回合上限"></button>
     <span id="netInfo" class="pill hidden"></span>
     <span class="spacer"></span>
+    <button id="btnNews" title="突發新聞紀錄">📰 新聞</button>
     <button id="btnSound" title="音效">🔊</button>
     <button id="btnLog" title="紀錄">紀錄</button>
     <button id="btnMenu" title="選單">☰</button>
   </header>
+  <div id="newsBar" class="hidden" title="點擊展開突發新聞紀錄">
+    <span class="news-badge">🔴 BREAKING NEWS</span>
+    <div class="news-scroll">
+      <span id="newsTitle"></span>
+      <span id="newsTicker"></span>
+    </div>
+  </div>
   <main>
     <canvas id="gl"></canvas>
     <div id="players"></div>
@@ -34,13 +42,14 @@
       </div>
     </div>
     <div id="cardPop" class="hidden"></div>
+    <div id="newsToast" class="hidden"></div>
     <div id="logBox" class="hidden"></div>
     <div id="toast" class="hidden"></div>
   </main>
 </div>
 <div id="modal" class="hidden"><div id="modalBox"></div></div>
-<script src="../vendor/peerjs.min.js?v=1"></script>
-<script src="logic.js?v=1"></script>
-<script type="module" src="app.js?v=1"></script>
+<script src="../vendor/peerjs.min.js?v=2"></script>
+<script src="logic.js?v=2"></script>
+<script type="module" src="app.js?v=2"></script>
 </body>
 </html>
