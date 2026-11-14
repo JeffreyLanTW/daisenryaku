@@ -3,8 +3,8 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=111';
-import { createFX } from './fx3d.js?v=111';
+import { unitModel } from './models3d.js?v=112';
+import { createFX } from './fx3d.js?v=112';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -17,7 +17,7 @@ const TOP_COLOR = {
 
 let renderer = null, scene, camera, glCanvas, failed = false;
 let hemi, sun, mapGroup = null, water = null, waterTex = null;
-let hgt = null, builtFor = null, nightNow = null;
+let hgt = null, tops = null, builtFor = null, nightNow = null;
 let props = [], flagMesh = null, ringMesh = null;          // 據點旗幟與底環（顏色隨佔領變化）
 let ovFill, ovRing, ovSeg, blob;                            // 每幀重建的覆蓋層
 const texCache = new Map();
@@ -145,7 +145,12 @@ function init() {
   // 戰鬥特效（射擊、彈道、命中、擊毀殘骸）：畫在部隊層，與部隊一起在建築前面
   fx = createFX({ scene, fxScene: unitScene, heightAt: (x, z) => heightAt(x, z), waterY: WATER_Y,
     isWater: (x, z) => { if (!hgt) return true; const [tx, ty] = pixelToTile(x, z); if (tx < 0 || ty < 0 || tx >= G.w || ty >= G.h) return true; const t = G.terrain[idxOf(tx, ty)]; return t === 'sea' || t === 'bridge'; } });
-  renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); });
+  renderer.domElement.addEventListener('webglcontextlost', e => {
+    e.preventDefault();
+    // 顯示卡暫時中斷 3D 畫面（會自動恢復）：提示一下，方便判斷畫面閃黑的原因
+    console.warn('WebGL context lost');
+    if (typeof showToast === 'function') showToast('3D 畫面被顯示卡暫時中斷，正在恢復…');
+  });
   renderer.domElement.addEventListener('webglcontextrestored', () => { builtFor = null; for (const m of texCache.values()) m.userData.dead = true; texCache.clear(); });
   return true;
 }
@@ -213,6 +218,10 @@ function buildMap() {
   const N = G.w * G.h, [ww, wh] = worldSize();
   hgt = new Float32Array(N);
   for (let i = 0; i < N; i++) hgt[i] = tileHeight(i);
+  // 每格最高的物體（山峰、建築、樹）：鏡頭不能低於這個高度，否則會鑽進模型裡，整個畫面變黑
+  const TOP = { mountain: 62, hills: 14, forest: 22, city: 26, capital: 44, factory: 30, airport: 22, port: 24 };
+  tops = new Float32Array(N);
+  for (let i = 0; i < N; i++) tops[i] = Math.max(0, hgt[i]) + (TOP[G.terrain[i]] || 4);
 
   // 六角柱：頂面帶細緻紋理與格線，側面較暗
   const topTex = canvasTex(256, 256, (c, w) => {
@@ -420,6 +429,13 @@ function updateCamera() {
   const hd = dist * Math.cos(elev.v);
   // 接近水平時鏡頭至少離地 14（高於部隊模型）
   camera.position.set(cx + Math.sin(view.yaw) * hd, Math.max(14, dist * Math.sin(elev.v)), cz + Math.cos(view.yaw) * hd);
+  // 鏡頭低空飛過山或建築時抬高到其上方（含相鄰格，山體比一格寬）
+  if (tops) {
+    const [tx, ty] = pixelToTile(camera.position.x, camera.position.z);
+    let top = 0;
+    for (const [x, y] of [[tx, ty], ...neighbors(tx, ty)]) if (x >= 0 && y >= 0 && x < G.w && y < G.h) top = Math.max(top, tops[idxOf(x, y)]);
+    if (camera.position.y < top + 10) camera.position.y = top + 10;
+  }
   // 接近正上方時改用「畫面上方 = 前進方向」作為鏡頭上方向，兩者在中間角度的結果相同，切換不會跳動
   if (elev.v > Math.PI / 4) camera.up.set(-Math.sin(view.yaw), 0, -Math.cos(view.yaw)); else camera.up.set(0, 1, 0);
   camera.near = Math.max(4, dist * 0.04); camera.far = dist * 5 + 4000;
@@ -435,7 +451,8 @@ function project(wx, wy, h) {
   V2.copy(V).applyMatrix4(camera.matrixWorldInverse);
   const depth = -V2.z;
   V.project(camera);
-  return [(V.x * 0.5 + 0.5) * vw, (-V.y * 0.5 + 0.5) * vh, (vh / 2) / Math.tan(FOV * Math.PI / 360) / Math.max(1, depth)];
+  // 第 4 個值：該點到鏡頭的深度（負值＝在鏡頭後方），呼叫端用來略過不在畫面上的東西
+  return [(V.x * 0.5 + 0.5) * vw, (-V.y * 0.5 + 0.5) * vh, (vh / 2) / Math.tan(FOV * Math.PI / 360) / Math.max(1, depth), depth];
 }
 // 螢幕座標 → 地圖座標（先打到地面，再依該格高度修正一次）
 function pick(sx, sy) {

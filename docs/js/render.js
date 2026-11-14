@@ -19,7 +19,11 @@ function worldToScreen(wx, wy) { if (in3D) { const p = R3D.project(wx, wy); retu
 // 3D 模式下，把原本以地圖座標寫的小型 2D 繪圖（地名、氣泡、進度條、特效）貼到投影後的位置
 function at(wx, wy, fn) {
   if (in3D) {
-    const [sx, sy, k] = R3D.project(wx, wy), z = k * dpr;
+    const [sx, sy, k0, depth] = R3D.project(wx, wy), [vw, vh] = viewSize();
+    // 在鏡頭後方、太貼近鏡頭或遠在畫面外的點不畫：否則放大倍率會變成上千倍，
+    // 一個準星或地名底框就會蓋滿整個畫面（畫面整片變紅或變黑）
+    if (!(depth > 20) || sx < -300 || sy < -300 || sx > vw + 300 || sy > vh + 300) return;
+    const k = Math.min(k0, cam.z * 3), z = k * dpr;
     ctx.setTransform(z, 0, 0, z, (sx - wx * k) * dpr, (sy - wy * k) * dpr);
   }
   fn();
