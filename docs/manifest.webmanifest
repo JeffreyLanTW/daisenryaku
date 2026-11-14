@@ -1,0 +1,12 @@
+{
+  "name": "大戰略 Web",
+  "short_name": "大戰略",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0b0f14",
+  "theme_color": "#121820",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

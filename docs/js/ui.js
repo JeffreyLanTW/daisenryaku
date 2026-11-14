@@ -1192,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v123</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v124</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v124</span><span class="cl-date">2026.11.14</span><p>【主畫面 App 全螢幕】新增網頁 App 設定檔，顯示模式設為全螢幕（隱藏時間與電池；系統不支援時自動改為一般主畫面 App）。需刪除主畫面圖示後重新「加入主畫面」。</p></div>
         <div class="cl-item"><span class="cl-ver">v123</span><span class="cl-date">2026.11.14</span><p>移除命令列上方為舊版透明狀態列預留的空白。</p></div>
         <div class="cl-item"><span class="cl-ver">v122</span><span class="cl-date">2026.11.14</span><p>【iPad 主畫面 App 狀態列改為不透明】狀態列改為黑底，畫面從狀態列下方開始，不再透明疊在命令列上（需刪除主畫面圖示後重新「加入主畫面」才會生效）；舊圖示仍是透明狀態列時，命令列上方自動留空避開模糊。</p></div>
         <div class="cl-item"><span class="cl-ver">v121</span><span class="cl-date">2026.11.14</span><p>【iPad 任務簡報加寬】寬螢幕時任務簡報改為左右兩欄（左邊地理位置、右邊目標與選項），不用捲動。【iPad 主畫面 App 命令列】命令列上方多留一段實色空白，讓按鈕與文字避開系統在畫面頂端加的模糊。</p></div>
@@ -1409,7 +1410,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v123</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v124</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
