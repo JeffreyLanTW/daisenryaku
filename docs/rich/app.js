@@ -41,7 +41,7 @@ function snd(kind) {
 // ============================================================ 3D 場景與 56 格真實台灣地理棋盤
 // 移動速度（可在選單調整，記在本機）：棋子每走一格的時間、骰子、NPC 與電腦思考間隔都會依此縮放
 const SPEEDS = [[0.5, '慢'], [1, '標準'], [1.6, '快'], [2.5, '極快']];
-let SPEED = 1;
+let SPEED = 0.5; // 預設「慢」
 try { const v = parseFloat(localStorage.getItem('rich_speed')); if (SPEEDS.some(([k]) => k === v)) SPEED = v; } catch (e) { /* 忽略 */ }
 function setSpeed(v) { SPEED = v; try { localStorage.setItem('rich_speed', String(v)); } catch (e) { /* 忽略 */ } }
 const STEP_MS = () => 200 / SPEED;
@@ -2854,7 +2854,7 @@ function resetUiQueue() {
 // 依據新聞類型繪製鮮明 SVG 主題插畫（不含重覆 ID）
 function newsArtSVG(n) {
   const txt = `${n.cat || ''} ${n.title || ''} ${n.body || ''}`;
-  if (/土地公|強佔|廟|福神|財神|神明降臨|送神除厄|宮廟/.test(txt)) {
+  if (/土地公|強佔|廟|福神|財神|神明降臨|神明附身|送神除厄|宮廟/.test(txt)) {
     return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
       <rect width="96" height="96" rx="16" fill="#2b1808"/>
       <circle cx="48" cy="48" r="36" fill="#f59e0b" opacity=".25"/>
@@ -3115,7 +3115,7 @@ function whenWalkDone(cb) {
     return;
   }
   const id = setTimeout(function check() {
-    if (isMoving() && performance.now() - t0 < 8000) {
+    if (isMoving() && performance.now() - t0 < 20000) {
       const id2 = setTimeout(check, 80); walkTimers.push(id2); return;
     }
     cb();
@@ -3376,7 +3376,7 @@ function openHelp() {
   ・<b>1 顆骰子開局・道具屋升級雙骰</b>：開局使用 1 顆骰子（1～6 點），前往道具屋可購買「<b>🎲 加購骰子</b>」永久升級為雙骰（2～12 點）！<br>
   ・<b>買地蓋樓變摩天大樓</b>：買下土地或車站後，每次再走到同位置即可一階階蓋樓（<b>空地 → 一樓平房 → 二樓透天 → 高層大樓 → 摩天大樓</b>），也可以直接蓋成最高級摩天大樓收高額過路費！<br>
   ・<b>機會、命運與道具屋</b>：踩到機會／命運會跳出卡片視窗確認執行；踩到道具屋會送一張隨機卡片，並開啟商店讓你購買「加購骰子、請神卡、送神卡、遙控骰子、路障、免租卡、迴轉卡、拆除卡、徵收卡」。<br>
-  ・<b>神明與地圖 NPC</b>：地圖上會巡邏「土地公、財神爺、福神、窮神、衰神、野狗」6 位 NPC！路過或使用請神卡可獲得附身：<b>土地公附身時踩到別人的地可免費強佔</b>！送神卡則可把壞神明轉送給對手。<br>
+  ・<b>神明與地圖 NPC</b>：5 位神明（土地公、財神爺、福神、窮神、衰神）以棋子形式停留在地圖隨機位置，走到或路過神明棋子就會被附身，附身回合結束後神明會離開並飛往另一個隨機位置停留；野狗則會在路上遊蕩。也可使用請神卡獲得附身：<b>土地公附身時踩到別人的地可免費強佔</b>！送神卡則可把壞神明轉送給對手。<br>
   ・<b>Breaking News 快訊</b>：任何玩家的重大購地、強佔、使用道具與破產都會即時廣播給全場玩家。<br>
   ・<b>可調整回合</b>：開局與遊戲中點擊上方輪數皆可隨時修改回合上限（0 為無限）；每 20 回合會自動公布一次財富排行榜，亦可隨時點擊上方「🏆 排行」查看。<br>
   ・<b>3D 鏡頭與地名標籤（與大戰略完全一致）</b>：單指／滑鼠左鍵拖曳平移棋盤；滑鼠右鍵或 <b>Shift＋左鍵</b>拖曳可旋轉與上下傾斜視角；雙指手勢自動鎖定縮放或雙指同向滑動旋轉／傾斜；右下角控制列「<b>名</b>」與快捷鍵 <b>N</b> 可開關地名標籤，<b>Q / E / R / F</b> 控制旋轉與俯仰，<b>🎯</b> 切換鏡頭跟隨。</div>

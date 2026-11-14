@@ -92,7 +92,7 @@
     { t: '獲得一張「送神卡」', f: (G, p) => giveItem(G, p, 'dismiss_god', '機會贈卡') },
     { t: '獲得地方都更補助，免費升級一塊自己的地', f: (G, p) => freeUpgrade(G, p) },
     { t: '喜氣洋洋！每位對手包給你紅包 $600', f: (G, p) => { eachOther(G, p, q => transfer(G, q, p, 600)); pushNews(G, '紅包行情', `${p.name} 向全場玩家收取紅包各 $600！`, '機會發財', '#f1c40f'); } },
-    { t: '土地公保佑！直接請來土地公附身', f: (G, p) => attachGod(G, p, 'tudigong', '機會顯靈') },
+    { t: '土地公托夢指點明牌，獲得 $1500', f: (G, p) => { gain(G, p, 1500); pushNews(G, '機會快報', `${p.name} 夢見土地公指點明牌，進帳 $1500！`, '好運連連', '#2ecc71'); } },
   ];
   const FATE = [
     { t: '國道超速被開罰單，付出 $1200', f: (G, p) => { pay(G, p, 1200, null, '超速罰單'); pushNews(G, '交通違規', `${p.name} 超速被開罰單 $1200！`, '命運罰款', '#e67e22'); } },
@@ -103,7 +103,7 @@
     { t: '熱心拾金不昧獲表揚，獲得獎金 $1000', f: (G, p) => { gain(G, p, 1000); pushNews(G, '好人好事', `${p.name} 拾金不昧獲得表揚獎金 $1000！`, '表揚新聞', '#2ecc71'); } },
     { t: '施工改道，後退 3 格', f: (G, p) => { pushNews(G, '道路改道', `${p.name} 遇上道路施工，後退 3 格！`, '命運移動', '#9b59b6'); moveBy(G, p, -3); } },
     { t: '遭遇股市回檔，損失現金的 15%', f: (G, p) => { const amt = Math.round(p.cash * 0.15); pay(G, p, amt, null, '股市回檔'); pushNews(G, '股災快訊', `${p.name} 遇上股市劇烈回檔，蒸發現金 $${amt}！`, '金融警報', '#e74c3c'); } },
-    { t: '衰運纏身！招來「窮神」附身', f: (G, p) => attachGod(G, p, 'qiongshen', '命運附身') },
+    { t: '接到詐騙電話被騙，損失 $800', f: (G, p) => { pay(G, p, 800, null, '詐騙電話'); pushNews(G, '詐騙警訊', `${p.name} 誤信詐騙電話被騙走 $800！`, '命運破財', '#e67e22'); } },
   ];
 
   const idx = name => BOARD.findIndex(t => t.name === name);
@@ -187,13 +187,20 @@
     pushNews(G, G.tiles[ti].level === MAX_LEVEL ? '摩天大樓落成' : '都更喜訊', `${p.name} 獲得地方補助，「${BOARD[ti].name}」免費升為【${LEVEL_NAME[G.tiles[ti].level]}】！`, '都市更新', '#2ecc71');
   }
 
-  function randomBoardTile(G) {
-    const candidates = [];
+  // 隨機挑一格給神明棋子停留：排除起點、監獄、醫院、其他未附身棋子與玩家所在格
+  function randomBoardTile(G, self = null) {
+    const taken = new Set();
+    for (const n of G.npcs || []) if (n !== self && n.attachedTo == null) taken.add(n.pos);
+    for (const q of G.players || []) if (!q.bankrupt) taken.add(q.pos);
+    const candidates = [], fallback = [];
     for (let i = 1; i < N; i++) {
       const t = BOARD[i].type;
-      if (t !== 'jail' && t !== 'gojail' && t !== 'hospital') candidates.push(i);
+      if (t === 'jail' || t === 'gojail' || t === 'hospital') continue;
+      fallback.push(i);
+      if (!taken.has(i)) candidates.push(i);
     }
-    return candidates[Math.floor(rnd(G) * candidates.length)] || 1;
+    const list = candidates.length ? candidates : fallback;
+    return list[Math.floor(rnd(G) * list.length)] || 1;
   }
   function releaseGod(G, p, silent = false) {
     if (!p || !p.god) return;
@@ -201,9 +208,10 @@
     p.god = null;
     const npc = (G.npcs || []).find(n => n.kind === oldKind && n.attachedTo === p.id);
     if (npc) {
+      // 神明離開附身者，從玩家所在處飛往隨機一格停留
       npc.attachedTo = null;
-      npc.from = npc.pos;
-      npc.pos = randomBoardTile(G);
+      npc.from = p.pos;
+      npc.pos = randomBoardTile(G, npc);
       npc.moveN = (npc.moveN || 0) + 1;
     }
     if (!silent) {
@@ -224,7 +232,7 @@
     p.god = { kind, turns: gInfo.turns, fresh: G.cur === p.id && G.phase !== 'roll' };
     G.fx = { k: gInfo.good ? 'god_good' : 'god_bad', p: p.id, god: kind };
     log(G, `${gInfo.icon} ${reason}！${gInfo.name} 附身在 ${p.name} 身上（${gInfo.turns} 回合）`);
-    pushNews(G, gInfo.good ? '神明降臨' : '噩耗警報', `${gInfo.icon} ${p.name} 被「${gInfo.name}」附身（${gInfo.turns} 回合）！`, gInfo.desc, gInfo.color);
+    pushNews(G, gInfo.good ? '神明附身' : '噩耗警報', `${gInfo.icon} ${p.name} 被「${gInfo.name}」附身（${gInfo.turns} 回合）！`, gInfo.desc, gInfo.color);
   }
 
   function goJail(G, p, why = '違規入獄') {
@@ -418,8 +426,9 @@
         log(G, `⛩️ ${p.name} 在 ${t.name} 參拜，驅散了「${badName}」`);
         pushNews(G, '宮廟淨化', `⛩️ ${p.name} 前往「${t.name}」虔誠參拜，成功送走厄運「${badName}」！`, '台灣廟宇', '#f1c40f');
       } else if (!p.god) {
-        const gk = GOOD_GOD_KEYS[Math.floor(rnd(G) * GOOD_GOD_KEYS.length)];
-        attachGod(G, p, gk, `${t.name} 求神顯靈`);
+        // 不再於廟宇隨機降臨神明，改為求得平安紅包
+        gain(G, p, 800);
+        log(G, `⛩️ ${p.name} 在 ${t.name} 參拜，求得平安紅包 $800`);
       } else {
         const card = rnd(G) < 0.5 ? 'summon_god' : 'dismiss_god';
         giveItem(G, p, card, `${t.name} 祈福獲贈`);
@@ -447,7 +456,7 @@
   function newGame(seats, opt = {}) {
     // seats: [{ name, kind: 'local'|'ai'|'remote', owner, char }]
     const maxRounds = opt.maxRounds === 0 ? 0 : Math.max(1, opt.maxRounds || 30);
-    return {
+    const G = {
       v: 2,
       seed: (opt.seed || Date.now()) >>> 0,
       turn: 1,
@@ -492,6 +501,9 @@
         };
       }),
     };
+    // 神明棋子開局各自停在隨機位置（不與其他棋子重疊、不在起點）
+    for (const npc of G.npcs) { npc.pos = npc.from = randomBoardTile(G, npc); }
+    return G;
   }
 
   // ----- 動作（由房主或本機套用）。回傳錯誤字串或 null -----
@@ -716,6 +728,8 @@
     if (!G.npcs) return;
     for (const npc of G.npcs) {
       if (npc.attachedTo != null) continue;
+      // 神明棋子停留原地不巡邏，只有野狗會在路上遊蕩
+      if (npc.kind !== 'dog') continue;
       npc.from = npc.pos;
       const step = npc.kind === 'dog' ? (rnd(G) < 0.35 ? -1 : 2) : (1 + Math.floor(rnd(G) * 2));
       npc.pos = (npc.pos + step + N) % N;
