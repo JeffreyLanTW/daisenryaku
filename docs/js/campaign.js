@@ -604,8 +604,9 @@ function playDialog(lines, heading) {
   return new Promise(resolve => {
     if (!lines || !lines.length) return resolve();
     let k = 0, timer = null;
-    // 觀戰模式（雙方都是電腦）：每句停留一段時間（依字數，約 2–7 秒）後自動繼續；仍可點擊提前
-    const auto = typeof G !== 'undefined' && G && G.players && G.players.length && G.players.every(p => p.ai);
+    // 觀戰（雙方都是電腦）或玩家交給電腦代理指揮時：每句停留一段時間（依字數，約 2–7 秒）後自動繼續；仍可點擊提前
+    const autoOn = () => typeof G !== 'undefined' && G && G.players && G.players.length && (G.autoPilot || G.players.every(p => p.ai));
+    const auto = autoOn();
     const render = () => {
       const [who, text] = lines[k], S = SPEAKERS[who] || SPEAKERS['旁白'];
       const wait = Math.min(7000, 1800 + String(text).length * 90);
