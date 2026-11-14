@@ -3483,7 +3483,7 @@ function frame(now) {
       const inBite = !!(biteAnim && biteAnim.p === k);
       const waitingBiteHold = !!(G.biteFx && G.biteFx.n !== lastBiteN && G.biteFx.p === k && !tk.path.length);
       const waitingAmbHold = !!(G.hospital && G.hospital.n !== lastHospitalN && G.hospital.p === k && !tk.path.length);
-      const waitingTransportHold = !!(G.transportFx && G.transportFx.n !== lastTransportN && G.transportFx.p === k);
+      const waitingTransportHold = !!(G.transportFx && G.transportFx.n !== lastTransportN && G.transportFx.p === k && !tk.path.length);
       if (inBankrupt) {
         // 破產倒塌動畫由上方控制
       } else if (inAmb) {
@@ -4540,7 +4540,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v166</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v167</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
