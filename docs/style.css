@@ -1149,13 +1149,6 @@ html { background: #0b0f14; }
 .brand { display: inline-flex; align-items: baseline; gap: 6px; cursor: pointer; }
 .brand-ver { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #9aa6b4; text-indent: 0; }
 
-/* 主畫面全螢幕 App（無狀態列）：iPadOS 會攔截螢幕最上緣的觸控（下滑叫出控制中心、選單列），
-   命令列往下讓一點，按鈕不貼在最上緣 */
-@media (display-mode: fullscreen) {
-  :root { --fsgap: 14px; }
-  #topbar { padding-top: calc(var(--fsgap) + env(safe-area-inset-top)); height: calc(var(--tbh) + var(--fsgap) + env(safe-area-inset-top)); }
-  #app { padding-top: calc(var(--tbh) + var(--fsgap) + env(safe-area-inset-top)); }
-}
 
 /* 選單按鈕 ☰ 在所有螢幕寬度都顯示（橫向 iPad 原本被隱藏，全螢幕、曲目、主選單等選項就按不到） */
 #topbar #btnMore { display: inline-block !important; }

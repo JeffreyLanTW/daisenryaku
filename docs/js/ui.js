@@ -1192,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v126</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v127</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v127</span><span class="cl-date">2026.11.14</span><p>取消全螢幕主畫面 App 的命令列下移。</p></div>
         <div class="cl-item"><span class="cl-ver">v126</span><span class="cl-date">2026.11.14</span><p>最上列的選單按鈕 ☰ 在橫向 iPad 與桌機也會顯示（原本只有直向才看得到）。</p></div>
         <div class="cl-item"><span class="cl-ver">v125</span><span class="cl-date">2026.11.14</span><p>標題列「大戰略」旁顯示版本號。主畫面全螢幕 App 的命令列往下讓開螢幕最上緣（iPadOS 會攔截最上緣的觸控），按鈕較容易按到。</p></div>
         <div class="cl-item"><span class="cl-ver">v124</span><span class="cl-date">2026.11.14</span><p>【主畫面 App 全螢幕】新增網頁 App 設定檔，顯示模式設為全螢幕（隱藏時間與電池；系統不支援時自動改為一般主畫面 App）。需刪除主畫面圖示後重新「加入主畫面」。</p></div>
@@ -1412,7 +1413,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v126</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v127</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
