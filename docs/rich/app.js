@@ -2638,7 +2638,7 @@ addEventListener('resize', resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
 
 // ---------- 每幀動畫 ----------
-let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0, lastHospitalN = 0, lastBankruptN = 0;
+let lastFx = '', lastCard = 0, lastMoveN = 0, lastNewsId = 0, lastBiteN = 0, lastHospitalN = 0, lastBankruptN = 0;
 function syncMoveStart() {
   if (!G || !G.move || !G.move.path || !G.move.path.length) return;
   if (G.move.n !== lastMoveN) {
@@ -2693,7 +2693,7 @@ function startDogBite(pId, atPos, npcId, now) {
   const dur = 1150 / Math.sqrt(SPEED);
   biteAnim = { t0: now, dur, p: pId, at: atPos, npcId };
   const wp = tilePos(atPos);
-  biteBurst.position.set(wp.x + 1.2, wp.y + 0.55, wp.z + 1.2);
+  biteBurst.position.set(wp.x + 1.2, wp.y + 1.4, wp.z + 1.2);
   biteBurst.visible = true;
   const pl = G && G.players[pId];
   biteBanner.textContent = `🐕 汪！${pl ? pl.name : '玩家'} 被野狗咬傷 -$800 → 🏥 送醫！`;
@@ -2708,17 +2708,17 @@ function stepDogBite(now) {
     const tk = tokens[pId];
     if (tk) tk.g.rotation.z = 0;
     clearBiteFx();
-    // 咬傷特效結束後，若有醫院行程則派出救護車緊急送醫
-    if (tk && tk.path && tk.path.length > 0 && G && G.hospital && G.hospital.p === pId) {
-      const to = tk.path[tk.path.length - 1];
-      tk.path.length = 0;
+    // 咬傷特效結束後，若有醫院行程則派出救護車緊急送醫（涵蓋踩中與野狗巡邏撞上兩種情境）
+    if (G && G.hospital && G.hospital.n !== lastHospitalN && G.hospital.p === pId) {
+      const to = (tk && tk.path && tk.path.length > 0) ? tk.path[tk.path.length - 1] : G.hospital.to;
+      if (tk && tk.path) tk.path.length = 0;
       lastHospitalN = G.hospital.n;
       startAmbulance(pId, at, to, now);
     }
     return;
   }
   if (biteBurst) {
-    const s = 0.75 + Math.sin(bp * Math.PI * 3) * 0.45 + bp * 0.45;
+    const s = 1.65 + Math.sin(bp * Math.PI * 3) * 0.55 + bp * 0.55;
     biteBurst.scale.setScalar(s);
     biteBurst.rotation.y = bp * Math.PI * 4;
   }
@@ -2755,7 +2755,7 @@ function ensureAmbFx() {
       ambGroup.add(w);
     }
     ambGroup.traverse(o => { if (o.isMesh) o.castShadow = true; });
-    ambGroup.scale.setScalar(1.35);
+    ambGroup.scale.setScalar(2.85);
     ambGroup.visible = false;
     scene.add(ambGroup);
   }
@@ -2877,7 +2877,16 @@ function frame(now) {
   for (let k = 0; k < animProps.length; k++) animProps[k](now);
   if (G) {
     syncMoveStart();
-    if (G.hospital && G.hospital.n !== lastHospitalN && !diceAnim && !biteAnim && !ambAnim && !tokens.some(t => t && t.path && t.path.length)) {
+    if (G.biteFx && G.biteFx.n !== lastBiteN) {
+      const bf = G.biteFx;
+      const btk = tokens[bf.p];
+      const walkApproach = !!(G.move && G.move.bite && G.move.p === bf.p && btk && btk.moveN === G.move.n && btk.path.includes(bf.at));
+      if (!walkApproach && !diceAnim && !biteAnim && !ambAnim && !bankruptAnim && !tokens.some(t => t && t.path && t.path.length)) {
+        lastBiteN = bf.n;
+        startDogBite(bf.p, bf.at, bf.npcId, now);
+      }
+    }
+    if (G.hospital && G.hospital.n !== lastHospitalN && !(G.biteFx && G.biteFx.n !== lastBiteN) && !diceAnim && !biteAnim && !ambAnim && !tokens.some(t => t && t.path && t.path.length)) {
       lastHospitalN = G.hospital.n;
       startAmbulance(G.hospital.p, G.hospital.from, G.hospital.to, now);
     }
@@ -2931,20 +2940,29 @@ function frame(now) {
         tk.godVis.visible = false;
       }
 
+      const inBite = !!(biteAnim && biteAnim.p === k);
+      const waitingBiteHold = !!(G.biteFx && G.biteFx.n !== lastBiteN && G.biteFx.p === k && !tk.path.length);
+      const waitingAmbHold = !!(G.hospital && G.hospital.n !== lastHospitalN && G.hospital.p === k && !tk.path.length);
       if (inBankrupt) {
         // 破產倒塌動畫由上方控制
       } else if (inAmb) {
         tk.pos = ambAnim.from;
         tk.g.position.copy(ambGroup.position);
+      } else if (inBite) {
+        const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
+        tk.g.position.copy(tokenWorld(biteAnim.at, k));
+        tk.g.position.y += Math.abs(Math.sin(bp * Math.PI * 4)) * 2.8;
+        tk.g.rotation.z = Math.sin(bp * 36) * 0.28;
+        tk.leftArm.rotation.x = -1.2; tk.rightArm.rotation.x = -1.2;
+        tk.leftLeg.rotation.x = 0.25; tk.rightLeg.rotation.x = -0.25;
+      } else if (waitingBiteHold || waitingAmbHold) {
+        const holdAt = waitingBiteHold ? G.biteFx.at : G.hospital.from;
+        tk.pos = holdAt;
+        tk.g.position.copy(tokenWorld(holdAt, k));
+        tk.leftArm.rotation.x = 0; tk.rightArm.rotation.x = 0;
+        tk.leftLeg.rotation.x = 0; tk.rightLeg.rotation.x = 0;
       } else if (tk.path.length) {
-        if (biteAnim && biteAnim.p === k) {
-          const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
-          tk.g.position.copy(tokenWorld(biteAnim.at, k));
-          tk.g.position.y += Math.abs(Math.sin(bp * Math.PI * 4)) * 2.8;
-          tk.g.rotation.z = Math.sin(bp * 36) * 0.28;
-          tk.leftArm.rotation.x = -1.2; tk.rightArm.rotation.x = -1.2;
-          tk.leftLeg.rotation.x = 0.25; tk.rightLeg.rotation.x = -0.25;
-        } else if (!diceAnim && !biteAnim) {
+        if (!diceAnim && !biteAnim) {
           const legDur = stepDurMs(tk.from, tk.path[0]);
           const hopH = isIslandLeg(tk.from, tk.path[0]) ? 8.5 : 4.6;
           tk.t += dt / legDur;
@@ -2959,6 +2977,7 @@ function frame(now) {
             tk.from = tk.path.shift(); tk.pos = tk.from; tk.t = 0; snd('step');
             if (G.move && G.move.bite && G.move.p === k && G.move.n === tk.moveN && tk.from === G.move.bite.at && tk.biteDoneN !== G.move.n) {
               tk.biteDoneN = G.move.n;
+              if (G.biteFx && G.biteFx.p === k) lastBiteN = G.biteFx.n;
               startDogBite(k, G.move.bite.at, G.move.bite.npcId, now);
             }
           }
@@ -3011,7 +3030,7 @@ function frame(now) {
         nt.g.visible = true;
         nt.g.scale.setScalar(1.25);
         const biteMoveTk = npc.kind === 'dog' && G.move && G.move.bite && G.move.bite.npcId === npc.id ? tokens[G.move.p] : null;
-        const waitingBite = !!(biteMoveTk && biteMoveTk.moveN === G.move.n && (biteMoveTk.path.includes(G.move.bite.at) || (biteAnim && biteAnim.npcId === npc.id)));
+        const waitingBite = !!((biteMoveTk && biteMoveTk.moveN === G.move.n && (biteMoveTk.path.includes(G.move.bite.at) || (biteAnim && biteAnim.npcId === npc.id))) || (G.biteFx && G.biteFx.n !== lastBiteN && G.biteFx.npcId === npc.id));
         if (biteAnim && biteAnim.npcId === npc.id) {
           const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
           const dPos = npcWorld(biteAnim.at), pPos = tokenWorld(biteAnim.at, biteAnim.p);
@@ -3042,14 +3061,23 @@ function frame(now) {
       }
     }
 
-    const ct = tokens[G.cur];
-    if (ct) {
-      if (G.turn !== lastFocusTurn) {
-        lastFocusTurn = G.turn;
-        if (camS.follow) camS.hasGoal = true;
+    const activeFxPos = (biteAnim && biteBurst && biteBurst.visible) ? biteBurst.position
+      : (ambAnim && ambGroup && ambGroup.visible) ? ambGroup.position
+      : (bankruptAnim && bankruptGroup && bankruptGroup.visible) ? bankruptGroup.position
+      : null;
+    if (activeFxPos) {
+      if (camS.follow) camS.hasGoal = true;
+      if (camS.hasGoal) camS.goal.copy(activeFxPos).setY(0);
+    } else {
+      const ct = tokens[G.cur];
+      if (ct) {
+        if (G.turn !== lastFocusTurn) {
+          lastFocusTurn = G.turn;
+          if (camS.follow) camS.hasGoal = true;
+        }
+        if (ct.path.length && camS.follow) camS.hasGoal = true;
+        if (camS.hasGoal) camS.goal.copy(ct.g.position).setY(0);
       }
-      if (ct.path.length && camS.follow) camS.hasGoal = true;
-      if (camS.hasGoal) camS.goal.copy(ct.g.position).setY(0);
     }
   } else if (camS.hasGoal) {
     camS.goal.set(-4, 0, 4);
@@ -3068,6 +3096,7 @@ const isMoving = () => {
   if (diceAnim || biteAnim || ambAnim || bankruptAnim) return true;
   if (tokens.some(t => t && t.path && t.path.length)) return true;
   if (G && G.move && G.move.path && G.move.path.length && (!tokens[G.move.p] || tokens[G.move.p].moveN !== G.move.n)) return true;
+  if (G && G.biteFx && G.biteFx.n !== lastBiteN) return true;
   if (G && G.hospital && G.hospital.n !== lastHospitalN) return true;
   if (G && G.bankruptFx && G.bankruptFx.n !== lastBankruptN) return true;
   if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
@@ -3780,7 +3809,7 @@ function startGame(seats, rounds) {
   tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
   buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-  lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+  lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
   resetCamGoal(); syncDiceVisible(1);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
@@ -3967,7 +3996,7 @@ function openJoin() {
               tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
               buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
-              lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+              lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
               resetCamGoal(); syncDiceVisible();
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b, G.dice.count);

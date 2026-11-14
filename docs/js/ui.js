@@ -1288,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v151</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v152</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1320,6 +1320,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v152</span><span class="cl-date">2026.11.15</span><p>【環島富豪 修復野狗咬傷與救護車送醫動畫】補齊回合末野狗巡邏主動撞上玩家時的咬傷事件序列（<code>G.biteFx</code>），確保兩種相遇都會先播放放大更醒目的紅橘咬傷爆裂動畫與被咬跳腳動作，再銜接 2.85 倍大 3D 救護車送醫；同步讓攝影機在咬傷、送醫與破產特效期間鎖定事件現場，不再因換手而切走畫面。</p></div>
         <div class="cl-item"><span class="cl-ver">v151</span><span class="cl-date">2026.11.15</span><p>【環島富豪 3D 救護車送醫・破產特效・活動棋子 2 倍大・整體放慢】整體擲骰與移動節奏再放慢約 45%；目前行動中的玩家棋子放大為 2 倍大（2.75x）更醒目；被狗咬或抽中送醫卡時派出閃爍紅藍警燈＋雙音警笛的 3D 救護車緊急送醫；玩家破產時新增 3D 棋子倒塌爆裂、金幣碎片飛散與警示橫幅特效。</p></div>
         <div class="cl-item"><span class="cl-ver">v150</span><span class="cl-date">2026.11.15</span><p>【環島富豪 3D 被狗咬特效・買地延遲停頓・外島慢速渡海】路過野狗須等玩家 3D 棋子經過該格才觸發 3D 紅色衝擊波、野狗撲咬與警示音效，咬完後才送醫並讓野狗跑開；移動到澎湖／金門／綠島／蘭嶼等外島航段改依實際距離放慢並拉高弧線；買地與各類彈窗於棋子完全停定後再多停頓約半秒才開啟，節奏更從容。</p></div>
         <div class="cl-item"><span class="cl-ver">v149</span><span class="cl-date">2026.11.15</span><p>【環島富豪 3D 神明經過後才附身】路過地圖上的神明棋子時，須等玩家 3D 棋子實際走到並經過該神明所在格後，才會觸發神明跟隨、腳底光環與玩家卡徽章顯示，不再於起步前提前附身。</p></div>
@@ -1534,7 +1535,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v151</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v152</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>

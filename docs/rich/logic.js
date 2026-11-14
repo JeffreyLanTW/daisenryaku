@@ -265,6 +265,8 @@
       npc.pos = (npc.pos + 3) % N;
       npc.moveN = (npc.moveN || 0) + 1;
       if (!p.bankrupt) goHospital(G, p, '遭路邊野狗咬傷，送醫住院 1 回合');
+      G.fxSeq = (G.fxSeq || 0) + 1;
+      G.biteFx = { p: p.id, at: biteAt, npcId: npc.id, n: G.fxSeq };
       G.fx = { k: 'dog_bite', p: p.id, at: biteAt };
       return true;
     }
