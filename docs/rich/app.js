@@ -2037,6 +2037,92 @@ function makeLabelSprite(t, idx) {
 // ---------- 精細 5 階地產建築（已購空地 → 一樓平房 → 二樓透天 → 高層大樓 → 超級摩天大樓）----------
 const buildG = new THREE.Group();
 scene.add(buildG);
+const branchGroup = new THREE.Group();
+scene.add(branchGroup);
+const branchHits = [], branchAnimNodes = [];
+let branchKey = '';
+function syncBranchMarkers() {
+  const show = Boolean(G && G.ask && G.ask.k === 'branch' && mine(G.cur) && !isMoving());
+  const key = show ? `${G.turn}:${G.ask.i}:${G.ask.options.map(o => o.to).join(',')}` : '';
+  const banner = $('#branchBanner');
+  if (banner) {
+    if (show) {
+      const jt = R.BOARD[G.ask.i];
+      const rem = G.ask.rem != null ? `（還剩 <b>${G.ask.rem}</b> 步）` : '';
+      banner.innerHTML = `<div class="bb-t">🔀 來到「${jt.name}」交會口${rem}</div>
+        <div class="bb-s">請直接點擊地圖上發光的方向箭頭或目標格點選擇路線：${G.ask.options.map(o => `<b>${o.route ? `${o.route}→` : ''}${o.name}</b>`).join(' ／ ')}</div>`;
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+  if (key === branchKey) return;
+  branchKey = key;
+  branchGroup.clear();
+  branchHits.length = 0;
+  branchAnimNodes.length = 0;
+  if (!show) return;
+  const fromPos = tilePos(G.ask.i);
+  const cols = ['#38bdf8', '#facc15', '#34d399'];
+  G.ask.options.forEach((opt, idx) => {
+    const col = cols[idx % cols.length];
+    const p = tilePos(opt.to);
+    const ts = tileScale(R.BOARD[opt.to], opt.to);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(TILE_R * ts + 0.55, TILE_R * ts + 1.65, 24),
+      new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: 0.92 })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(p.x, p.y + 0.45, p.z);
+    branchGroup.add(ring);
+
+    const arrowGrp = new THREE.Group();
+    arrowGrp.position.set(p.x, p.y + 7.2, p.z);
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(1.75, 3.2, 8),
+      new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.75, roughness: 0.25 })
+    );
+    cone.rotation.x = Math.PI;
+    const shaft = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.62, 0.62, 2.2, 8),
+      new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: col, emissiveIntensity: 0.45 })
+    );
+    shaft.position.y = 2.1;
+    arrowGrp.add(cone, shaft);
+    branchGroup.add(arrowGrp);
+
+    const dir = new THREE.Vector3(p.x - fromPos.x, 0, p.z - fromPos.z);
+    const len = dir.length();
+    if (len > 1) {
+      const beam = new THREE.Mesh(
+        new THREE.BoxGeometry(0.95, 0.25, Math.max(2, len - TILE_R * 1.4)),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.7 })
+      );
+      beam.position.set((fromPos.x + p.x) * 0.5, Math.max(fromPos.y, p.y) + 0.55, (fromPos.z + p.z) * 0.5);
+      beam.rotation.y = Math.atan2(dir.x, dir.z);
+      branchGroup.add(beam);
+    }
+
+    const hit = new THREE.Mesh(
+      new THREE.CylinderGeometry(TILE_R * ts + 1.8, TILE_R * ts + 1.8, 13, 12),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    hit.position.set(p.x, p.y + 5.5, p.z);
+    hit.userData.branchTo = opt.to;
+    branchGroup.add(hit);
+    branchHits.push(hit);
+    branchAnimNodes.push({ ring, arrowGrp, baseY: p.y + 7.2, idx });
+  });
+}
+function stepBranchMarkers(now) {
+  if (!branchAnimNodes.length) return;
+  for (const n of branchAnimNodes) {
+    const s = 1 + Math.sin(now * 0.006 + n.idx) * 0.14;
+    n.ring.scale.setScalar(s);
+    n.arrowGrp.position.y = n.baseY + Math.sin(now * 0.0055 + n.idx) * 1.25;
+    n.arrowGrp.rotation.y = now * 0.0022;
+  }
+}
 let buildKey = '', prevTileLevels = [], activeHouses = [], buildingRise = new Map();
 
 function houseMesh(level, color) {
@@ -2475,7 +2561,7 @@ const camS = {
   target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4),
   hasGoal: true, follow: true,
 };
-let lastFocusTurn = -1, wasFollowingFx = false;
+let lastFocusTurn = -1, wasFollowingFx = false, manualFocusPos = null;
 const camCtl = {
   rotate(d) { camS.yawGoal += d; },
   rotateBy(d) { camS.yaw += d; camS.yawGoal = camS.yaw; },
@@ -2487,18 +2573,27 @@ const camCtl = {
   zoom(factor) { camCtl.setDist(camS.dist * factor); },
 };
 function focusCurPlayer() {
+  manualFocusPos = null;
   camS.hasGoal = true;
   const ct = G && tokens[G.cur];
   if (ct) camS.goal.copy(ct.g.position).setY(0);
   else camS.goal.set(-4, 0, 4);
 }
+function focusTileOnMap(i) {
+  const p = tilePos(i);
+  manualFocusPos = new THREE.Vector3(p.x, 0, p.z);
+  camS.hasGoal = true;
+  camS.goal.copy(manualFocusPos);
+}
 function resetCamGoal() {
   lastFocusTurn = -1;
+  manualFocusPos = null;
   camS.target.set(-4, 0, 4);
   camS.goal.set(-4, 0, 4);
   camS.hasGoal = camS.follow;
 }
 function panBoard(dx, dy) {
+  manualFocusPos = null;
   camS.hasGoal = false;
   const c = Math.cos(camS.yaw), sn = Math.sin(camS.yaw), k = 1 / Math.max(0.25, Math.sin(camS.pitch));
   const vh = Math.max(200, canvas.clientHeight || innerHeight || 720);
@@ -2706,16 +2801,10 @@ addEventListener('resize', resize);
   let downAt = null;
   const tip = document.createElement('div');
   tip.id = 'tileTip'; tip.className = 'hidden'; document.querySelector('main').appendChild(tip);
-  canvas.addEventListener('pointerdown', e => { downAt = e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
-  canvas.addEventListener('pointerup', e => {
-    if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6 || performance.now() - downAt.t > 450) { downAt = null; return; }
-    downAt = null;
-    const r = canvas.getBoundingClientRect();
-    v2.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-    ray.setFromCamera(v2, camera);
-    const hit = ray.intersectObjects(tileBases, false)[0];
-    if (!hit) { tip.classList.add('hidden'); return; }
-    const i = hit.object.userData.i, t = R.BOARD[i], st = G && G.tiles[i];
+  const branchBanner = document.createElement('div');
+  branchBanner.id = 'branchBanner'; branchBanner.className = 'hidden'; document.querySelector('main').appendChild(branchBanner);
+  const showTileTip = (i, px, py, rWidth) => {
+    const t = R.BOARD[i], st = G && G.tiles[i];
     const gc = t.group ? R.GROUPS[t.group].color : (TYPE_STYLE[t.type]?.[1] || '#94a3b8');
     const kind = t.group ? R.GROUPS[t.group].name : (TYPE_STYLE[t.type]?.[2] || '');
     let info = TYPE_STYLE[t.type]?.[3] || '';
@@ -2725,10 +2814,39 @@ addEventListener('resize', resize);
       else info += '・無人擁有';
     }
     tip.innerHTML = `<b class="nm" style="border-color:${gc}">${t.name}</b><small>${kind}</small><div>${info}</div>`;
-    tip.style.left = Math.min(r.width - 230, Math.max(8, e.clientX - r.left + 12)) + 'px';
-    tip.style.top = Math.max(8, e.clientY - r.top - 70) + 'px';
+    tip.style.left = Math.min((rWidth || canvas.clientWidth) - 230, Math.max(8, px)) + 'px';
+    tip.style.top = Math.max(8, py) + 'px';
     tip.classList.remove('hidden');
     clearTimeout(tip._t); tip._t = setTimeout(() => tip.classList.add('hidden'), 4200);
+  };
+  window.__showTileTipCenter = i => {
+    const r = canvas.getBoundingClientRect();
+    showTileTip(i, r.width * 0.5 - 95, r.height * 0.5 - 95, r.width);
+  };
+  canvas.addEventListener('pointerdown', e => { downAt = e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
+  canvas.addEventListener('pointerup', e => {
+    if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6 || performance.now() - downAt.t > 450) { downAt = null; return; }
+    downAt = null;
+    const r = canvas.getBoundingClientRect();
+    v2.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(v2, camera);
+    if (G && G.ask && G.ask.k === 'branch' && mine(G.cur)) {
+      const bHit = ray.intersectObjects(branchHits, false)[0];
+      if (bHit && bHit.object.userData.branchTo != null) {
+        tip.classList.add('hidden');
+        send({ type: 'answer', to: bHit.object.userData.branchTo });
+        return;
+      }
+    }
+    const hit = ray.intersectObjects(tileBases, false)[0];
+    if (!hit) { tip.classList.add('hidden'); return; }
+    const i = hit.object.userData.i;
+    if (G && G.ask && G.ask.k === 'branch' && mine(G.cur) && G.ask.options.some(o => o.to === i)) {
+      tip.classList.add('hidden');
+      send({ type: 'answer', to: i });
+      return;
+    }
+    showTileTip(i, e.clientX - r.left + 12, e.clientY - r.top - 70, r.width);
   });
 })();
 if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
@@ -3266,6 +3384,7 @@ function frame(now) {
       : (godAnim && godFxGroup && godFxGroup.visible) ? godFxGroup.position
       : movingDogPos;
     if (activeFxPos) {
+      manualFocusPos = null;
       wasFollowingFx = true;
       if (camS.follow) camS.hasGoal = true;
       if (camS.hasGoal) camS.goal.copy(activeFxPos).setY(0);
@@ -3278,15 +3397,24 @@ function frame(now) {
       if (ct) {
         if (G.turn !== lastFocusTurn) {
           lastFocusTurn = G.turn;
+          manualFocusPos = null;
           if (camS.follow) camS.hasGoal = true;
         }
-        if (ct.path.length && camS.follow) camS.hasGoal = true;
-        if (camS.hasGoal) camS.goal.copy(ct.g.position).setY(0);
+        if (ct.path.length) {
+          manualFocusPos = null;
+          if (camS.follow) camS.hasGoal = true;
+        }
+        if (manualFocusPos) {
+          if (camS.hasGoal) camS.goal.copy(manualFocusPos);
+        } else if (camS.hasGoal) {
+          camS.goal.copy(ct.g.position).setY(0);
+        }
       }
     }
   } else if (camS.hasGoal) {
     camS.goal.set(-4, 0, 4);
   }
+  stepBranchMarkers(now);
   stepDice(now);
   stepDogBite(now);
   stepAmbulance(now);
@@ -3585,18 +3713,125 @@ function visibleGod(p) {
   if (gNt && gNt.attachedTo !== p.id) return null;
   return p.god;
 }
+function itemSvg(k) {
+  const icons = {
+    add_die: `<svg viewBox="0 0 36 36"><rect x="3" y="8" width="14" height="14" rx="3" fill="#fde047" stroke="#b45309" stroke-width="1.6"/><circle cx="7.5" cy="12.5" r="1.5" fill="#7c2d12"/><circle cx="12.5" cy="17.5" r="1.5" fill="#7c2d12"/><rect x="19" y="14" width="14" height="14" rx="3" fill="#fef08a" stroke="#d97706" stroke-width="1.6"/><circle cx="23" cy="18" r="1.4" fill="#7c2d12"/><circle cx="26" cy="21" r="1.4" fill="#7c2d12"/><circle cx="29" cy="24" r="1.4" fill="#7c2d12"/></svg>`,
+    summon_god: `<svg viewBox="0 0 36 36"><circle cx="18" cy="11" r="7" fill="none" stroke="#fde047" stroke-width="2.2"/><path d="M10 29 C10 21 26 21 26 29 Z" fill="#f59e0b" stroke="#fef3c7" stroke-width="1.4"/><circle cx="18" cy="16" r="4.2" fill="#fed7aa"/><path d="M18 3 L19.5 7 L16.5 7 Z" fill="#fef08a"/></svg>`,
+    dismiss_god: `<svg viewBox="0 0 36 36"><path d="M6 15 Q16 9 25 14 T31 12" fill="none" stroke="#38bdf8" stroke-width="2.6" stroke-linecap="round"/><path d="M4 22 Q15 17 24 22 T32 20" fill="none" stroke="#bae6fd" stroke-width="2.4" stroke-linecap="round"/><path d="M10 28 Q18 24 26 28" fill="none" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/><polygon points="27,9 33,12 28,16" fill="#38bdf8"/></svg>`,
+    remote: `<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="#ef4444" stroke="#fee2e2" stroke-width="1.6"/><circle cx="18" cy="18" r="8.5" fill="#f8fafc"/><circle cx="18" cy="18" r="4.5" fill="#dc2626"/><circle cx="18" cy="18" r="1.8" fill="#fef08a"/></svg>`,
+    block: `<svg viewBox="0 0 36 36"><polygon points="18,4 28,28 8,28" fill="#f97316" stroke="#ffedd5" stroke-width="1.5"/><rect x="11" y="15" width="14" height="4" fill="#ffffff"/><rect x="5" y="28" width="26" height="4" rx="1.5" fill="#9a3412"/></svg>`,
+    free: `<svg viewBox="0 0 36 36"><path d="M18 4 L30 9 V18 C30 25.5 24 30.5 18 33 C12 30.5 6 25.5 6 18 V9 Z" fill="#2563eb" stroke="#93c5fd" stroke-width="2"/><path d="M13 18 L16.5 22 L24 13.5" fill="none" stroke="#fef08a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    reverse: `<svg viewBox="0 0 36 36"><path d="M27 14 A10 10 0 1 0 26 24" fill="none" stroke="#34d399" stroke-width="3.2" stroke-linecap="round"/><polygon points="22,16 30,17 28,9" fill="#6ee7b7"/></svg>`,
+    demolish: `<svg viewBox="0 0 36 36"><circle cx="16" cy="21" r="10" fill="#334155" stroke="#94a3b8" stroke-width="1.6"/><path d="M22 13 L26 8" stroke="#d97706" stroke-width="2.4" stroke-linecap="round"/><polygon points="27,4 29,8 33,7 30,10 32,14 28,11 24,13 26,9" fill="#fde047" stroke="#ef4444" stroke-width="1"/></svg>`,
+    seize: `<svg viewBox="0 0 36 36"><rect x="7" y="5" width="20" height="26" rx="2.5" fill="#fef3c7" stroke="#b45309" stroke-width="1.8"/><line x1="11" y1="12" x2="23" y2="12" stroke="#92400e" stroke-width="2"/><line x1="11" y1="17" x2="23" y2="17" stroke="#92400e" stroke-width="2"/><circle cx="24" cy="25" r="5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.2"/></svg>`,
+  };
+  return icons[k] || `<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="12" fill="#64748b"/></svg>`;
+}
+
+function togglePlayerKind(pid) {
+  const tp = G && G.players[pid];
+  if (!tp || tp.bankrupt || tp.kind === 'remote') return;
+  if (NET.role === 'client') return toast('線上房間由房主管理 AI 切換');
+  const nextKind = tp.kind === 'ai' ? 'local' : 'ai';
+  send({ type: 'setKind', pid, kind: nextKind });
+  if (nextKind === 'ai' && G.cur === pid && G.ask && !$('#modal').classList.contains('hidden')) {
+    modalDoneCb = null;
+    $('#modal').classList.add('hidden');
+  }
+  scheduleAuto();
+}
+
+function openPlayerDetail(pid) {
+  const p = G && G.players[pid];
+  if (!p) return;
+  const lands = R.lands(G, p);
+  const worth = p.bankrupt ? 0 : R.netWorth(G, p);
+  const vg = visibleGod(p);
+  const god = vg ? R.GODS[vg.kind] : null;
+  const canToggle = !p.bankrupt && p.kind !== 'remote' && NET.role !== 'client';
+  openModal(`<h2 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${p.color}"></span>
+      ${p.name}
+      <small style="font-size:12px;color:var(--muted)">${p.bankrupt ? '💀 已破產' : p.kind === 'ai' ? '🤖 電腦 AI' : '👤 手動操作'}</small>
+      ${canToggle ? `<button id="pdToggleKind" style="margin-left:auto;font-size:12px;padding:4px 10px">${p.kind === 'ai' ? '切換為手動' : '切換為 AI'}</button>` : ''}
+    </h2>
+    <div class="sub">
+      ${god ? `<span class="god-badge ${god.good ? 'good' : 'bad'}">${god.icon} ${god.name}（剩 ${vg.turns} 回合）</span> ` : '目前無神明附身・'}
+      ${p.jail ? '🔒 監獄中・' : ''}${p.skip ? '🏥 住院中・' : ''}${p.reverse ? '🔄 反向前進中・' : ''}${p.remote ? `🎯 遙控骰子 ${p.remote} 點・` : ''}
+      所在位置：<b>${R.BOARD[p.pos]?.name || ''}</b>
+    </div>
+    <div class="pd-summary">
+      <div class="pd-stat"><small>現金</small><b>$${p.cash.toLocaleString()}</b></div>
+      <div class="pd-stat"><small>總資產</small><b>$${worth.toLocaleString()}</b></div>
+      <div class="pd-stat"><small>地產數</small><b>${lands.length} 處</b></div>
+      <div class="pd-stat"><small>骰子 / 道具</small><b>🎲${p.dice || 1}・🎒${p.items.length}/${R.MAX_ITEMS}</b></div>
+    </div>
+    <div class="pd-section">
+      <h4>🎒 持有道具（${p.items.length}）</h4>
+      ${p.items.length ? `<div class="pd-items">${p.items.map(k => {
+        const it = R.ITEMS[k];
+        return `<div class="pd-item"><span class="item-ico">${itemSvg(k)}</span><div class="item-meta"><b>${it.name}</b><small>${it.desc}</small></div></div>`;
+      }).join('')}</div>` : '<div class="sub" style="margin:4px 0">目前沒有持有任何道具</div>'}
+    </div>
+    <div class="pd-section">
+      <h4>🏙️ 名下地產（點擊地名跳轉地圖焦點）</h4>
+      ${lands.length ? `<div class="pd-lands">${lands.map(i => {
+        const t = R.BOARD[i], st = G.tiles[i];
+        const gc = t.group ? R.GROUPS[t.group].color : '#38bdf8';
+        const lvName = R.LEVEL_NAME[st.level || 0] || '空地';
+        return `<button class="pd-land-row" data-jump="${i}">
+          <span class="pd-dot" style="background:${gc}"></span>
+          <span class="pd-land-name">${t.name}</span>
+          <span class="pd-land-meta">${lvName}・過路費 $${R.rentOf(G, i).toLocaleString()}</span>
+        </button>`;
+      }).join('')}</div>` : '<div class="sub" style="margin:4px 0">目前名下沒有任何地產</div>'}
+    </div>
+    <div class="row">
+      ${!p.bankrupt && p.id === G.cur && mine(p.id) && (G.phase === 'roll' || G.phase === 'done') && p.items.length ? '<button class="primary left" id="pdUseItems">🎒 使用道具</button>' : ''}
+      <button class="close">關閉</button>
+    </div>`, box => {
+    box.querySelector('.close').onclick = closeModal;
+    const tk = box.querySelector('#pdToggleKind');
+    if (tk) tk.onclick = () => { closeModal(); togglePlayerKind(pid); openPlayerDetail(pid); };
+    const uiBtn = box.querySelector('#pdUseItems');
+    if (uiBtn) uiBtn.onclick = () => { closeModal(); openItems(); };
+    box.querySelectorAll('[data-jump]').forEach(btn => {
+      btn.onclick = () => {
+        const idx = +btn.dataset.jump;
+        closeModal();
+        focusTileOnMap(idx);
+        if (window.__showTileTipCenter) setTimeout(() => window.__showTileTipCenter(idx), 240);
+      };
+    });
+  });
+}
+
 function renderPlayersAndTurn() {
   if (!G) return;
   $('#players').innerHTML = G.players.map((p, k) => {
     const vg = visibleGod(p);
     const god = vg ? R.GODS[vg.kind] : null;
     const godBadge = god ? `<span class="god-badge ${god.good ? 'good' : 'bad'}" title="${god.desc}">${god.icon}${god.name}(${vg.turns})</span>` : '';
-    return `<div class="pcard ${k === G.cur && G.phase !== 'over' ? 'cur' : ''} ${p.bankrupt ? 'out' : ''}" style="--c:${p.color}">
+    const canToggle = !p.bankrupt && p.kind !== 'remote' && NET.role !== 'client';
+    const kindPill = canToggle
+      ? `<button class="kind-btn ${p.kind === 'ai' ? 'ai' : 'manual'}" data-kind-pid="${k}" title="點擊切換 手動 / AI">${p.kind === 'ai' ? '🤖 AI' : '👤 手動'}</button>`
+      : (p.kind === 'ai' ? ' <small>電腦</small>' : mine(k) && NET.role !== 'local' ? ' <small>你</small>' : '');
+    const itemsStrip = p.items.length
+      ? `<div class="p-items">${p.items.map(it => `<span class="p-item-chip" title="${R.ITEMS[it]?.name || it}">${itemSvg(it)}</span>`).join('')}</div>`
+      : '';
+    return `<div class="pcard clickable ${k === G.cur && G.phase !== 'over' ? 'cur' : ''} ${p.bankrupt ? 'out' : ''}" data-pid="${k}" style="--c:${p.color}" title="點擊查看詳細資料、道具與名下地產">
       <div class="av">${p.name[0]}</div>
-      <b>${p.name}${p.kind === 'ai' ? ' <small>電腦</small>' : mine(k) && NET.role !== 'local' ? ' <small>你</small>' : ''}${p.jail ? ' <small>🔒監獄</small>' : ''}${p.skip ? ' <small>🏥住院</small>' : ''}${godBadge}</b>
+      <b>${p.name}${kindPill}${p.jail ? ' <small>🔒監獄</small>' : ''}${p.skip ? ' <small>🏥住院</small>' : ''}${godBadge}</b>
       <div><span class="cash">$${p.cash.toLocaleString()}</span> <small>🎲${p.dice || 1}・地 ${R.lands(G, p).length}・道具 ${p.items.length}</small></div>
+      ${itemsStrip}
     </div>`;
   }).join('');
+  $('#players').querySelectorAll('.pcard[data-pid]').forEach(card => {
+    card.onclick = () => openPlayerDetail(+card.dataset.pid);
+  });
+  $('#players').querySelectorAll('[data-kind-pid]').forEach(btn => {
+    btn.onclick = e => { e.stopPropagation(); togglePlayerKind(+btn.dataset.kindPid); };
+  });
   const p = R.cur(G), my = mine(p.id) && G.phase !== 'over', pGod = visibleGod(p);
   $('#turnName').innerHTML = G.phase === 'over'
     ? `🏆 <b>${G.players[G.winner].name}</b> 獲勝`
@@ -3614,7 +3849,8 @@ function renderUI() {
   const p = R.cur(G), my = mine(p.id) && G.phase !== 'over';
   renderUIButtons();
   const syncLog = () => { if (G) $('#logBox').innerHTML = G.log.slice().reverse().map(s => `<div>${s}</div>`).join(''); };
-  if (isMoving()) whenWalkDone(syncLog); else syncLog();
+  if (isMoving()) whenWalkDone(() => { syncLog(); syncBranchMarkers(); });
+  else { syncLog(); syncBranchMarkers(); }
   renderNews();
 
   // 機會／命運卡片快閃（僅在非自己抽卡確認時排隊提示，避免與抽卡視窗重疊）
@@ -3625,9 +3861,9 @@ function renderUI() {
       enqueueUi(done => showCard(c, done));
     }
   }
-  // 購買／同位置蓋樓升級／抽卡／道具屋詢問（一律等移動與前序彈窗結束後再依序開啟）
+  // 購買／同位置蓋樓升級／抽卡／道具屋詢問（一律等移動與前序彈窗結束後再依序開啟；路口選向改由地圖直接點擊）
   const askKey = G.ask ? `${G.turn}:${G.ask.k}:${G.ask.i}:${G.ask.bought ? G.ask.bought.length : 0}` : '';
-  if (G.ask && my && shownAsk !== askKey) {
+  if (G.ask && G.ask.k !== 'branch' && my && shownAsk !== askKey) {
     shownAsk = askKey;
     const q = G.ask;
     if (q.k === 'shop' && q.bought && q.bought.length > 0) setTimeout(() => askPrompt(q), 0);
@@ -3702,19 +3938,7 @@ function showCard(c, done) {
 function askPrompt(q) {
   if (!q || !G.ask || G.ask.k !== q.k || G.ask.i !== q.i) return;
   const t = R.BOARD[q.i], s = G.tiles[q.i], p = R.cur(G);
-  if (q.k === 'branch') {
-    const rem = q.rem != null ? `（還剩 <b>${q.rem}</b> 步）` : '';
-    openModal(`<h2>🔀 交叉路口・選擇前進方向</h2>
-      <div class="sub">${p.name} 來到「<b>${t.name}</b>」交會口${rem}，請選擇要前往的路線：</div>
-      <div class="row" style="flex-wrap:wrap;gap:10px;justify-content:center">
-        ${(q.options || []).map((o, idx) => `<button class="${idx === 0 ? 'primary' : 'sky'}" data-to="${o.to}">➡️ ${o.route ? `${o.route}：` : ''}${o.name}</button>`).join('')}
-      </div>`, box => {
-      box.querySelectorAll('[data-to]').forEach(btn => {
-        btn.onclick = () => { closeModal(); send({ type: 'answer', to: +btn.dataset.to }); };
-      });
-    });
-    return;
-  }
+  if (q.k === 'branch') return;
   if (q.k === 'card') {
     const isChance = q.kind === 'chance';
     openModal(`<h2>${isChance ? '🎴 機會卡' : '🔮 命運卡'}</h2>
@@ -3750,9 +3974,12 @@ function askPrompt(q) {
         const isDie = k === 'add_die';
         const hasTwo = isDie && (p.dice || 1) >= 2;
         const disabled = isDie ? (hasTwo || p.cash < it.price) : (bagFull || p.cash < it.price);
-        return `<button data-buy="${k}" ${disabled ? 'disabled' : ''}>
-          <b>${it.icon} ${it.name} <span class="price">$${it.price}</span></b>
-          <small>${hasTwo ? '已擁有 2 顆骰子（上限）' : it.desc}</small>
+        return `<button class="item-btn" data-buy="${k}" ${disabled ? 'disabled' : ''}>
+          <span class="item-ico">${itemSvg(k)}</span>
+          <div class="item-meta">
+            <b>${it.name} <span class="price">$${it.price}</span></b>
+            <small>${hasTwo ? '已擁有 2 顆骰子（上限）' : it.desc}</small>
+          </div>
         </button>`;
       }).join('')}</div>
       <div class="row"><button class="primary" id="sDone">離開道具屋</button></div>`, box => {
@@ -3834,7 +4061,10 @@ function openItems() {
     <div class="items">${p.items.map(k => {
       const it = R.ITEMS[k];
       const dis = k === 'free' || (k === 'remote' && G.phase !== 'roll');
-      return `<button data-k="${k}" ${dis ? 'disabled' : ''}><b>${it.icon} ${it.name}</b><small>${it.desc}</small></button>`;
+      return `<button class="item-btn" data-k="${k}" ${dis ? 'disabled' : ''}>
+        <span class="item-ico">${itemSvg(k)}</span>
+        <div class="item-meta"><b>${it.name}</b><small>${it.desc}</small></div>
+      </button>`;
     }).join('')}</div>
     <div class="row"><button class="close">關閉</button></div>`, box => {
     box.querySelector('.close').onclick = closeModal;
@@ -3980,7 +4210,7 @@ function openHelp() {
 
 // ============================================================ 動作送出與套用
 function send(a) {
-  const pid = (a.type === 'setRounds' || a.type === 'rename') ? (a.pid != null ? a.pid : [...NET.myIds][0] || 0) : G.cur;
+  const pid = (a.type === 'setRounds' || a.type === 'rename' || a.type === 'setKind') ? (a.pid != null ? a.pid : [...NET.myIds][0] || 0) : G.cur;
   if (NET.role === 'client') { NET.host && NET.host.send({ t: 'act', pid, a }); return; }
   const err = R.act(G, pid, a);
   if (err) { toast(err); return; }
@@ -4073,7 +4303,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v157</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v158</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>

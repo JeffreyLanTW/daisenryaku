@@ -636,6 +636,18 @@
       pushNews(G, '賽制變更', `⚙️ 回合上限已調整為「${txt}」！`, '比賽規則更新', '#3498db');
       return null;
     }
+    if (a.type === 'setKind') {
+      const targetId = a.pid != null ? (a.pid | 0) : pid;
+      const tp = G.players[targetId];
+      if (!tp || tp.bankrupt) return '找不到玩家';
+      if (tp.kind === 'remote') return '遠端玩家無法切換控制模式';
+      const nk = a.kind === 'ai' ? 'ai' : 'local';
+      if (tp.kind !== nk) {
+        tp.kind = nk;
+        log(G, `🎛️ ${tp.name} 已切換為「${nk === 'ai' ? '電腦 AI' : '手動操作'}」`);
+      }
+      return null;
+    }
     if (a.type === 'rename') {
       const targetId = a.pid != null ? (a.pid | 0) : pid;
       const tp = G.players[targetId];
