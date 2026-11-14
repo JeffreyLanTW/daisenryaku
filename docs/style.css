@@ -1129,3 +1129,7 @@ html { background: #0b0f14; }
   padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right));
 }
 #app { grid-template-rows: 1fr; padding-top: calc(var(--tbh) + env(safe-area-inset-top)); }
+
+/* 對話框內容較多時：地圖示意縮小；底部的按鈕列固定在對話框底部，捲動內容時也一直看得到 */
+.geo-loc svg { max-height: 190px; width: auto; }
+#modalBox > .row:last-child { position: sticky; bottom: -20px; margin-bottom: -20px; padding: 10px 0 14px; background: #151c24; z-index: 1; box-shadow: 0 -10px 14px -8px rgba(0,0,0,.6); }
