@@ -300,3 +300,14 @@ function portraitSVG(id, size = 96) {
   o += `</g><rect x=".5" y=".5" width="119" height="119" rx="9.5" fill="none" stroke="#fff" stroke-opacity=".14"/></svg>`;
   return o;
 }
+
+// ===== 精細人物照（docs/img/portraits/*.jpg，以 AI 生成的虛構人物寫實肖像）=====
+// 照片疊在原本的插畫上：照片載入前或載入失敗時顯示插畫
+const PORTRAIT_IMG = { chou: 1, lin: 1, chen: 1, hsu: 1, harris: 1, sato: 1, wang: 1, enemy: 1 };
+function portraitHTML(id, size = 112) {
+  const svg = portraitSVG(id, size);
+  if (!PORTRAIT_IMG[id]) return svg;
+  return `${svg}<img class="pimg" src="img/portraits/${id}.jpg?v=1" alt="" width="${size}" height="${size}" decoding="async" onerror="this.remove()">`;
+}
+// 進入劇情時預先載入，對話出現時照片已就緒
+function preloadPortraits() { for (const id of Object.keys(PORTRAIT_IMG)) { const i = new Image(); i.src = `img/portraits/${id}.jpg?v=1`; } }

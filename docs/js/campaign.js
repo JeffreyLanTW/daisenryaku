@@ -234,6 +234,7 @@ function objectivesHTML() {
 
 // ----- 流程 -----
 function startMission(id) {
+  if (typeof preloadPortraits === 'function') preloadPortraits();
   const M = MISSIONS[id];
   if (CAMP_ID !== campOf(M) || !CAMP) loadCamp(campOf(M));
   CAMP.current = id;
@@ -602,15 +603,22 @@ function openCampaignMenu(cid) {
 function playDialog(lines, heading) {
   return new Promise(resolve => {
     if (!lines || !lines.length) return resolve();
-    let k = 0;
+    let k = 0, timer = null;
+    // 觀戰模式（雙方都是電腦）：每句停留一段時間（依字數，約 2–7 秒）後自動繼續；仍可點擊提前
+    const auto = typeof G !== 'undefined' && G && G.players && G.players.length && G.players.every(p => p.ai);
     const render = () => {
       const [who, text] = lines[k], S = SPEAKERS[who] || SPEAKERS['旁白'];
+      const wait = Math.min(7000, 1800 + String(text).length * 90);
       openModal(`${heading ? `<div class="dhead">${heading}</div>` : ''}
-        <div class="dialog">${S.portrait && typeof portraitSVG === 'function' && portraitSVG(S.portrait, 112) ? `<div class="portrait photo" style="--c:${S.color}">${portraitSVG(S.portrait, 112)}</div>` : `<div class="portrait" style="--c:${S.color}">${S.icon}</div>`}
+        <div class="dialog">${S.portrait && typeof portraitHTML === 'function' && portraitSVG(S.portrait, 112) ? `<div class="portrait photo" style="--c:${S.color}">${portraitHTML(S.portrait, 112)}</div>` : `<div class="portrait" style="--c:${S.color}">${S.icon}</div>`}
         <div class="dbody"><div class="dname">${who}${S.title ? `<small>${S.title}</small>` : ''}</div><div class="dtext">${text}</div></div></div>
+        ${auto ? `<div class="dlauto" title="觀戰中：自動播放"><i style="animation-duration:${wait}ms"></i></div>` : ''}
         <div class="row"><button id="dlSkip" class="muted">略過</button><button class="primary" id="dlNext">${k < lines.length - 1 ? '下一句 ▸' : '確定'}</button></div>`, box => {
-        box.querySelector('#dlNext').onclick = () => { k++; if (k >= lines.length) { closeModal(); resolve(); } else render(); };
-        box.querySelector('#dlSkip').onclick = () => { closeModal(); resolve(); };
+        const next = () => { clearTimeout(timer); k++; if (k >= lines.length) { closeModal(); resolve(); } else render(); };
+        box.querySelector('#dlNext').onclick = next;
+        box.querySelector('#dlSkip').onclick = () => { clearTimeout(timer); closeModal(); resolve(); };
+        clearTimeout(timer);
+        if (auto) timer = setTimeout(next, wait);
       });
     };
     render();

@@ -1192,7 +1192,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v112</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v113</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1224,6 +1224,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v113</span><span class="cl-date">2026.11.14</span><p>【劇情人物照】劇情對話的八位人物改為精細的寫實肖像（虛構人物，以 AI 生成）；照片無法載入時仍顯示原本的插畫。【觀戰自動播放對話】觀戰模式（雙方都是電腦）時，劇情對話每句停留約 2–7 秒（依字數）後自動繼續，下方有進度條；仍可點擊提前或略過。</p></div>
         <div class="cl-item"><span class="cl-ver">v112</span><span class="cl-date">2026.11.14</span><p>【修正 3D 畫面整片變紅／變黑】任務目標的紅色準星與地名底框在鏡頭後方或貼近鏡頭時會被放大上千倍、蓋滿整個畫面；現在這類標示不在畫面上時就不畫。另外鏡頭低空移動時會自動抬高到山峰與建築上方，不再鑽進模型裡。</p></div>
         <div class="cl-item"><span class="cl-ver">v111</span><span class="cl-date">2026.11.14</span><p>【已行動部隊改用透明度】已行動的部隊保持原本顏色、改為半透明顯示（3D 模型、2D 圖示與兵種名牌都一樣），不再變灰。</p></div>
         <div class="cl-item"><span class="cl-ver">v110</span><span class="cl-date">2026.11.14</span><p>【已行動部隊】已行動的部隊只稍微變暗（3D 與 2D 都是），不再整片深灰。【劇情精簡】劇情模式只保留最新的「昇龍 2031」，移除「第三次世界大戰」「福爾摩沙之盾」「乾為天」三部劇情與測試地圖；自由對戰保留。舊劇情的存檔無法再讀取。</p></div>
@@ -1390,7 +1391,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v112</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v113</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmLoad">💾 讀取存檔</button>
