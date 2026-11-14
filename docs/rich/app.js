@@ -1149,8 +1149,21 @@ function stepDice(now) {
   if (t >= 1) diceAnim = null;
 }
 
-// ---------- 鏡頭：完整俯瞰立體台灣本島、支援拖曳旋轉與滾輪縮放 ----------
-const camS = { yaw: 0.36, pitch: 0.88, dist: 245, target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4) };
+// ---------- 鏡頭：完整俯瞰立體台灣本島、支援單指旋轉、雙指縮放、三指平移棋盤 ----------
+const camS = { yaw: 0.36, pitch: 0.88, dist: 245, target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4), pan: new THREE.Vector3(0, 0, 0) };
+function panBoard(dx, dy) {
+  const scale = camS.dist * 0.0017;
+  const rx = Math.cos(camS.yaw), rz = -Math.sin(camS.yaw);
+  const fx = -Math.sin(camS.yaw), fz = -Math.cos(camS.yaw);
+  const mx = (-rx * dx + fx * dy) * scale;
+  const mz = (-rz * dx + fz * dy) * scale;
+  const nx = Math.max(-110, Math.min(110, camS.pan.x + mx));
+  const nz = Math.max(-130, Math.min(130, camS.pan.z + mz));
+  const ddx = nx - camS.pan.x, ddz = nz - camS.pan.z;
+  camS.pan.x = nx; camS.pan.z = nz;
+  camS.goal.x += ddx; camS.goal.z += ddz;
+  camS.target.x += ddx; camS.target.z += ddz;
+}
 function updateCamera() {
   camS.target.lerp(camS.goal, 0.06);
   const d = camS.dist, cp = Math.cos(camS.pitch);
@@ -1158,18 +1171,74 @@ function updateCamera() {
   camera.lookAt(camS.target);
 }
 (function input() {
-  const pts = new Map(); let last = null, pinch = null;
-  canvas.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 忽略 */ } last = { x: e.clientX, y: e.clientY }; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: camS.dist }; } });
+  const pts = new Map(); let last = null, pinch = null, triCenter = null, touchTri = null;
+  const centroid = list => {
+    let sx = 0, sy = 0;
+    for (const p of list) { sx += p.x; sy += p.y; }
+    return { x: sx / list.length, y: sy / list.length };
+  };
+  canvas.addEventListener('pointerdown', e => {
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 忽略 */ }
+    if (pts.size >= 3) {
+      triCenter = centroid([...pts.values()]);
+      pinch = null; last = null;
+    } else if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: camS.dist };
+      triCenter = null; last = null;
+    } else {
+      last = { x: e.clientX, y: e.clientY };
+      triCenter = null; pinch = null;
+    }
+  });
   canvas.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId)) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()]; camS.dist = Math.max(70, Math.min(440, pinch.dist * pinch.d / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)))); return; }
-    if (!last) return;
+    if (pts.size >= 3) {
+      const c = centroid([...pts.values()]);
+      if (triCenter) panBoard(c.x - triCenter.x, c.y - triCenter.y);
+      triCenter = c;
+      return;
+    }
+    if (pts.size === 2 && pinch) {
+      const [a, b] = [...pts.values()];
+      camS.dist = Math.max(70, Math.min(440, pinch.dist * pinch.d / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))));
+      return;
+    }
+    if (!last || pts.size !== 1) return;
     camS.yaw -= (e.clientX - last.x) * 0.006; camS.pitch = Math.max(0.32, Math.min(1.45, camS.pitch + (e.clientY - last.y) * 0.004));
     last = { x: e.clientX, y: e.clientY };
   });
-  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 1) { const [p] = pts.values(); last = { ...p }; } if (!pts.size) last = null; };
+  const up = e => {
+    pts.delete(e.pointerId);
+    if (pts.size >= 3) { triCenter = centroid([...pts.values()]); pinch = null; last = null; }
+    else { triCenter = null; }
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: camS.dist }; last = null; }
+    else if (pts.size < 2) pinch = null;
+    if (pts.size === 1) { const [p] = pts.values(); last = { ...p }; }
+    if (!pts.size) last = null;
+  };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  // TouchEvent 三指觸控備援：若平台未派出 3 個 pointerId，直接用 touches 計算三指中心平移棋盤
+  const touchCenter = ts => {
+    let sx = 0, sy = 0;
+    for (let k = 0; k < ts.length; k++) { sx += ts[k].clientX; sy += ts[k].clientY; }
+    return { x: sx / ts.length, y: sy / ts.length };
+  };
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length >= 3) { e.preventDefault(); touchTri = touchCenter(e.touches); pinch = null; last = null; }
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    if (e.touches.length >= 3) {
+      e.preventDefault();
+      const c = touchCenter(e.touches);
+      if (pts.size < 3 && touchTri) panBoard(c.x - touchTri.x, c.y - touchTri.y);
+      touchTri = c;
+    }
+  }, { passive: false });
+  const touchEnd = e => { touchTri = e.touches.length >= 3 ? touchCenter(e.touches) : null; };
+  canvas.addEventListener('touchend', touchEnd); canvas.addEventListener('touchcancel', touchEnd);
   canvas.addEventListener('wheel', e => { e.preventDefault(); if (e.ctrlKey) camS.dist *= Math.exp(e.deltaY * 0.01); else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) camS.yaw += e.deltaX * 0.004; else camS.dist *= Math.exp(e.deltaY * 0.0015); camS.dist = Math.max(70, Math.min(440, camS.dist)); }, { passive: false });
 })();
 function resize() {
@@ -1248,7 +1317,9 @@ function frame(now) {
     }
 
     const ct = tokens[G.cur];
-    if (ct) camS.goal.copy(ct.g.position).multiplyScalar(0.55).setY(0);
+    if (ct) camS.goal.copy(ct.g.position).multiplyScalar(0.55).setY(0).add(camS.pan);
+  } else {
+    camS.goal.set(-4 + camS.pan.x, 0, 4 + camS.pan.z);
   }
   stepDice(now);
   updateCamera();
@@ -1261,7 +1332,88 @@ const animBusy = () => tokens.some(t => t && t.path && t.path.length) || !!diceA
 function toast(s, ms = 1900) { const t = $('#toast'); t.textContent = s; t.classList.remove('hidden'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hidden'), ms); }
 function openModal(html, ready) { $('#modalBox').innerHTML = html; $('#modal').classList.remove('hidden'); ready && ready($('#modalBox')); }
 function closeModal() { $('#modal').classList.add('hidden'); }
-let shownAsk = null;
+let shownAsk = null, lastRankRound = 0, pendingRankModal = false;
+
+// 依據新聞類型繪製鮮明 SVG 主題插畫（不含重覆 ID）
+function newsArtSVG(n) {
+  const txt = `${n.cat || ''} ${n.title || ''} ${n.body || ''}`;
+  if (/土地公|強佔|廟|福神|財神|神明降臨|送神除厄|宮廟/.test(txt)) {
+    return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <rect width="96" height="96" rx="16" fill="#2b1808"/>
+      <circle cx="48" cy="48" r="36" fill="#f59e0b" opacity=".25"/>
+      <circle cx="48" cy="48" r="27" fill="#fbbf24" opacity=".28"/>
+      <path d="M16 44 Q48 20 80 44 L74 49 Q48 30 22 49 Z" fill="#ef4444" stroke="#fde047" stroke-width="2.5"/>
+      <rect x="27" y="47" width="42" height="6" rx="2" fill="#facc15"/>
+      <rect x="31" y="53" width="34" height="24" rx="4" fill="#b91c1c"/>
+      <circle cx="48" cy="60" r="10" fill="#fde68a"/>
+      <path d="M35 67 Q48 80 61 67 L58 79 L38 79 Z" fill="#fef3c7"/>
+      <circle cx="44" cy="59" r="1.8" fill="#1f2937"/><circle cx="52" cy="59" r="1.8" fill="#1f2937"/>
+      <polygon points="78,14 81,22 89,22 83,27 85,35 78,30 71,35 73,27 67,22 75,22" fill="#fde047"/>
+    </svg>`;
+  }
+  if (/窮神|衰神|噩耗|驅神|神明離去/.test(txt)) {
+    return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <rect width="96" height="96" rx="16" fill="#1e1035"/>
+      <circle cx="48" cy="48" r="38" fill="#7c3aed" opacity=".25"/>
+      <path d="M22 46 Q18 32 32 29 Q39 17 55 21 Q69 19 74 33 Q82 40 73 50 L26 50 Z" fill="#4c1d95" stroke="#c4b5fd" stroke-width="2.5"/>
+      <polygon points="48,48 36,68 47,68 41,85 63,61 50,61 58,48" fill="#facc15" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="38" cy="37" r="3" fill="#f43f5e"/><circle cx="58" cy="37" r="3" fill="#f43f5e"/>
+    </svg>`;
+  }
+  if (/破產|拆屋|路障|野狗|監獄|住院|颱風|股災|超速|懲罰|拋售/.test(txt)) {
+    return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <rect width="96" height="96" rx="16" fill="#2d0a0f"/>
+      <polygon points="48,8 57,26 76,18 68,36 88,45 69,55 78,74 58,68 48,88 38,68 18,74 27,55 8,45 28,36 20,18 39,26" fill="#dc2626"/>
+      <polygon points="48,18 55,32 70,26 63,40 78,47 64,55 70,69 55,64 48,79 41,64 26,69 32,55 18,47 33,40 26,26 41,32" fill="#f97316"/>
+      <rect x="44" y="30" width="8" height="24" rx="4" fill="#fff"/>
+      <circle cx="48" cy="63" r="4.8" fill="#fff"/>
+    </svg>`;
+  }
+  if (/地產|置產|壟斷|地標|摩天|徵收|都更/.test(txt)) {
+    return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <rect width="96" height="96" rx="16" fill="#0d233a"/>
+      <circle cx="48" cy="48" r="36" fill="#0284c7" opacity=".28"/>
+      <rect x="20" y="38" width="20" height="42" rx="3" fill="#38bdf8"/>
+      <rect x="38" y="20" width="24" height="60" rx="3" fill="#0ea5e9" stroke="#bae6fd" stroke-width="2"/>
+      <polygon points="48,9 53,20 43,20" fill="#fde047"/>
+      <rect x="60" y="44" width="17" height="36" rx="3" fill="#22d3ee"/>
+      <rect x="43" y="27" width="6" height="7" fill="#fef08a"/><rect x="52" y="27" width="6" height="7" fill="#fef08a"/>
+      <rect x="43" y="39" width="6" height="7" fill="#fef08a"/><rect x="52" y="39" width="6" height="7" fill="#fef08a"/>
+      <rect x="24" y="45" width="5" height="6" fill="#e0f2fe"/><rect x="31" y="45" width="5" height="6" fill="#e0f2fe"/>
+      <rect x="14" y="78" width="68" height="5" rx="2.5" fill="#facc15"/>
+    </svg>`;
+  }
+  if (/過路費|紅包|賺|發票|獎金|國稅|請客|財經/.test(txt)) {
+    return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <rect width="96" height="96" rx="16" fill="#0a291a"/>
+      <circle cx="48" cy="48" r="36" fill="#10b981" opacity=".25"/>
+      <rect x="14" y="34" width="58" height="34" rx="6" transform="rotate(-8 43 51)" fill="#22c55e" stroke="#bbf7d0" stroke-width="2"/>
+      <rect x="20" y="38" width="58" height="34" rx="6" fill="#16a34a" stroke="#dcfce7" stroke-width="2"/>
+      <circle cx="49" cy="55" r="10" fill="#fde047"/>
+      <text x="49" y="60" text-anchor="middle" font-size="14" font-weight="900" fill="#14532d">$</text>
+      <circle cx="72" cy="28" r="12" fill="#facc15" stroke="#fef08a" stroke-width="2"/>
+      <circle cx="25" cy="70" r="10" fill="#fbbf24" stroke="#fef08a" stroke-width="2"/>
+    </svg>`;
+  }
+  if (/冠軍|底定|開賽|排行/.test(txt)) {
+    return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <rect width="96" height="96" rx="16" fill="#2b1e06"/>
+      <circle cx="48" cy="46" r="36" fill="#eab308" opacity=".25"/>
+      <path d="M26 24 H70 V42 Q70 60 48 63 Q26 60 26 42 Z" fill="#facc15" stroke="#fef9c3" stroke-width="2.5"/>
+      <path d="M26 28 H15 Q13 44 26 46" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+      <path d="M70 28 H81 Q83 44 70 46" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+      <rect x="43" y="62" width="10" height="12" fill="#f59e0b"/>
+      <rect x="30" y="73" width="36" height="9" rx="3" fill="#eab308" stroke="#fef08a" stroke-width="1.5"/>
+      <polygon points="48,31 51,39 59,39 53,44 55,52 48,47 41,52 43,44 37,39 45,39" fill="#fffbeb"/>
+    </svg>`;
+  }
+  return `<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+    <rect width="96" height="96" rx="16" fill="#131f3b"/>
+    <circle cx="48" cy="48" r="36" fill="#3b82f6" opacity=".28"/>
+    <rect x="20" y="24" width="56" height="48" rx="10" fill="#2563eb" stroke="#93c5fd" stroke-width="2.5"/>
+    <polygon points="48,30 53,42 66,42 56,50 60,62 48,55 36,62 40,50 30,42 43,42" fill="#fde047"/>
+  </svg>`;
+}
 
 function renderNews() {
   const bar = $('#newsBar');
@@ -1285,11 +1437,16 @@ function renderNews() {
       const nt = $('#newsToast');
       nt.style.setProperty('--nc', latest.color || '#d93829');
       nt.innerHTML = `<div class="nt-head"><span>🔴 BREAKING NEWS</span><span>第 ${latest.round} 輪・${latest.cat}</span></div>
-        <div class="nt-title">${latest.title}</div>
-        ${latest.body && latest.body !== latest.title ? `<div class="nt-body">${latest.body}</div>` : ''}`;
+        <div class="nt-main">
+          <div class="nt-art">${newsArtSVG(latest)}</div>
+          <div class="nt-content">
+            <div class="nt-title">${latest.title}</div>
+            ${latest.body && latest.body !== latest.title ? `<div class="nt-body">${latest.body}</div>` : ''}
+          </div>
+        </div>`;
       nt.classList.remove('hidden');
       clearTimeout(nt._t);
-      nt._t = setTimeout(() => nt.classList.add('hidden'), 3600);
+      nt._t = setTimeout(() => nt.classList.add('hidden'), 3800);
       snd('news');
     }
   }
@@ -1299,12 +1456,50 @@ function openNewsLog() {
   if (!G || !G.news) return;
   openModal(`<h2>📰 Breaking News 突發新聞台</h2><div class="sub">全場玩家的重大地產交易、神明附身與突發事件紀錄。</div>
     <div class="news-list">${G.news.slice().reverse().map(n => `<div class="news-item" style="--nc:${n.color || 'var(--gold)'}">
-      <div class="ni-meta">第 ${n.round} 輪・${n.cat}</div>
-      <div class="ni-t">${n.title}</div>
-      ${n.body && n.body !== n.title ? `<div class="ni-b">${n.body}</div>` : ''}
+      <div class="ni-art">${newsArtSVG(n)}</div>
+      <div class="ni-text">
+        <div class="ni-meta">第 ${n.round} 輪・${n.cat}</div>
+        <div class="ni-t">${n.title}</div>
+        ${n.body && n.body !== n.title ? `<div class="ni-b">${n.body}</div>` : ''}
+      </div>
     </div>`).join('')}</div>
     <div class="row"><button class="close">關閉</button></div>`, box => {
     box.querySelector('.close').onclick = closeModal;
+  });
+}
+
+function openLeaderboardModal(round, isMilestone) {
+  if (!G) return;
+  const rows = G.players.map(p => {
+    const landIdx = R.lands(G, p);
+    const bld = landIdx.reduce((sum, i) => sum + (G.tiles[i].level || 0), 0);
+    const worth = p.bankrupt ? -1 : R.netWorth(G, p);
+    return { p, worth, lands: landIdx.length, bld };
+  }).sort((a, b) => b.worth - a.worth);
+  const topWorth = Math.max(1, rows[0] ? rows[0].worth : 1);
+  const medals = ['🥇', '🥈', '🥉', '4'];
+  openModal(`<h2>📊 ${isMilestone ? `第 ${round} 回合財富排行榜` : `目前財富排行榜（第 ${round} 輪）`}</h2>
+    <div class="sub">${isMilestone ? '每 20 回合定期結算一次！' : ''}依「現金＋地產價值＋建築」計算目前總資產排名。</div>
+    <div class="rank-list">${rows.map((r, k) => {
+      const pct = r.worth < 0 ? 0 : Math.max(4, Math.round((r.worth / topWorth) * 100));
+      const god = r.p.god ? R.GODS[r.p.god.kind] : null;
+      return `<div class="rank-card ${k === 0 && r.worth >= 0 ? 'top1' : ''}" style="--rc:${r.p.color}">
+        <div class="rank-medal">${medals[k] || (k + 1)}</div>
+        <div class="rank-av">${r.p.name[0]}</div>
+        <div class="rank-main">
+          <div class="rank-name">${r.p.name}${r.p.bankrupt ? ' <small>(已破產)</small>' : ''}${god ? `<span class="god-badge ${god.good ? 'good' : 'bad'}">${god.icon}${god.name}</span>` : ''}</div>
+          <div class="rank-stats">現金 $${r.p.cash.toLocaleString()}・土地 ${r.lands} 塊・建築 ${r.bld} 棟</div>
+        </div>
+        <div class="rank-worth">${r.worth < 0 ? '破產' : '$' + r.worth.toLocaleString()}</div>
+        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('')}</div>
+    <div class="row"><button class="primary close">${isMilestone ? '繼續環島！' : '關閉'}</button></div>`, box => {
+    box.querySelector('.close').onclick = () => {
+      closeModal();
+      renderUI();
+      scheduleAuto();
+    };
   });
 }
 
@@ -1349,6 +1544,19 @@ function renderUI() {
     lastFx = JSON.stringify(G.fx) + G.turn;
     const fk = G.fx.k;
     setTimeout(() => snd({ rent: 'pay', buy: 'cash', build: 'build', jail: 'bad', demolish: 'bad', god_good: 'god', god_bad: 'badgod', seize: 'seize' }[fk] || 'turn'), animDelay());
+  }
+  if (G.phase !== 'over' && G.round >= 20 && G.round % 20 === 0 && G.round !== lastRankRound && !G.ask && $('#modal').classList.contains('hidden')) {
+    lastRankRound = G.round;
+    pendingRankModal = true;
+    const rankRound = G.round;
+    setTimeout(() => {
+      pendingRankModal = false;
+      if (G && G.phase !== 'over' && G.round === rankRound && !G.ask && $('#modal').classList.contains('hidden')) {
+        openLeaderboardModal(rankRound, true);
+      } else {
+        scheduleAuto();
+      }
+    }, Math.min(700, Math.max(250, animDelay())));
   }
   if (G.phase === 'over') setTimeout(showResult, 900);
 }
@@ -1536,6 +1744,7 @@ function openRenameModal() {
 
 $('#roundInfo').onclick = openRoundsModal;
 $('#newsBar').onclick = openNewsLog;
+$('#btnRank').onclick = () => { if (!G) return toast('遊戲開始後可查看排行榜'); openLeaderboardModal(G.round, false); };
 $('#btnNews').onclick = openNewsLog;
 $('#btnRoll').onclick = () => send({ type: 'roll' });
 $('#btnEnd').onclick = () => send({ type: 'end' });
@@ -1560,8 +1769,8 @@ function openHelp() {
   ・<b>機會、命運與道具屋</b>：踩到機會／命運會跳出卡片視窗確認執行；踩到道具屋會送一張隨機卡片，並開啟商店讓你購買「請神卡、送神卡、遙控骰子、路障、免租卡、迴轉卡、拆除卡、徵收卡」。<br>
   ・<b>神明與地圖 NPC</b>：地圖上會巡邏「土地公、財神爺、福神、窮神、衰神、野狗」6 位 NPC！路過或使用請神卡可獲得附身：<b>土地公附身時踩到別人的地可免費強佔</b>！送神卡則可把壞神明轉送給對手。<br>
   ・<b>Breaking News 快訊</b>：任何玩家的重大購地、強佔、使用道具與破產都會即時廣播給全場玩家。<br>
-  ・<b>可調整回合</b>：開局與遊戲中點擊上方輪數皆可隨時修改回合上限（0 為無限）。<br>
-  ・拖曳畫面旋轉 3D 視角，滾輪或雙指縮放。</div>
+  ・<b>可調整回合</b>：開局與遊戲中點擊上方輪數皆可隨時修改回合上限（0 為無限）；每 20 回合會自動公布一次財富排行榜，亦可隨時點擊上方「🏆 排行」查看。<br>
+  ・<b>觸控與視角操作</b>：單指拖曳旋轉 3D 視角、滾輪或雙指縮放、<b>三指觸控拖曳可自由移動棋盤</b>。</div>
   <div class="row"><button class="close">知道了</button></div>`, box => { box.querySelector('.close').onclick = closeModal; });
 }
 
@@ -1583,6 +1792,10 @@ let autoTimer = null;
 function scheduleAuto() {
   clearTimeout(autoTimer);
   if (!G || G.phase === 'over' || NET.role === 'client') return;
+  if (pendingRankModal || !$('#modal').classList.contains('hidden')) {
+    autoTimer = setTimeout(scheduleAuto, 350);
+    return;
+  }
   const p = R.cur(G);
   const wait = (G.phase === 'roll' ? 680 : animDelay()) + (G.card && G.phase === 'done' ? 1200 : 0);
   if (p.kind === 'ai') {
@@ -1626,7 +1839,8 @@ function startGame(seats, rounds) {
   G = R.newGame(seats, { maxRounds: rounds });
   tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
-  buildKey = ''; lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null;
+  buildKey = ''; lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+  camS.pan.set(0, 0, 0);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
 
@@ -1811,7 +2025,8 @@ function openJoin() {
               closeModal();
               tokens.forEach(t => t && scene.remove(t.g)); tokens.length = 0;
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
-              buildKey = ''; lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null;
+              buildKey = ''; lastCard = 0; lastMoveN = 0; lastNewsId = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+              camS.pan.set(0, 0, 0);
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b);
             if (G.move && G.move.n !== lastMoveN) { lastMoveN = G.move.n; moveAt = performance.now(); }
@@ -1829,4 +2044,4 @@ function openJoin() {
 resize();
 requestAnimationFrame(frame);
 openLobby();
-window.__rich = { get G() { return G; }, send, NET };
+window.__rich = { get G() { return G; }, send, NET, camS, renderUI, openLeaderboardModal };

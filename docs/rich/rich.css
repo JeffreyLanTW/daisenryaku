@@ -18,25 +18,35 @@ button.primary:disabled { background: #2e281b; color: #8c7d58; border-color: #46
 .spacer { flex: 1; }
 
 /* Breaking News 電視台快訊列 */
-#newsBar { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 5px 12px; background: linear-gradient(90deg, #250b0d 0%, #141922 50%, #10151c 100%);
-  border-bottom: 1px solid #4e2220; cursor: pointer; overflow: hidden; min-height: 32px; }
+#newsBar { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 5px 12px; background: linear-gradient(90deg, #10151c 0%, #310e12 50%, #10151c 100%);
+  border-bottom: 1px solid #5e2522; cursor: pointer; overflow: hidden; min-height: 32px; }
 #newsBar.flash { animation: newsFlash .85s ease; }
-@keyframes newsFlash { 0% { background: #7f1d1d; } 100% { background: linear-gradient(90deg, #250b0d 0%, #141922 50%, #10151c 100%); } }
+@keyframes newsFlash { 0% { background: #991b1b; } 100% { background: linear-gradient(90deg, #10151c 0%, #310e12 50%, #10151c 100%); } }
 .news-badge { flex-shrink: 0; background: var(--red); color: #fff; font-size: 11px; font-weight: 900; letter-spacing: .08em;
-  padding: 2px 8px; border-radius: 5px; box-shadow: 0 0 10px rgba(217, 56, 41, .55); animation: pulseLive 1.8s infinite; }
+  padding: 2px 8px; border-radius: 5px; box-shadow: 0 0 10px rgba(217, 56, 41, .65); animation: pulseLive 1.8s infinite; }
 @keyframes pulseLive { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
-.news-scroll { flex: 1; display: flex; align-items: center; gap: 14px; overflow: hidden; white-space: nowrap; }
-#newsTitle { font-size: 13px; font-weight: 700; color: #ffe7a3; flex-shrink: 0; }
-#newsTicker { font-size: 12px; color: #b7c3d1; overflow: hidden; text-overflow: ellipsis; }
+.news-scroll { flex: 0 1 auto; max-width: 86%; display: flex; align-items: center; justify-content: center; gap: 14px; overflow: hidden; white-space: nowrap; text-align: center; }
+#newsTitle { font-size: 13px; font-weight: 800; color: #ffe7a3; flex-shrink: 0; }
+#newsTicker { font-size: 12px; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; }
 
-/* Breaking News 浮動彈窗 */
-#newsToast { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: min(500px, 92%); z-index: 12;
-  background: rgba(18, 12, 16, .95); border: 2px solid var(--nc, var(--red)); border-radius: 12px; padding: 10px 16px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, .65); animation: slideDown .35s ease; pointer-events: none; }
-#newsToast .nt-head { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 900; letter-spacing: .12em; color: #ff6b6b; margin-bottom: 3px; }
-#newsToast .nt-title { font-size: 15px; font-weight: 800; color: #fff7dc; line-height: 1.4; }
-#newsToast .nt-body { font-size: 12px; color: #c7d2df; margin-top: 2px; }
-@keyframes slideDown { from { transform: translateX(-50%) translateY(-14px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+/* Breaking News 置中鮮明圖文彈窗 */
+#newsToast { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, 94%); z-index: 16;
+  background: radial-gradient(circle at top center, rgba(48, 22, 26, .97), rgba(14, 18, 26, .98));
+  border: 3px solid var(--nc, var(--red)); border-radius: 18px; padding: 14px 18px 16px;
+  box-shadow: 0 22px 64px rgba(0, 0, 0, .82), 0 0 32px color-mix(in srgb, var(--nc, var(--red)) 45%, transparent);
+  animation: newsPopCenter .38s cubic-bezier(.16, 1, .3, 1); pointer-events: none; text-align: center; }
+#newsToast .nt-head { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 12px; font-weight: 900; letter-spacing: .12em; color: #fff;
+  background: linear-gradient(90deg, transparent, var(--nc, var(--red)), transparent); padding: 4px 14px; border-radius: 999px; margin-bottom: 12px; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+#newsToast .nt-main { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#newsToast .nt-art { width: 108px; height: 108px; flex-shrink: 0; border-radius: 16px; padding: 6px;
+  background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(0,0,0,.35));
+  border: 2px solid color-mix(in srgb, var(--nc, var(--red)) 80%, #ffffff 20%);
+  box-shadow: 0 8px 24px rgba(0,0,0,.55), inset 0 0 14px rgba(255,255,255,.14); display: grid; place-items: center; }
+#newsToast .nt-art svg { width: 100%; height: 100%; display: block; }
+#newsToast .nt-content { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#newsToast .nt-title { font-size: 21px; font-weight: 900; color: #fff9dc; line-height: 1.35; letter-spacing: .03em; text-shadow: 0 2px 10px rgba(0,0,0,.9); }
+#newsToast .nt-body { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.5; max-width: 480px; }
+@keyframes newsPopCenter { from { transform: translate(-50%, -50%) scale(.84); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
 main { position: relative; flex: 1; min-height: 0; width: 100%; }
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
@@ -89,15 +99,33 @@ main { position: relative; flex: 1; min-height: 0; width: 100%; }
 .deal span { color: var(--muted); }
 .card-box { background: #101720; border: 2px solid var(--c, var(--gold)); border-radius: 12px; padding: 14px 16px; font-size: 16px; line-height: 1.6; color: #f4f7fb; margin: 10px 0; text-align: center; }
 .news-list { display: flex; flex-direction: column; gap: 8px; max-height: 55dvh; overflow-y: auto; }
-.news-item { background: #0f151d; border-left: 4px solid var(--nc, var(--gold)); border-radius: 8px; padding: 8px 10px; }
+.news-item { display: flex; align-items: center; gap: 10px; background: #0f151d; border-left: 4px solid var(--nc, var(--gold)); border-radius: 8px; padding: 8px 10px; }
+.news-item .ni-art { width: 52px; height: 52px; flex-shrink: 0; border-radius: 10px; padding: 4px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.15); display: grid; place-items: center; }
+.news-item .ni-art svg { width: 100%; height: 100%; display: block; }
+.news-item .ni-text { min-width: 0; flex: 1; }
 .news-item .ni-meta { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
-.news-item .ni-t { font-size: 14px; font-weight: 700; color: #fff6db; }
+.news-item .ni-t { font-size: 14px; font-weight: 800; color: #fff6db; }
 .news-item .ni-b { font-size: 12px; color: #b7c3d1; margin-top: 2px; }
+
+/* 財富排行榜彈窗 */
+.rank-list { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.rank-card { display: grid; grid-template-columns: 38px 36px 1fr auto; gap: 4px 10px; align-items: center;
+  background: #0f151e; border: 1px solid #263242; border-left: 4px solid var(--rc, var(--gold)); border-radius: 12px; padding: 10px 12px; }
+.rank-card.top1 { background: linear-gradient(90deg, rgba(224,181,74,.16), #111822 65%); border-color: rgba(224,181,74,.55); }
+.rank-medal { font-size: 22px; font-weight: 900; text-align: center; }
+.rank-av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #fff; background: var(--rc, var(--gold)); }
+.rank-main { min-width: 0; }
+.rank-name { font-size: 15px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rank-stats { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.rank-worth { font-size: 17px; font-weight: 900; color: #fde68a; font-variant-numeric: tabular-nums; text-align: right; }
+.rank-bar-wrap { grid-column: 2 / 5; height: 6px; background: #1c2633; border-radius: 999px; overflow: hidden; margin-top: 4px; }
+.rank-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--rc, var(--gold)), #fde68a); }
 
 @media (max-width: 700px), (max-height: 520px) {
   .pcard { min-width: 158px; padding: 4px 8px; } .pcard .av { width: 26px; height: 26px; }
   #bar .title { font-size: 15px; } .acts button { min-width: 74px; padding: 8px 10px; font-size: 14px; }
   #players { gap: 4px; } #dock { bottom: 8px; padding: 6px 10px; }
+  #newsToast { padding: 10px 12px; } #newsToast .nt-art { width: 78px; height: 78px; } #newsToast .nt-title { font-size: 17px; } #newsToast .nt-body { font-size: 13px; }
   .items, .shop-grid { grid-template-columns: 1fr; }
   .seat { grid-template-columns: 20px 1fr; gap: 6px; }
 }
