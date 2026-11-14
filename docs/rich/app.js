@@ -2446,7 +2446,7 @@ const camS = {
   target: new THREE.Vector3(-4, 0, 4), goal: new THREE.Vector3(-4, 0, 4),
   hasGoal: true, follow: true,
 };
-let lastFocusTurn = -1;
+let lastFocusTurn = -1, wasFollowingFx = false;
 const camCtl = {
   rotate(d) { camS.yawGoal += d; },
   rotateBy(d) { camS.yaw += d; camS.yawGoal = camS.yaw; },
@@ -3063,6 +3063,7 @@ function frame(now) {
     });
 
     // 地圖神明與野狗棋子（各只有一隻：玩家棋子經過神明格後才觸發附身跟隨，離開後飛往地圖隨機位置停留）
+    let movingDogPos = null;
     if (G.npcs) {
       for (const npc of G.npcs) {
         let nt = npcTokens.get(npc.id);
@@ -3117,6 +3118,7 @@ function frame(now) {
             nt.g.position.lerpVectors(a, b, nt.t);
             nt.g.position.y += Math.sin(nt.t * Math.PI) * (npc.kind === 'dog' ? 2.2 : 4.5);
             nt.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+            if (npc.kind === 'dog' && nt.t < 1 && !tokens.some(t => t && t.path && t.path.length)) movingDogPos = nt.g.position;
           } else {
             nt.g.position.copy(npcWorld(nt.from));
           }
@@ -3131,11 +3133,16 @@ function frame(now) {
     const activeFxPos = (biteAnim && biteBurst && biteBurst.visible) ? biteBurst.position
       : (ambAnim && ambGroup && ambGroup.visible) ? ambGroup.position
       : (bankruptAnim && bankruptGroup && bankruptGroup.visible) ? bankruptGroup.position
-      : null;
+      : movingDogPos;
     if (activeFxPos) {
+      wasFollowingFx = true;
       if (camS.follow) camS.hasGoal = true;
       if (camS.hasGoal) camS.goal.copy(activeFxPos).setY(0);
     } else {
+      if (wasFollowingFx) {
+        wasFollowingFx = false;
+        if (camS.follow) camS.hasGoal = true;
+      }
       const ct = tokens[G.cur];
       if (ct) {
         if (G.turn !== lastFocusTurn) {
@@ -3920,7 +3927,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D</h2><div class="sub">原創 3D 台灣地產桌遊：64 格全台灣與離島地圖（去金門途中有海峽賭場）、神明附身、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v154</span></h2><div class="sub">原創 3D 台灣地產桌遊：64 格全台灣與離島地圖（去金門途中有海峽賭場）、神明附身、請神送神卡、道具屋與 Breaking News 實況廣播！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
@@ -3956,7 +3963,6 @@ function openLocalSetup() {
       const seats = [...box.querySelectorAll('select[data-k]')]
         .map((s, k) => ({ kind: s.value, name: names[k] || R.CHARS[chars[k]].name, char: chars[k] }))
         .filter(s => s.kind !== 'none');
-      if (!seats.some(s => s.kind === 'local')) seats[0].kind = 'local';
       NET.role = 'local';
       const rounds = Math.max(0, Math.min(999, Number(box.querySelector('#rounds').value) || 0));
       startGame(seats, rounds);

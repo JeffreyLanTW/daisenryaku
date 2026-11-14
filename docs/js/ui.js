@@ -1288,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v153</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v154</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1320,6 +1320,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v154</span><span class="cl-date">2026.11.15</span><p>【環島富豪 野狗移動鏡頭自動跟隨・修復玩家 1 選電腦無效・標題加上版號】回合末野狗棋子巡邏移動時，攝影機鏡頭會自動跟隨野狗移動軌跡，結束後再切回下一位行動玩家；移除單機開局強制將第一位玩家改回人類操控的限制，設定為「電腦」時可正常全自動遊玩；並於環島富豪 3D 頁面與大廳標題顯示目前版號。</p></div>
         <div class="cl-item"><span class="cl-ver">v153</span><span class="cl-date">2026.11.15</span><p>【環島富豪 擴增至 64 格點位・前往金門途中新增海峽賭場】全台灣環島棋盤由 56 格擴增至 64 格，新增「小琉球、三義、馬祖、海峽賭場、平溪、龜山島、玉里、知本」8 處新點位與專屬 3D 地標；在桃園前往金門的跨海航線途中設立「🎰 海峽郵輪賭場」，玩家可押注 $500 / $1,500 / $3,000 擲雙骰比大小或拚豹子 2 倍大獎。</p></div>
         <div class="cl-item"><span class="cl-ver">v152</span><span class="cl-date">2026.11.15</span><p>【環島富豪 修復野狗咬傷與救護車送醫動畫】補齊回合末野狗巡邏主動撞上玩家時的咬傷事件序列（<code>G.biteFx</code>），確保兩種相遇都會先播放放大更醒目的紅橘咬傷爆裂動畫與被咬跳腳動作，再銜接 2.85 倍大 3D 救護車送醫；同步讓攝影機在咬傷、送醫與破產特效期間鎖定事件現場，不再因換手而切走畫面。</p></div>
         <div class="cl-item"><span class="cl-ver">v151</span><span class="cl-date">2026.11.15</span><p>【環島富豪 3D 救護車送醫・破產特效・活動棋子 2 倍大・整體放慢】整體擲骰與移動節奏再放慢約 45%；目前行動中的玩家棋子放大為 2 倍大（2.75x）更醒目；被狗咬或抽中送醫卡時派出閃爍紅藍警燈＋雙音警笛的 3D 救護車緊急送醫；玩家破產時新增 3D 棋子倒塌爆裂、金幣碎片飛散與警示橫幅特效。</p></div>
@@ -1536,7 +1537,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v153</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v154</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
