@@ -242,8 +242,8 @@ function startMission(id) {
   saveCamp();
   playDialog(M.briefing(CAMP.flags), `${M.chapter}・${M.title}`).then(() => {
     openModal(`<div class="mtitle"><div class="chap">${M.chapter}</div><h2>${M.title}</h2><div class="sub">📍 ${M.place}</div></div>
-      ${M.geo && typeof geoLocatorSVG === 'function' ? `<div class="geo-loc">${geoLocatorSVG(M.geo, { width: 300, label: M.place })}<div class="geo-cap">🌏 ${M.geoRegion || M.place}<small>地圖 ${M.map[0].length}×${M.map.length} 格，依真實經緯度繪製</small></div></div>` : ''}
-      <ul class="obj big">${winOf(M, CAMP.flags).map(o => `<li>🎯 ${o.text}</li>`).join('')}
+      <div class="brief-grid">${M.geo && typeof geoLocatorSVG === 'function' ? `<div class="geo-loc">${geoLocatorSVG(M.geo, { width: 300, label: M.place })}<div class="geo-cap">🌏 ${M.geoRegion || M.place}<small>地圖 ${M.map[0].length}×${M.map.length} 格，依真實經緯度繪製</small></div></div>` : ''}
+      <div class="brief-side"><ul class="obj big">${winOf(M, CAMP.flags).map(o => `<li>🎯 ${o.text}</li>`).join('')}
       ${(M.bonus || []).map(b => `<li class="bonus">⭐ ${b.text}</li>`).join('')}
       ${(M.lose || []).map(c => `<li class="lose">✖ ${c.text}</li>`).join('')}
       ${M.turnLimit ? `<li class="lose">⏱ 時限 ${M.turnLimit} 回合</li>` : ''}</ul>
@@ -256,7 +256,7 @@ function startMission(id) {
         <label><input type="radio" name="enemyp" value="A"> <b>A 攻擊型</b> (激進)</label>
         <label><input type="radio" name="enemyp" value="C"> <b>C 保守型</b> (要塞)</label>
         <label><input type="radio" name="enemyp" value="L"> <b>藍發</b> (高勝率)</label>
-      </div>
+      </div></div></div>
       <div class="row"><button class="close">返回</button><button class="primary" id="goMission">開始作戰</button></div>`, box => {
       box.querySelector('.close').onclick = () => openCampaignMenu(CAMP_ID);
       box.querySelector('#goMission').onclick = () => {

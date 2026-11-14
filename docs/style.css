@@ -1133,3 +1133,21 @@ html { background: #0b0f14; }
 /* 對話框內容較多時：地圖示意縮小；底部的按鈕列固定在對話框底部，捲動內容時也一直看得到 */
 .geo-loc svg { max-height: 190px; width: auto; }
 #modalBox > .row:last-child { position: sticky; bottom: -20px; margin-bottom: -20px; padding: 10px 0 14px; background: #151c24; z-index: 1; box-shadow: 0 -10px 14px -8px rgba(0,0,0,.6); }
+
+/* ===== 任務簡報：寬螢幕（iPad 橫向、桌機）改為左右兩欄，對話框加寬，不用捲動 ===== */
+@media (min-width: 900px) {
+  #modalBox:has(.brief-grid) { width: min(1120px, 96vw); }
+  .brief-grid { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 18px; align-items: start; }
+  .brief-grid .geo-loc { flex-direction: column; align-items: stretch; margin: 6px 0 0; }
+  .brief-grid .geo-loc svg { max-width: 100%; max-height: 230px; }
+  .brief-grid .brief-side ul.obj.big { margin-top: 4px; }
+  #modalBox:has(.brief-grid) .mtitle { margin-bottom: 4px; }
+}
+
+/* ===== iOS／iPadOS 主畫面 App：系統在狀態列下方約 40pt 疊一層模糊。
+   命令列上方多留一段實色空白，讓按鈕與文字落在模糊範圍之外 ===== */
+html.ios-app { --haze: 34px; }
+html.ios-app #topbar { padding-top: calc(var(--haze) + env(safe-area-inset-top)); height: calc(var(--tbh) + var(--haze) + env(safe-area-inset-top)); }
+html.ios-app #app { padding-top: calc(var(--tbh) + var(--haze) + env(safe-area-inset-top)); }
+html.ios-app #modal { padding-top: calc(16px + var(--haze) + env(safe-area-inset-top)); }
+html.ios-app #modalBox { max-height: calc(100dvh - 32px - var(--haze) - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
