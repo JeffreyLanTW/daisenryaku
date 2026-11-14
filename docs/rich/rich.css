@@ -150,3 +150,9 @@ button.sky:hover:not(:disabled) { filter: brightness(1.08); background: linear-g
   border-radius: 10px; padding: 7px 11px; font-size: 12px; line-height: 1.5; box-shadow: 0 10px 26px rgba(0, 0, 0, .5); }
 #tileTip .nm { display: block; font-size: 15px; color: #fff6db; border-left: 4px solid; padding-left: 6px; }
 #tileTip small { color: var(--muted); }
+.bite-fx { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); z-index: 16; pointer-events: none;
+  background: linear-gradient(135deg, rgba(185, 28, 28, .95), rgba(234, 88, 12, .92)); color: #fff;
+  border: 2px solid #fca5a5; border-radius: 14px; padding: 10px 18px; font-size: 17px; font-weight: 900;
+  letter-spacing: .5px; box-shadow: 0 12px 32px rgba(220, 38, 38, .55); white-space: nowrap;
+  animation: biteShake .26s ease-in-out infinite alternate; }
+@keyframes biteShake { from { transform: translateX(-50%) rotate(-1.5deg) scale(1); } to { transform: translateX(-50%) rotate(1.5deg) scale(1.05); } }

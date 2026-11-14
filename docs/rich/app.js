@@ -33,6 +33,7 @@ function snd(kind) {
     else if (kind === 'seize') { tone(440, 0.1); tone(587, 0.12, 0.08); tone(880, 0.22, 0.16); }
     else if (kind === 'news') { tone(784, 0.07, 0, 'sine', 0.09); tone(1046, 0.14, 0.07, 'sine', 0.09); }
     else if (kind === 'turn') tone(587, 0.12, 0, 'sine', 0.09);
+    else if (kind === 'dog') { tone(190, 0.09, 0, 'sawtooth', 0.14); tone(145, 0.11, 0.11, 'sawtooth', 0.16); tone(260, 0.08, 0.24, 'square', 0.12); tone(120, 0.2, 0.34, 'sawtooth', 0.14); }
     else if (kind === 'bad') tone(220, 0.3, 0, 'sawtooth', 0.08);
   } catch (e) { /* 忽略 */ }
 }
@@ -2307,6 +2308,13 @@ function makeNpcToken(npc) {
 const slotOff = k => new THREE.Vector3([-2.3, 2.3, -2.3, 2.3][k % 4], 0, [1.0, 1.0, 3.5, 3.5][k % 4]);
 const tokenWorld = (i, k) => { const p = tilePos(i); return new THREE.Vector3(p.x, p.y + 0.34, p.z).add(slotOff(k)); };
 const npcWorld = i => { const p = tilePos(i); return new THREE.Vector3(p.x + 4.4, p.y + 0.34, p.z + 0.6); };
+const isIslandLeg = (a, b) => !TILE_MAIN[a] || !TILE_MAIN[b];
+const stepDurMs = (a, b) => {
+  const base = STEP_MS();
+  if (!isIslandLeg(a, b)) return base;
+  const dist = tilePos(a).distanceTo(tilePos(b));
+  return base * Math.max(2.8, Math.min(4.8, dist / 28));
+};
 
 // ---------- 雙顆 3D 骰子（隨當前玩家定位滾動，永不淹沒於地形）----------
 const pipTex = n => canvasTex(128, 128, (c, w) => {
@@ -2644,6 +2652,65 @@ function syncMoveStart() {
     tk.path = [...G.move.path];
     tk.t = 0;
     tk.from = tk.pos;
+    tk.biteDoneN = 0;
+  }
+}
+
+let biteAnim = null, biteBurst = null, biteBanner = null;
+function ensureBiteFx() {
+  if (!biteBurst) {
+    biteBurst = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.RingGeometry(2.0, 3.3, 24), new THREE.MeshBasicMaterial({ color: '#ef4444', side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+    ring.rotation.x = -Math.PI / 2;
+    biteBurst.add(ring);
+    const spikeMat = new THREE.MeshBasicMaterial({ color: '#f97316', transparent: true, opacity: 0.92 });
+    for (let s = 0; s < 8; s++) {
+      const a = (s / 8) * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.8, 4), spikeMat);
+      sp.position.set(Math.cos(a) * 3.1, 1.8, Math.sin(a) * 3.1);
+      sp.rotation.z = Math.PI / 2;
+      sp.rotation.y = -a;
+      biteBurst.add(sp);
+    }
+    biteBurst.visible = false;
+    scene.add(biteBurst);
+  }
+  if (!biteBanner) {
+    biteBanner = document.createElement('div');
+    biteBanner.className = 'bite-fx hidden';
+    document.querySelector('main').appendChild(biteBanner);
+  }
+}
+function clearBiteFx() {
+  biteAnim = null;
+  if (biteBurst) biteBurst.visible = false;
+  if (biteBanner) biteBanner.classList.add('hidden');
+}
+function startDogBite(pId, atPos, npcId, now) {
+  ensureBiteFx();
+  const dur = 1150 / Math.sqrt(SPEED);
+  biteAnim = { t0: now, dur, p: pId, at: atPos, npcId };
+  const wp = tilePos(atPos);
+  biteBurst.position.set(wp.x + 1.2, wp.y + 0.55, wp.z + 1.2);
+  biteBurst.visible = true;
+  const pl = G && G.players[pId];
+  biteBanner.textContent = `🐕 汪！${pl ? pl.name : '玩家'} 被野狗咬傷 -$800 → 🏥 送醫！`;
+  biteBanner.classList.remove('hidden');
+  snd('dog');
+}
+function stepDogBite(now) {
+  if (!biteAnim) return;
+  const bp = (now - biteAnim.t0) / biteAnim.dur;
+  if (bp >= 1) {
+    const tk = tokens[biteAnim.p];
+    if (tk) tk.g.rotation.z = 0;
+    clearBiteFx();
+    return;
+  }
+  if (biteBurst) {
+    const s = 0.75 + Math.sin(bp * Math.PI * 3) * 0.45 + bp * 0.45;
+    biteBurst.scale.setScalar(s);
+    biteBurst.rotation.y = bp * Math.PI * 4;
   }
 }
 
@@ -2691,16 +2758,31 @@ function frame(now) {
       }
 
       if (tk.path.length) {
-        if (!diceAnim) {
-          tk.t += dt / STEP_MS();
+        if (biteAnim && biteAnim.p === k) {
+          const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
+          tk.g.position.copy(tokenWorld(biteAnim.at, k));
+          tk.g.position.y += Math.abs(Math.sin(bp * Math.PI * 4)) * 2.8;
+          tk.g.rotation.z = Math.sin(bp * 36) * 0.28;
+          tk.leftArm.rotation.x = -1.2; tk.rightArm.rotation.x = -1.2;
+          tk.leftLeg.rotation.x = 0.25; tk.rightLeg.rotation.x = -0.25;
+        } else if (!diceAnim && !biteAnim) {
+          const legDur = stepDurMs(tk.from, tk.path[0]);
+          const hopH = isIslandLeg(tk.from, tk.path[0]) ? 8.5 : 4.6;
+          tk.t += dt / legDur;
           const a = tokenWorld(tk.from, k), b = tokenWorld(tk.path[0], k), f = Math.min(1, tk.t);
           tk.g.position.lerpVectors(a, b, f);
-          tk.g.position.y += Math.sin(f * Math.PI) * 4.6;
+          tk.g.position.y += Math.sin(f * Math.PI) * hopH;
           tk.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
           const swing = Math.sin(f * Math.PI * 2) * 0.65;
           tk.leftArm.rotation.x = swing; tk.rightArm.rotation.x = -swing;
           tk.leftLeg.rotation.x = -swing * 0.8; tk.rightLeg.rotation.x = swing * 0.8;
-          if (f >= 1) { tk.from = tk.path.shift(); tk.pos = tk.from; tk.t = 0; snd('step'); }
+          if (f >= 1) {
+            tk.from = tk.path.shift(); tk.pos = tk.from; tk.t = 0; snd('step');
+            if (G.move && G.move.bite && G.move.p === k && G.move.n === tk.moveN && tk.from === G.move.bite.at && tk.biteDoneN !== G.move.n) {
+              tk.biteDoneN = G.move.n;
+              startDogBite(k, G.move.bite.at, G.move.bite.npcId, now);
+            }
+          }
         } else {
           tk.g.position.copy(tokenWorld(tk.from, k));
           tk.leftArm.rotation.x = 0; tk.rightArm.rotation.x = 0;
@@ -2748,10 +2830,23 @@ function frame(now) {
         if (npc.attachedTo == null) nt.attachedTo = null;
         nt.g.visible = true;
         nt.g.scale.setScalar(1.25);
-        if (!waitingPass && npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
+        const biteMoveTk = npc.kind === 'dog' && G.move && G.move.bite && G.move.bite.npcId === npc.id ? tokens[G.move.p] : null;
+        const waitingBite = !!(biteMoveTk && biteMoveTk.moveN === G.move.n && (biteMoveTk.path.includes(G.move.bite.at) || (biteAnim && biteAnim.npcId === npc.id)));
+        if (biteAnim && biteAnim.npcId === npc.id) {
+          const bp = Math.min(1, (now - biteAnim.t0) / biteAnim.dur);
+          const dPos = npcWorld(biteAnim.at), pPos = tokenWorld(biteAnim.at, biteAnim.p);
+          const lunge = Math.sin(bp * Math.PI * 6) * 0.5 + 0.5;
+          nt.g.position.lerpVectors(dPos, pPos, 0.45 + lunge * 0.45);
+          nt.g.position.y += Math.abs(Math.sin(bp * Math.PI * 5)) * 1.9;
+          nt.g.rotation.y = Math.atan2(pPos.x - dPos.x, pPos.z - dPos.z);
+          nt.g.scale.setScalar(1.38 + lunge * 0.16);
+          if (nt.g.userData.tail) nt.g.userData.tail.rotation.z = Math.sin(now * 0.04) * 0.7;
+          continue;
+        }
+        if (!waitingPass && !waitingBite && npc.moveN !== nt.moveN) { nt.moveN = npc.moveN; nt.from = npc.from != null ? npc.from : nt.pos; nt.pos = npc.pos; nt.t = 0; }
         if (nt.t < 1) {
-          if (!diceAnim) {
-            nt.t = Math.min(1, nt.t + dt / (STEP_MS() * 1.8));
+          if (!diceAnim && !biteAnim) {
+            nt.t = Math.min(1, nt.t + dt / (stepDurMs(nt.from, nt.pos) * 1.6));
             const a = npcWorld(nt.from), b = npcWorld(nt.pos);
             nt.g.position.lerpVectors(a, b, nt.t);
             nt.g.position.y += Math.sin(nt.t * Math.PI) * (npc.kind === 'dog' ? 2.2 : 4.5);
@@ -2760,7 +2855,7 @@ function frame(now) {
             nt.g.position.copy(npcWorld(nt.from));
           }
         } else {
-          nt.g.position.copy(npcWorld(waitingPass ? nt.pos : npc.pos));
+          nt.g.position.copy(npcWorld((waitingPass || waitingBite) ? nt.pos : npc.pos));
           nt.g.position.y += Math.sin(now * 0.004 + npc.id) * 0.35;
         }
         if (nt.g.userData.tail) nt.g.userData.tail.rotation.z = Math.sin(now * 0.015) * 0.45;
@@ -2780,6 +2875,7 @@ function frame(now) {
     camS.goal.set(-4, 0, 4);
   }
   stepDice(now);
+  stepDogBite(now);
   updateCamera();
   renderer.render(scene, camera);
 }
@@ -2787,7 +2883,7 @@ function frame(now) {
 // ============================================================ 介面與 Breaking News（移動後依序不重疊觸發）
 const mine = pid => NET.role === 'local' ? G.players[pid].kind !== 'ai' : NET.myIds.has(pid);
 const isMoving = () => {
-  if (diceAnim) return true;
+  if (diceAnim || biteAnim) return true;
   if (tokens.some(t => t && t.path && t.path.length)) return true;
   if (G && G.move && G.move.path && G.move.path.length && (!tokens[G.move.p] || tokens[G.move.p].moveN !== G.move.n)) return true;
   if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
@@ -2836,7 +2932,7 @@ $('#cardPop').onclick = () => dismissCardPop();
 function pumpUiQueue() {
   if (uiRunning || !uiQueue.length) return;
   if (isMoving()) {
-    whenWalkDone(pumpUiQueue);
+    whenWalkDone(pumpUiQueue, Math.round(420 / Math.sqrt(SPEED)));
     return;
   }
   if (!$('#modal').classList.contains('hidden') || !$('#newsToast').classList.contains('hidden') || !$('#cardPop').classList.contains('hidden')) {
@@ -2878,6 +2974,7 @@ function resetUiQueue() {
   clearTimeout(nt._t); nt.classList.add('hidden');
   const el = $('#cardPop');
   clearTimeout(el._t); el.classList.add('hidden');
+  clearBiteFx();
   clearWalkTimers();
 }
 
@@ -3153,17 +3250,19 @@ function renderUI() {
 let moveAt = 0, walkTimers = [];
 const animDelay = () => Math.max(300, moveAt + (G.move ? G.move.path.length : 0) * (STEP_MS() + 10) + (750 + 1300) / SPEED - performance.now());
 function clearWalkTimers() { for (const id of walkTimers) clearTimeout(id); walkTimers.length = 0; }
-function whenWalkDone(cb) {
+function whenWalkDone(cb, settleMs = 0) {
   const t0 = performance.now();
   if (!isMoving()) {
-    cb();
+    if (settleMs > 0) { const tid = setTimeout(cb, settleMs); walkTimers.push(tid); }
+    else cb();
     return;
   }
   const id = setTimeout(function check() {
     if (isMoving() && performance.now() - t0 < 20000) {
       const id2 = setTimeout(check, 80); walkTimers.push(id2); return;
     }
-    cb();
+    if (settleMs > 0) { const tid = setTimeout(cb, settleMs); walkTimers.push(tid); }
+    else cb();
   }, 80);
   walkTimers.push(id);
 }
@@ -3701,4 +3800,4 @@ function openJoin() {
 resize();
 requestAnimationFrame(frame);
 openLobby();
-window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens, isMoving, uiQueue, showNewsToast, dismissNewsToast };
+window.__rich = { get G() { return G; }, send, NET, camS, camCtl, renderUI, openLeaderboardModal, labelGroup, SEG_MODE, tileProps, dice, tokens, npcTokens, isMoving, isBiting: () => !!biteAnim, uiQueue, showNewsToast, dismissNewsToast };

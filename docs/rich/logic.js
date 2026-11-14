@@ -255,11 +255,13 @@
     // 第 1 輪不會被神明附身（野狗照常咬人）
     if (npc.kind !== 'dog' && (G.round || 1) <= 1) return false;
     if (npc.kind === 'dog') {
+      const biteAt = p.pos;
       pay(G, p, 800, null, '被野狗咬傷付醫藥費');
       npc.from = npc.pos;
       npc.pos = (npc.pos + 3) % N;
       npc.moveN = (npc.moveN || 0) + 1;
       if (!p.bankrupt) goHospital(G, p, '遭路邊野狗咬傷，送醫住院 1 回合');
+      G.fx = { k: 'dog_bite', p: p.id, at: biteAt };
       return true;
     }
     // 身上已有神明附身時，不會被路過的其他神明覆蓋
@@ -307,7 +309,7 @@
   function walk(G, p, steps, abs = false) {
     const dir = abs ? 1 : (p.reverse ? -1 : 1), path = [];
     const from = p.pos;
-    let interrupted = false;
+    let interrupted = false, bite = null;
     for (let k = 0; k < Math.abs(steps); k++) {
       const d = steps < 0 ? -dir : dir;
       p.pos = (p.pos + d + N) % N; path.push(p.pos);
@@ -327,8 +329,10 @@
       // 路遇地圖 NPC（神明或野狗）
       const hitNpc = (G.npcs || []).find(n => n.attachedTo == null && n.pos === p.pos);
       if (hitNpc) {
+        const wasDog = hitNpc.kind === 'dog', atPos = p.pos;
         const stopWalk = encounterNpc(G, p, hitNpc);
         if (stopWalk) {
+          if (wasDog) bite = { at: atPos, npcId: hitNpc.id };
           if (p.pos !== path[path.length - 1]) path.push(p.pos);
           interrupted = true;
           break;
@@ -336,7 +340,7 @@
       }
     }
     G.moveSeq = (G.moveSeq || 0) + 1;
-    G.move = { p: p.id, path, n: G.moveSeq, from };
+    G.move = { p: p.id, path, n: G.moveSeq, from, bite };
     return interrupted;
   }
   function moveTo(G, p, i) {
