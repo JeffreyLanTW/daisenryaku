@@ -116,7 +116,7 @@ function autoSave() {
 function applySave(obj) {
   const g = obj && (obj.G || obj);
   if (!g || !Array.isArray(g.terrain) || !Array.isArray(g.units)) { showBanner('存檔格式錯誤', '#a33'); return false; }
-  if (g.missionId && !MISSIONS[g.missionId]) { showBanner('此存檔屬於舊版劇情（fictional-v1 分支）', '#a33'); return false; }
+  if (g.missionId && !MISSIONS[g.missionId]) { showBanner('此存檔屬於已移除的劇情，無法讀取', '#a33'); return false; }
   gameToken++;
   clearSel(); setInspect(null); FX.length = 0;
   G = g;

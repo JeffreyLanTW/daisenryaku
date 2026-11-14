@@ -252,7 +252,7 @@ function drawCounter(c, cx, cy, type, side, o = {}) {
   }
 
   c.save();
-  if (o.done) c.globalAlpha = 0.48;
+  if (o.done) c.globalAlpha = 0.72;   // 已行動：淡一點即可，不要太灰
   if (!o.noIcon) c.drawImage(iconImage(d, side === 1), cx - ICON_W / 2 * 1.14, cy + oy + 1 - ICON_H / 2 * 1.14, ICON_W * 1.14, ICON_H * 1.14);
   c.restore();
 

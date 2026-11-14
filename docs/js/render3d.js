@@ -3,8 +3,8 @@
 // 遊戲邏輯與 2D 介面完全不變：這裡只負責畫面，並提供「螢幕座標 ↔ 地圖座標」的換算。
 // 本檔是 ES module，會讀取其他 <script> 定義的全域（G、TERRAIN、cam、drawCounter…）。
 import * as THREE from '../vendor/three.min.js';
-import { unitModel } from './models3d.js?v=109';
-import { createFX } from './fx3d.js?v=109';
+import { unitModel } from './models3d.js?v=110';
+import { createFX } from './fx3d.js?v=110';
 
 const FOV = 30;                       // 鏡頭視角（度）
 const BASE_Y = -16;                   // 六角柱底部
@@ -139,7 +139,7 @@ function init() {
   unitGroup = new THREE.Group();
   unitScene.add(uHemi, uSun, unitGroup);
   modelMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.72, metalness: 0.08 });
-  doneMat = modelMat.clone(); doneMat.color.set('#707070');
+  doneMat = modelMat.clone(); doneMat.color.set('#b8b8b8');   // 已行動：稍微變暗即可，保持可辨識
   renderer.autoClear = false;
   // 戰鬥特效（射擊、彈道、命中、擊毀殘骸）：畫在部隊層，與部隊一起在建築前面
   fx = createFX({ scene, fxScene: unitScene, heightAt: (x, z) => heightAt(x, z), waterY: WATER_Y,
