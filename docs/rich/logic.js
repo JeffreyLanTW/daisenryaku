@@ -720,6 +720,10 @@
       if (G.cur === 0) {
         G.round++;
         if (G.maxRounds > 0 && G.round > G.maxRounds) return finishByWorth(G);
+        if (G.round >= 20 && G.round % 20 === 0) {
+          const top = G.players.filter(q => !q.bankrupt).sort((a, b) => netWorth(G, b) - netWorth(G, a))[0];
+          if (top) log(G, `📊 第 ${G.round} 回合財富排行榜出爐！暫居首富：${top.name}（總資產 $${netWorth(G, top)}）`);
+        }
       }
       const p = cur(G);
       if (p.bankrupt) continue;

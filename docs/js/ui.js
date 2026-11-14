@@ -1277,7 +1277,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v135</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v137</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1309,7 +1309,9 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
-        <div class="cl-item"><span class="cl-ver">v135</span><span class="cl-date">2026.11.14</span><p>【迷霧也限制電腦】開啟戰爭迷霧時，電腦 AI 只會瞄準、追擊、搶灘與計算威脅自己（含盟友共享）看得見的敵軍，不再掌握全場；據點位置與歸屬仍是公開情報。</p></div>
+        <div class="cl-item"><span class="cl-ver">v137</span><span class="cl-date">2026.11.14</span><p>【迷霧也限制電腦】開啟戰爭迷霧時，電腦 AI 只會瞄準、追擊、搶灘與計算威脅自己（含盟友共享）看得見的敵軍，不再掌握全場；據點位置與歸屬仍是公開情報。</p></div>
+        <div class="cl-item"><span class="cl-ver">v136</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 操作與實況體驗升級】新增三指觸控拖曳自由平移台灣棋盤視角；Breaking News 突發新聞快訊改為畫面正中央彈出，並依事件類型顯示鮮明彩色插畫與醒目大字標題；新增每 20 回合自動結算並彈出財富排行榜（含頂部「🏆 排行」按鈕可隨時檢視）。</p></div>
+        <div class="cl-item"><span class="cl-ver">v135</span><span class="cl-date">2026.11.14</span><p>【環島富豪 3D 全台地形與建模大翻新】廢除舊版方形外圍棋盤與木框，將 56 個環島格位直接配置於放大立體的台灣本島與澎湖／金門／綠島／蘭嶼離島地形上，並鋪設雙線環島公路與跨海斜張大橋；全面精細化台北 101、中正紀念堂、85 大樓、鵝鑾鼻燈塔、阿里山森林小火車、日月潭寶塔、竹科晶圓廠、九份茶樓、太魯閣牌樓、4 階建築（三合院到摩天大樓）與可動四肢玩家及 6 位 NPC 3D 造型。</p></div>
         <div class="cl-item"><span class="cl-ver">v134</span><span class="cl-date">2026.11.14</span><p>【劇情部署修正】繼承的航空母艦等艦艇在內陸關卡（如第二章嘉南平原）沒地方放：配置區沒有海面時，會自動在最靠近我方據點、遠離敵軍的外海開放配置區。</p></div>
         <div class="cl-item"><span class="cl-ver">v133</span><span class="cl-date">2026.11.14</span><p>合併版本：同時包含環島富豪最新修正、自由對戰同盟／第五章與終章延長，以及環島富豪 3D 升級。</p></div>
         <div class="cl-item"><span class="cl-ver">v132</span><span class="cl-date">2026.11.14</span><p>【修正環島富豪 3D 無畫面問題】修正 #newsBar 隱藏時導致 CSS Grid 的 &lt;main&gt; 高度塌縮為 0 像素、WebGL 畫布未自動撐滿螢幕的問題，改用 Flex 佈局並加入 ResizeObserver 即時更新畫布尺寸。</p></div>
@@ -1507,7 +1509,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v135</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v137</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
