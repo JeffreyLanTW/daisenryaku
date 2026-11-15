@@ -4174,8 +4174,15 @@ function frame(now) {
           continue;
         }
         if (npc.attachedTo == null) nt.attachedTo = null;
-        nt.g.visible = !(npc.respawnIn > 0);
-        if (!nt.g.visible) continue;
+        if (npc.respawnIn > 0) {
+          nt.g.visible = false;
+          nt.moveN = npc.moveN || 0;
+          nt.pos = npc.pos;
+          nt.from = npc.pos;
+          nt.t = 1;
+          continue;
+        }
+        nt.g.visible = true;
         nt.g.scale.setScalar(1.25);
         const biteMoveTk = npc.kind === 'dog' && G.move && G.move.bite && G.move.bite.npcId === npc.id ? tokens[G.move.p] : null;
         const waitingBite = !!((biteMoveTk && biteMoveTk.moveN === G.move.n && (biteMoveTk.path.includes(G.move.bite.at) || (biteAnim && biteAnim.npcId === npc.id))) || (G.biteFx && G.biteFx.n !== lastBiteN && G.biteFx.npcId === npc.id));
@@ -4282,7 +4289,7 @@ const isMoving = () => {
   if (G && G.transportFx && G.transportFx.n !== lastTransportN) return true;
   if (G && G.bankruptFx && G.bankruptFx.n !== lastBankruptN) return true;
   if (G && G.godFx && G.godFx.n !== lastGodFxN) return true;
-  if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
+  if (G && G.npcs && G.npcs.some(n => n.attachedTo == null && !(n.respawnIn > 0) && npcTokens.get(n.id) && npcTokens.get(n.id).moveN !== n.moveN)) return true;
   for (const nt of npcTokens.values()) if (nt && nt.g.visible && nt.t < 1) return true;
   return false;
 };
@@ -5278,6 +5285,7 @@ function scheduleAuto() {
       const a = R.aiAction(G);
       const e = R.act(G, p.id, a);
       if (e && a.type === 'item') R.act(G, p.id, { type: 'roll' });
+      else if (e && G.phase === 'done') R.act(G, p.id, { type: 'end' });
       afterChange(e && a.type === 'item' ? { type: 'roll' } : a);
     }, wait);
     return;
@@ -5344,7 +5352,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v170</span></h2><div class="sub">原創 3D 台灣地產桌遊：125 格全台灣（含鄉鎮、美食、百貨、遊樂場、造型商店、汽車中心、股市與澎湖/金門離島不規則小地圖）、4 倍佔地 3D 霓虹造景、漸進 6 階地標建設、定點神明野狗與右上角 Breaking News！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v171</span></h2><div class="sub">原創 3D 台灣地產桌遊：125 格全台灣（含鄉鎮、美食、百貨、遊樂場、造型商店、汽車中心、股市與澎湖/金門離島不規則小地圖）、4 倍佔地 3D 霓虹造景、漸進 6 階地標建設、定點神明野狗與右上角 Breaking News！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
