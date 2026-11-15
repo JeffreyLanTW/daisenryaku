@@ -280,6 +280,11 @@ button.sky:hover:not(:disabled) { filter: brightness(1.08); background: linear-g
 #pdCanvas { width: 240px !important; height: 260px !important; display: block; }
 .pd-stage-hint { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); pointer-events: none;
   font-size: 10px; color: rgba(226, 232, 240, .78); background: rgba(10, 15, 24, .55); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pd-spin-btn { position: absolute; top: 8px; right: 8px; z-index: 3; padding: 4px 10px; font-size: 11px; font-weight: 800;
+  border-radius: 999px; background: rgba(15, 23, 42, .78); border: 1px solid rgba(255, 255, 255, .24); color: #f8fafc;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 4px 12px rgba(0, 0, 0, .4); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.pd-spin-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(23, 33, 48, .92); }
+.pd-spin-btn.paused { background: rgba(224, 181, 74, .22); border-color: var(--gold); color: #fde68a; }
 .pd-head-info { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .pd-head-info .pd-summary { grid-template-columns: repeat(2, 1fr); margin: 4px 0 0; }
 @media (max-width: 700px) {

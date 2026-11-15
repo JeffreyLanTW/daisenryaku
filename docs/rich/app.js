@@ -4846,7 +4846,7 @@ function frame(now) {
   updateCamera();
   renderer.render(scene, camera);
   if (pdPreview && pdPreview.tok && $('#pdCanvas') && !$('#modal').classList.contains('hidden')) {
-    if (!pdPreview.dragging) pdPreview.rotY += dt * 0.0009;
+    if (!pdPreview.dragging && !pdPreview.paused) pdPreview.rotY += dt * 0.0009;
     pdPreview.tok.g.rotation.y = pdPreview.rotY;
     pdPreview.root.rotation.x = pdPreview.rotX;
     if (pdPreview.tok.decoSlots && pdPreview.tok.decoSlots.halo) {
@@ -5240,7 +5240,7 @@ function ensurePdPreview() {
   ped.position.y = -3.15;
   root.add(ped);
   sc.add(root);
-  pdPreview = { renderer: pvRenderer, scene: sc, camera: cam, root, tok: null, rotY: 0.35, rotX: 0.08, dragging: false };
+  pdPreview = { renderer: pvRenderer, scene: sc, camera: cam, root, tok: null, rotY: 0.35, rotX: 0.08, dragging: false, paused: false };
   return pdPreview;
 }
 function updatePdPreviewModel(p) {
@@ -5261,6 +5261,7 @@ function bindPdStageEvents(stageEl) {
   stageEl._pdBound = true;
   let lastX = 0, lastY = 0;
   stageEl.addEventListener('pointerdown', e => {
+    if (e.target && e.target.closest && e.target.closest('#pdSpinBtn')) return;
     const pv = ensurePdPreview();
     pv.dragging = true;
     lastX = e.clientX;
@@ -5293,6 +5294,7 @@ function openPlayerDetail(pid) {
   openModal(`<div class="pd-showcase">
       <div class="pd-stage">
         <div id="pdStageMount"></div>
+        <button type="button" id="pdSpinBtn" class="pd-spin-btn${pdPreview && pdPreview.paused ? ' paused' : ''}" title="切換自動旋轉 / 暫停">${pdPreview && pdPreview.paused ? '▶️ 旋轉' : '⏸️ 暫停'}</button>
         <div class="pd-stage-hint">👆 拖曳旋轉預覽 3D 棋子</div>
       </div>
       <div class="pd-head-info">
@@ -5383,6 +5385,19 @@ function openPlayerDetail(pid) {
     if (mount) mount.appendChild(pv.renderer.domElement);
     updatePdPreviewModel(p);
     bindPdStageEvents(box.querySelector('.pd-stage'));
+    const spinBtn = box.querySelector('#pdSpinBtn');
+    if (spinBtn) {
+      const syncSpinBtn = () => {
+        spinBtn.classList.toggle('paused', !!pv.paused);
+        spinBtn.innerHTML = pv.paused ? '▶️ 旋轉' : '⏸️ 暫停';
+      };
+      syncSpinBtn();
+      spinBtn.onclick = e => {
+        e.stopPropagation();
+        pv.paused = !pv.paused;
+        syncSpinBtn();
+      };
+    }
     box.querySelector('.close').onclick = closeModal;
     const tk = box.querySelector('#pdToggleKind');
     if (tk) tk.onclick = () => { closeModal(); togglePlayerKind(pid); openPlayerDetail(pid); };
@@ -6088,7 +6103,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v173</span></h2><div class="sub">原創 3D 台灣地產桌遊：125 格全台灣（含鄉鎮、美食、百貨、遊樂場、造型商店、汽車中心、股市與澎湖/金門離島不規則小地圖）、4 倍佔地 3D 霓虹造景、漸進 6 階地標建設、定點神明野狗與右上角 Breaking News！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v174</span></h2><div class="sub">原創 3D 台灣地產桌遊：125 格全台灣（含鄉鎮、美食、百貨、遊樂場、造型商店、汽車中心、股市與澎湖/金門離島不規則小地圖）、4 倍佔地 3D 霓虹造景、漸進 6 階地標建設、定點神明野狗與右上角 Breaking News！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>

@@ -1288,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v173</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v174</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1320,6 +1320,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v174</span><span class="cl-date">2026.11.15</span><p>【環島富豪 3D 棋子展示台新增旋轉暫停／恢復按鈕】點擊左上玩家卡片開啟之 3D 棋子展示台右上角新增「⏸️ 暫停 / ▶️ 旋轉」按鈕，可自由暫停或恢復自動旋轉並細看配件細節，切換穿戴特產、服飾或座駕時亦保留暫停狀態與檢視角度。</p></div>
         <div class="cl-item"><span class="cl-ver">v173</span><span class="cl-date">2026.11.15</span><p>【環島富豪 125 格 3D 地標與 0～5 級建築全面升級・消除底盤閃爍・骰子智慧避障】全面放大增高全台 125 格 3D 地標與 0～5 級地產建築模型並補齊在地特色細節（台北 101 八節竹身與商業裙樓、高雄 85 大樓與流行音樂中心、各地美食大牌樓與摩天輪遊樂場、花蓮／夜市／服飾店專屬地標與雙子星旗艦巨塔等，並修復服飾店重複分支覆寫）；優化高程鄰接防重疊與交錯 <code>polygonOffset</code>、拉開大都市格位間距並調升攝影機近裁面，根除高雄港灣與百貨等底盤閃爍（Z-fighting）；新增 3D 骰子落地墊、縮小骰體並依視角側向動態避讓玩家棋子，擲骰結束後自動收合隱藏，避免與棋子重疊遮擋。</p></div>
         <div class="cl-item"><span class="cl-ver">v172</span><span class="cl-date">2026.11.15</span><p>【環島富豪 125 格地形地標・全點位特產事件・3D 穿戴放大檢視】125 格依地形與機能打造差異化立體底座與專屬地標建築（101 大樓、燈塔、溫泉、港口等）；全點位（0..124）皆可觸發道具／特產事件並彈出圖文說明對話框；4 AI 與鏡頭流暢節奏聯動調校；左上玩家卡片改為半透明玻璃質感，點擊可開啟可旋轉 3D 穿戴放大檢視與即時試穿。</p></div>
         <div class="cl-item"><span class="cl-ver">v171</span><span class="cl-date">2026.11.15</span><p>【環島富豪 修復神明退駕隱遁期間 AI 回合卡死 Bug】修復神明附身 5 回合結束進入 10 回合隱遁期間，因 3D NPC 隱藏跳過 <code>moveN</code> 同步而導致 <code>isMoving()</code> 恆為 true、使 4 AI 自動回合卡在「電腦思考中…」之問題。</p></div>
@@ -1556,7 +1557,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v173</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v174</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
