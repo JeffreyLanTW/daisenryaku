@@ -9,15 +9,15 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>環島富豪 3D v169</title>
+<title>環島富豪 3D v170</title>
 <link rel="icon" href="../favicon.svg">
-<link rel="stylesheet" href="rich.css?v=36">
+<link rel="stylesheet" href="rich.css?v=37">
 </head>
 <body>
 <div id="app">
   <header id="bar">
     <a class="brand" href="../" title="回到大戰略">← 大戰略</a>
-    <span class="title">環島富豪 3D <span style="font-size:.7em;opacity:.75;font-weight:600">v169</span></span>
+    <span class="title">環島富豪 3D <span style="font-size:.7em;opacity:.75;font-weight:600">v170</span></span>
     <button id="roundInfo" class="pill clickable" title="點擊可調整回合上限"></button>
     <span id="netInfo" class="pill hidden"></span>
     <span class="spacer"></span>
@@ -27,16 +27,17 @@
     <button id="btnLog" title="紀錄">紀錄</button>
     <button id="btnMenu" title="選單">☰</button>
   </header>
-  <div id="newsBar" class="hidden" title="點擊展開突發新聞紀錄">
-    <span class="news-badge">🔴 BREAKING NEWS</span>
-    <div class="news-scroll">
-      <span id="newsTitle"></span>
-      <span id="newsTicker"></span>
-    </div>
-  </div>
   <main>
     <canvas id="gl"></canvas>
     <div id="players"></div>
+    <div id="newsBar" class="hidden" title="點擊展開突發新聞紀錄">
+      <div id="newsArt"></div>
+      <div class="news-meta">
+        <span class="news-badge">🔴 NEWS</span>
+        <div id="newsTitle"></div>
+        <div id="newsTicker"></div>
+      </div>
+    </div>
     <div id="dock">
       <div id="turnName"></div>
       <div class="acts">
@@ -62,8 +63,8 @@
   </main>
 </div>
 <div id="modal" class="hidden"><div id="modalBox"></div></div>
-<script src="../vendor/peerjs.min.js?v=36"></script>
-<script src="logic.js?v=36"></script>
-<script type="module" src="app.js?v=36"></script>
+<script src="../vendor/peerjs.min.js?v=37"></script>
+<script src="logic.js?v=37"></script>
+<script type="module" src="app.js?v=37"></script>
 </body>
 </html>

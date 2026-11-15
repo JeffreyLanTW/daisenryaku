@@ -36,6 +36,7 @@ function snd(kind) {
     else if (kind === 'dog') { tone(190, 0.09, 0, 'sawtooth', 0.14); tone(145, 0.11, 0.11, 'sawtooth', 0.16); tone(260, 0.08, 0.24, 'square', 0.12); tone(120, 0.2, 0.34, 'sawtooth', 0.14); }
     else if (kind === 'siren') { for (let k = 0; k < 4; k++) { tone(660, 0.14, k * 0.32, 'sine', 0.11); tone(880, 0.14, k * 0.32 + 0.16, 'sine', 0.11); } }
     else if (kind === 'hsr') { tone(587, 0.12, 0, 'sine', 0.12); tone(880, 0.14, 0.11, 'sine', 0.12); tone(1175, 0.25, 0.22, 'triangle', 0.14); }
+    else if (kind === 'car') { tone(125, 0.1, 0, 'sawtooth', 0.08); tone(165, 0.14, 0.06, 'triangle', 0.09); tone(520, 0.08, 0.02, 'sine', 0.06); }
     else if (kind === 'heli') { for (let k = 0; k < 8; k++) tone(110 + (k % 2) * 18, 0.08, k * 0.14, 'sawtooth', 0.07); }
     else if (kind === 'bankrupt') { tone(440, 0.18, 0, 'sawtooth', 0.14); tone(311, 0.2, 0.16, 'sawtooth', 0.14); tone(220, 0.25, 0.34, 'sawtooth', 0.14); tone(110, 0.5, 0.56, 'sawtooth', 0.18); }
     else if (kind === 'bad') tone(220, 0.3, 0, 'sawtooth', 0.08);
@@ -49,9 +50,9 @@ const SPEEDS = [[0.5, '慢'], [1, '標準'], [1.6, '快'], [2.5, '極快']];
 let SPEED = 0.5; // 預設「慢」
 try { const v = parseFloat(localStorage.getItem('rich_speed')); if (SPEEDS.some(([k]) => k === v)) SPEED = v; } catch (e) { /* 忽略 */ }
 function setSpeed(v) { SPEED = v; try { localStorage.setItem('rich_speed', String(v)); } catch (e) { /* 忽略 */ } }
-const STEP_MS = () => 290 / SPEED;
-// WS：世界尺度倍率（地圖放大 1.8 倍，棋格造景與地形更有空間）
-const WS = 1.8;
+const STEP_MS = () => 390 / SPEED;
+// WS：世界尺度倍率（地圖放大 2.7 倍，容納 125 格與 4 倍佔地造景）
+const WS = 2.7;
 const TILE_SIZE = 5.4;
 const canvas = $('#gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -104,22 +105,21 @@ const TW_POLY = [
   [121.325, 25.155], [121.395, 25.165], [121.435, 25.205], [121.485, 25.265],
 ];
 
-// 真實離島與海峽對岸多邊形（澎湖、金門、馬祖、小琉球、龜山島、綠島、蘭嶼、與那國、閩東南沿岸）
+// 真實離島與海峽對岸多邊形（放大澎湖、金門不規則小地圖區域，容納 12-14 格島內路線）
 const OFFSHORE_POLYS = [
-  // 澎湖馬公本島、白沙、西嶼、望安、七美
-  { poly: [[119.53, 23.52], [119.63, 23.51], [119.67, 23.58], [119.62, 23.62], [119.55, 23.59]], elev: 0.78, col: '#4a9352' },
-  { poly: [[119.56, 23.63], [119.62, 23.63], [119.61, 23.69], [119.54, 23.68]], elev: 0.72, col: '#4e9656' },
-  { poly: [[119.47, 23.56], [119.52, 23.57], [119.53, 23.66], [119.48, 23.64]], elev: 0.72, col: '#4e9656' },
-  { poly: [[119.48, 23.34], [119.53, 23.34], [119.54, 23.40], [119.48, 23.39]], elev: 0.65, col: '#468c4e' },
-  { poly: [[119.40, 23.19], [119.45, 23.19], [119.45, 23.23], [119.40, 23.22]], elev: 0.65, col: '#468c4e' },
-  // 大金門（經典東西雙瓣輪廓）與小金門（烈嶼）
-  { poly: [[118.29, 24.42], [118.36, 24.40], [118.42, 24.41], [118.49, 24.44], [118.49, 24.50], [118.43, 24.51], [118.38, 24.47], [118.31, 24.49], [118.27, 24.46]], elev: 0.85, col: '#4f9152' },
-  { poly: [[118.21, 24.40], [118.26, 24.40], [118.27, 24.45], [118.22, 24.45]], elev: 0.72, col: '#4f9152' },
+  // 澎湖群島主島（放大不規則輪廓：馬公、白沙、西嶼、吉貝）
+  { poly: [[119.40, 23.48], [119.56, 23.45], [119.68, 23.51], [119.70, 23.66], [119.61, 23.78], [119.50, 23.74], [119.40, 23.64]], elev: 0.85, col: '#4a9352' },
+  // 澎湖望安與七美放大島嶼
+  { poly: [[119.44, 23.31], [119.55, 23.31], [119.57, 23.41], [119.45, 23.40]], elev: 0.72, col: '#468c4e' },
+  { poly: [[119.38, 23.15], [119.48, 23.15], [119.49, 23.24], [119.38, 23.23]], elev: 0.70, col: '#468c4e' },
+  // 大金門（放大雙瓣輪廓）與小金門（烈嶼＋大膽）
+  { poly: [[118.26, 24.38], [118.37, 24.37], [118.45, 24.38], [118.54, 24.42], [118.54, 24.54], [118.44, 24.57], [118.35, 24.56], [118.27, 24.52], [118.25, 24.44]], elev: 0.92, col: '#4f9152' },
+  { poly: [[118.14, 24.35], [118.25, 24.36], [118.26, 24.47], [118.15, 24.45]], elev: 0.76, col: '#4f9152' },
   // 馬祖列島（南竿＋北竿＋東引）
   { poly: [[119.89, 26.13], [119.97, 26.13], [119.97, 26.18], [119.89, 26.17]], elev: 0.75, col: '#418952', lh: true },
   { poly: [[119.96, 26.20], [120.03, 26.21], [120.03, 26.25], [119.96, 26.24]], elev: 0.70, col: '#418952' },
   // 小琉球、龜山島、綠島、蘭嶼、與那國島
-  { poly: [[120.35, 22.32], [120.39, 22.32], [120.39, 22.36], [120.35, 22.35]], elev: 0.68, col: '#4b9b59' },
+  { poly: [[120.34, 22.31], [120.40, 22.31], [120.40, 22.37], [120.34, 22.36]], elev: 0.68, col: '#4b9b59' },
   { poly: [[121.93, 24.83], [121.98, 24.83], [121.97, 24.86], [121.93, 24.85]], elev: 0.95, col: '#3d7d47' },
   { poly: [[121.46, 22.63], [121.52, 22.63], [121.53, 22.69], [121.47, 22.69]], elev: 0.85, col: '#3b9250' },
   { poly: [[121.50, 22.00], [121.58, 22.01], [121.59, 22.09], [121.51, 22.08]], elev: 0.90, col: '#338347' },
@@ -134,110 +134,159 @@ const FUJIAN_POLY = [
   [117.10, 27.10],
 ];
 
-// 78 格真實世界台灣經緯度座標 [lon, lat, 地形高程]（嚴格對應 logic.js：0..66 環島主線含七美/東引/烈嶼，67..77 北橫/中橫/南橫跨山支線）
+// 125 格真實世界台灣經緯度座標 [lon, lat, 地形高程]（嚴格對應 logic.js：0..87 環島主線、88..99 澎湖不規則小地圖、100..113 金門不規則小地圖、114..124 北中南橫）
 const ROUTE_COORDS = [
-  // 0..12 南台灣・高屏小琉球嘉南
-  [120.85, 21.92, 1.55], // 0 起點（鵝鑾鼻）
-  [120.76, 21.97, 1.50], // 1 墾丁
-  [120.71, 22.07, 1.75], // 2 恆春
-  [120.67, 22.25, 1.65], // 3 命運（枋山海岸）
-  [120.51, 22.58, 1.60], // 4 屏東（南橫起點交會處）
-  [120.37, 22.34, 1.50], // 5 小琉球
-  [120.29, 22.61, 1.55], // 6 高雄
-  [120.30, 22.72, 1.70], // 7 高鐵左營
-  [120.23, 22.94, 1.65], // 8 台南
-  [120.14, 23.04, 1.50], // 9 安平
-  [120.15, 23.18, 1.55], // 10 機會（七股）
-  [120.30, 23.31, 2.30], // 11 道具屋（關子嶺）
-  [120.45, 23.47, 1.85], // 12 嘉義
-  // 13..26 阿里山・雲林北港・七美澎湖・鹿港彰化南投日月潭・台中
-  [120.59, 23.43, 2.25], // 13 監獄（竹崎）
-  [120.81, 23.51, 5.20], // 14 阿里山
-  [120.49, 23.71, 1.65], // 15 雲林
-  [120.30, 23.58, 1.55], // 16 北港廟宇
-  [119.43, 23.21, 1.46], // 17 七美（澎湖雙心石滬）
-  [119.58, 23.58, 1.48], // 18 澎湖（馬公）
-  [120.42, 24.04, 1.50], // 19 鹿港
-  [120.55, 23.99, 1.80], // 20 彰化
-  [120.70, 23.87, 2.20], // 21 南投
-  [120.92, 23.86, 4.00], // 22 日月潭
-  [120.95, 23.98, 3.20], // 23 醫院（埔里）
-  [120.63, 24.10, 1.65], // 24 台中高鐵
-  [120.70, 24.20, 1.75], // 25 台中（中橫起點交會處）
-  [120.58, 24.32, 1.55], // 26 機會（大甲）
-  // 27..47 桃竹苗・馬祖東引賭場烈嶼金門・大台北都會區
-  [120.77, 24.41, 2.25], // 27 三義
-  [120.81, 24.54, 2.35], // 28 苗栗
-  [121.03, 24.75, 2.05], // 29 竹科
-  [120.94, 24.83, 1.60], // 30 新竹
-  [121.11, 24.89, 2.20], // 31 命運（湖口）
-  [121.30, 24.97, 1.85], // 32 桃園（北橫起點交會處）
-  [119.93, 26.15, 1.52], // 33 馬祖
-  [120.49, 26.37, 1.50], // 34 東引（國之北疆）
-  [119.12, 25.15, 1.48], // 35 賭場（海峽郵輪賭場）
-  [118.24, 24.43, 1.50], // 36 烈嶼（小金門）
-  [118.38, 24.45, 1.52], // 37 金門
-  [121.22, 25.07, 1.50], // 38 桃園機場
-  [121.33, 25.13, 1.85], // 39 道具屋（八里）
-  [121.44, 25.21, 1.50], // 40 淡水
-  [121.56, 25.25, 3.40], // 41 國家公園（陽明山）
-  [121.55, 25.15, 1.70], // 42 行天宮
-  [121.41, 25.00, 1.60], // 43 新北
-  [121.50, 25.05, 1.65], // 44 台北
-  [121.59, 25.00, 1.70], // 45 信義區
-  [121.69, 25.05, 1.85], // 46 機會（汐止）
-  [121.77, 25.14, 1.50], // 47 基隆港
-  // 48..66 東北角・平溪・龜山島・宜花東・綠島蘭嶼南迴
-  [121.90, 25.11, 1.80], // 48 入獄（三貂角）
-  [121.86, 25.01, 3.60], // 49 九份
-  [121.74, 24.97, 2.30], // 50 平溪
-  [121.81, 24.89, 1.60], // 51 國稅局（頭城）
-  [121.95, 24.84, 1.65], // 52 龜山島
-  [121.76, 24.75, 1.55], // 53 宜蘭（北橫終點交會處）
-  [121.78, 24.64, 1.55], // 54 羅東
-  [121.82, 24.51, 3.00], // 55 命運（蘇花）
-  [121.76, 24.36, 2.70], // 56 迎神殿（南澳）
-  [121.60, 24.16, 3.80], // 57 太魯閣（中橫終點交會處）
-  [121.59, 23.98, 1.55], // 58 花蓮
-  [121.43, 23.66, 2.40], // 59 道具屋（瑞穗）
-  [121.32, 23.34, 2.15], // 60 玉里
-  [121.28, 23.14, 2.20], // 61 機會（池上，南橫終點交會處）
-  [121.15, 22.77, 1.55], // 62 台東
-  [121.02, 22.69, 1.95], // 63 知本
-  [121.50, 22.66, 1.55], // 64 綠島
-  [121.55, 22.05, 1.65], // 65 蘭嶼
-  [120.88, 22.14, 2.40], // 66 命運（旭海）
-  // 67..69 北橫公路支線
-  [121.29, 24.86, 2.10], // 67 大溪
-  [121.43, 24.71, 4.10], // 68 拉拉山
-  [121.53, 24.65, 3.80], // 69 明池
-  // 70..73 中橫公路支線
-  [121.01, 24.20, 3.30], // 70 谷關
-  [121.24, 24.25, 4.60], // 71 梨山
-  [121.28, 24.14, 5.60], // 72 合歡山
-  [121.48, 24.18, 3.90], // 73 天祥
-  // 74..77 南橫公路支線
-  [120.59, 23.08, 2.30], // 74 甲仙
-  [120.77, 23.22, 3.60], // 75 梅山
-  [120.96, 23.26, 5.10], // 76 埡口
-  [121.05, 23.20, 4.20], // 77 向陽
+  // 0..17 南台灣・墾丁恆春高屏小琉球嘉南
+  [120.85, 21.92, 1.55], // 0 起點
+  [120.78, 21.95, 1.50], // 1 墾丁
+  [120.74, 22.01, 1.68], // 2 恆春
+  [120.71, 22.07, 1.62], // 3 墾丁大街美食
+  [120.67, 22.22, 1.60], // 4 命運
+  [120.47, 22.47, 1.52], // 5 東港海鮮市集
+  [120.49, 22.64, 1.62], // 6 屏東（南橫起點）
+  [120.37, 22.34, 1.50], // 7 小琉球
+  [120.28, 22.58, 1.55], // 8 高雄港灣
+  [120.30, 22.66, 1.62], // 9 高雄巨蛋百貨
+  [120.31, 22.74, 1.70], // 10 高鐵左營
+  [120.30, 22.82, 1.65], // 11 橋頭糖廠遊樂場
+  [120.22, 22.96, 1.65], // 12 台南府城
+  [120.19, 23.02, 1.58], // 13 台南夜市美食
+  [120.14, 23.00, 1.50], // 14 安平古堡
+  [120.12, 23.13, 1.55], // 15 機會
+  [120.28, 23.31, 2.20], // 16 造型服飾店
+  [120.45, 23.48, 1.85], // 17 嘉義
+  // 18..34 阿里山・雲林北港・鹿港彰化南投日月潭・大台中
+  [120.58, 23.43, 2.25], // 18 監獄
+  [120.81, 23.51, 5.20], // 19 阿里山
+  [120.53, 23.70, 1.70], // 20 雲林斗六
+  [120.58, 23.62, 1.95], // 21 劍湖山遊樂場
+  [120.30, 23.57, 1.55], // 22 北港廟宇（澎湖小地圖入口）
+  [120.43, 24.05, 1.50], // 23 鹿港老街
+  [120.55, 23.99, 1.80], // 24 彰化
+  [120.85, 23.84, 3.60], // 25 日月潭連鎖飯店
+  [120.69, 23.90, 2.20], // 26 南投
+  [120.92, 23.86, 4.00], // 27 日月潭
+  [120.96, 23.97, 3.20], // 28 醫院
+  [120.62, 24.11, 1.65], // 29 台中高鐵
+  [120.65, 24.16, 1.70], // 30 台中七期百貨
+  [120.69, 24.22, 1.75], // 31 台中（中橫起點）
+  [120.69, 24.32, 1.65], // 32 麗寶遊樂場
+  [120.59, 24.34, 1.55], // 33 台灣股市
+  [120.64, 24.40, 1.60], // 34 機會
+  // 35..57 苗竹桃・馬祖東引海峽賭場・大台北基隆港
+  [120.77, 24.41, 2.25], // 35 三義木雕村
+  [120.86, 24.43, 2.35], // 36 苗栗大湖
+  [121.02, 24.76, 2.05], // 37 竹科園區
+  [120.96, 24.81, 1.65], // 38 新竹城隍美食
+  [121.05, 24.85, 1.95], // 39 卡片商店
+  [121.13, 24.90, 2.20], // 40 命運
+  [121.30, 24.98, 1.85], // 41 桃園（北橫起點）
+  [119.93, 26.15, 1.52], // 42 馬祖
+  [120.49, 26.37, 1.50], // 43 東引（金門小地圖入口）
+  [119.12, 25.15, 1.48], // 44 海峽賭場
+  [121.22, 25.07, 1.50], // 45 桃園機場
+  [121.32, 25.13, 1.85], // 46 汽車展示中心
+  [121.44, 25.19, 1.50], // 47 淡水老街
+  [121.55, 25.25, 3.40], // 48 陽明山公園
+  [121.53, 25.15, 1.70], // 49 行天宮
+  [121.46, 25.04, 1.60], // 50 西門服飾店
+  [121.40, 25.00, 1.60], // 51 新北板橋
+  [121.50, 25.05, 1.65], // 52 台北西門町
+  [121.54, 25.04, 1.68], // 53 台北
+  [121.57, 25.03, 1.70], // 54 信義101百貨
+  [121.63, 25.06, 1.78], // 55 夜市小遊戲
+  [121.70, 25.08, 1.85], // 56 機會
+  [121.76, 25.14, 1.50], // 57 基隆港
+  // 58..87 東北角・宜花東・綠島蘭嶼南迴
+  [121.91, 25.11, 1.80], // 58 入獄
+  [121.85, 25.02, 3.60], // 59 九份山城
+  [121.74, 24.97, 2.30], // 60 平溪天燈
+  [121.80, 24.91, 1.65], // 61 國稅局
+  [121.95, 24.84, 1.65], // 62 龜山島
+  [121.83, 24.86, 1.55], // 63 頭城烏石港
+  [121.76, 24.75, 1.55], // 64 宜蘭
+  [121.77, 24.67, 1.55], // 65 羅東夜市
+  [121.77, 24.81, 1.65], // 66 礁溪連鎖飯店
+  [121.82, 24.52, 3.00], // 67 命運
+  [121.76, 24.36, 2.70], // 68 迎神殿
+  [121.61, 24.16, 3.80], // 69 太魯閣
+  [121.60, 24.02, 1.55], // 70 花蓮
+  [121.59, 23.95, 1.55], // 71 花蓮東大門美食
+  [121.48, 23.77, 2.20], // 72 卡片商店
+  [121.57, 23.89, 1.60], // 73 海洋遊樂場
+  [121.32, 23.34, 2.15], // 74 玉里
+  [121.24, 23.14, 2.20], // 75 池上米鄉
+  [121.19, 22.97, 1.85], // 76 機會
+  [121.17, 22.86, 1.65], // 77 台灣股市
+  [121.14, 22.76, 1.55], // 78 台東
+  [121.02, 22.69, 1.95], // 79 知本溫泉飯店
+  [121.50, 22.66, 1.55], // 80 綠島
+  [121.55, 22.05, 1.65], // 81 蘭嶼
+  [120.99, 22.60, 1.85], // 82 太麻里
+  [120.93, 22.42, 2.10], // 83 汽車展示中心
+  [120.90, 22.26, 2.25], // 84 夜市小遊戲
+  [120.88, 22.14, 2.40], // 85 命運
+  [120.85, 22.00, 1.75], // 86 佳樂水
+  [120.85, 21.90, 1.55], // 87 鵝鑾鼻燈塔
+  // 88..99 澎湖群島不規則小地圖（12 格）
+  [119.57, 23.56, 1.50], // 88 馬公港
+  [119.52, 23.59, 1.52], // 89 澎湖天后宮
+  [119.62, 23.57, 1.52], // 90 中央老街美食
+  [119.65, 23.63, 1.52], // 91 澎湖服飾店
+  [119.56, 23.67, 1.50], // 92 跨海大橋
+  [119.44, 23.61, 1.52], // 93 西嶼燈塔
+  [119.59, 23.75, 1.48], // 94 吉貝沙尾
+  [119.47, 23.50, 1.50], // 95 澎湖卡片屋
+  [119.61, 23.50, 1.50], // 96 山水遊樂場
+  [119.49, 23.35, 1.48], // 97 望安綠蠵龜
+  [119.42, 23.19, 1.48], // 98 七美雙心
+  [119.57, 23.43, 1.48], // 99 澎湖免稅百貨
+  // 100..113 金門群島不規則小地圖（14 格）
+  [118.29, 24.41, 1.52], // 100 水頭碼頭
+  [118.32, 24.44, 1.55], // 101 莒光樓
+  [118.31, 24.47, 1.55], // 102 金城模範美食
+  [118.36, 24.49, 1.55], // 103 金門卡片屋
+  [118.23, 24.43, 1.50], // 104 烈嶼小金門
+  [118.16, 24.38, 1.48], // 105 大膽島前線
+  [118.31, 24.53, 1.55], // 106 古寧頭戰史館
+  [118.36, 24.54, 1.54], // 107 慈湖小遊戲
+  [118.49, 24.51, 1.56], // 108 山后民俗村
+  [118.42, 24.46, 1.65], // 109 太武山
+  [118.45, 24.51, 1.56], // 110 金沙股市廣場
+  [118.49, 24.44, 1.55], // 111 金門遊樂場
+  [118.41, 24.42, 1.55], // 112 昇恆昌百貨
+  [118.46, 24.40, 1.52], // 113 料羅灣碼頭
+  // 114..116 北橫公路支線
+  [121.29, 24.86, 2.10], // 114 大溪老街
+  [121.43, 24.71, 4.10], // 115 拉拉山
+  [121.53, 24.65, 3.80], // 116 明池
+  // 117..120 中橫公路支線
+  [121.01, 24.20, 3.30], // 117 谷關溫泉
+  [121.24, 24.25, 4.60], // 118 梨山
+  [121.28, 24.14, 5.60], // 119 合歡山
+  [121.48, 24.18, 3.90], // 120 天祥
+  // 121..124 南橫公路支線
+  [120.59, 23.08, 2.30], // 121 甲仙芋頭街
+  [120.77, 23.22, 3.60], // 122 梅山
+  [120.96, 23.26, 5.10], // 123 埡口
+  [121.05, 23.20, 4.20], // 124 向陽
 ];
-// 主線各段交通路網（0..66）
+// 主線各段交通路網（0..87）
 const SEG_MODE = [
-  'highway', 'highway', 'highway', 'highway',
-  'ferry', 'ferry', 'mrt', 'hsr', 'highway', 'highway', 'highway', 'rail',
-  'forest_rail', 'forest_rail', 'cliff_road', 'highway',
-  'ferry', 'ferry', 'ferry',
-  'highway', 'highway', 'cliff_road', 'cliff_road', 'highway', 'mrt', 'rail',
-  'rail', 'rail', 'highway', 'rail', 'hsr', 'hsr',
-  'air', 'ferry', 'ferry', 'ferry', 'ferry', 'air',
-  'mrt', 'ferry', 'cliff_road', 'highway', 'mrt', 'mrt', 'mrt', 'rail', 'rail',
-  'highway', 'cliff_road', 'rail', 'rail', 'ferry', 'ferry', 'rail',
-  'cliff_road', 'cliff_road', 'cliff_road', 'rail', 'rail', 'rail', 'rail', 'rail',
-  'highway', 'ferry', 'ferry', 'ferry', 'cliff_road',
+  'highway', 'highway', 'highway', 'highway', 'highway', 'highway', 'ferry', 'ferry',
+  'mrt', 'hsr', 'rail', 'highway', 'highway', 'highway', 'highway', 'highway', 'rail', 'forest_rail',
+  'forest_rail', 'cliff_road', 'highway', 'highway', 'highway', 'highway', 'cliff_road', 'cliff_road', 'cliff_road', 'highway',
+  'hsr', 'mrt', 'mrt', 'highway', 'highway', 'highway', 'rail', 'rail', 'highway', 'rail',
+  'rail', 'hsr', 'hsr', 'air', 'ferry', 'ferry', 'air', 'highway', 'mrt', 'cliff_road',
+  'highway', 'mrt', 'mrt', 'mrt', 'mrt', 'mrt', 'rail', 'rail', 'rail', 'highway',
+  'cliff_road', 'rail', 'rail', 'ferry', 'ferry', 'rail', 'rail', 'rail', 'cliff_road', 'cliff_road',
+  'cliff_road', 'rail', 'rail', 'rail', 'rail', 'rail', 'rail', 'rail', 'highway', 'highway',
+  'ferry', 'ferry', 'ferry', 'cliff_road', 'highway', 'highway', 'cliff_road', 'highway', 'highway', 'highway',
 ];
 function edgeMode(i, j) {
-  if (j === (i + 1) % 67 && i < 67) return SEG_MODE[i];
+  if (j === (i + 1) % 88 && i < 88) return SEG_MODE[i];
+  if ((i === 22 && j === 88) || (i === 99 && j === 23) || (i === 43 && j === 100) || (i === 113 && j === 44)) return 'ferry';
+  if (i >= 88 && i <= 113) return (i === 91 || i === 93 || i === 96 || i === 97 || i === 98 || i === 103 || i === 104 || i === 105) ? 'ferry' : 'highway';
   return 'cliff_road';
 }
 // ---------- 立體地形高度場（v145 重製：以真實海岸線、五大山脈稜線與噪聲生成連續地形，路網與棋格處自動整平）----------
@@ -1023,9 +1072,9 @@ function makeTransportSegment(idx, a, b, mode) {
 }
 
 function buildHsrCorridor() {
-  // 西部走廊連續高鐵脊線：左營(6) → 嘉義(11) → 台中高鐵(22) → 新竹(27) → 桃園(29) → 板橋(36) → 台北(37)
+  // 西部走廊連續高鐵脊線：高鐵左營(10) → 嘉義(17) → 台中高鐵(29) → 竹科園區(37) → 桃園(41) → 板橋(51) → 台北(53)
   const g = new THREE.Group();
-  const hsrIndices = [6, 11, 22, 27, 29, 36, 37];
+  const hsrIndices = [10, 17, 29, 37, 41, 51, 53];
   const pts = hsrIndices.map(i => new THREE.Vector3(TILE_PTS[i].x, Math.max(TILE_PTS[i].y, 1.8) + 0.78, TILE_PTS[i].z));
   const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.42);
   const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 96, 0.34, 8, false), TR_MAT.hsrViaduct);
@@ -1304,11 +1353,44 @@ function makeWindTurbine() {
   return g;
 }
 
+function makeNeonSign(text, bgCol = '#0f172a', neonCol = '#f43f5e') {
+  const g = new THREE.Group();
+  const tex = canvasTex(256, 96, (c, w, h) => {
+    c.fillStyle = bgCol;
+    c.fillRect(0, 0, w, h);
+    c.lineWidth = 8;
+    c.strokeStyle = neonCol;
+    c.strokeRect(6, 6, w - 12, h - 12);
+    c.fillStyle = '#ffffff';
+    c.shadowColor = neonCol;
+    c.shadowBlur = 16;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = `900 ${text.length > 4 ? 36 : 44}px "PingFang TC","Noto Sans TC",sans-serif`;
+    c.fillText(text, w / 2, h / 2 + 2);
+  });
+  const poleM = new THREE.MeshStandardMaterial({ color: '#334155', metalness: 0.7 });
+  for (const px of [-1.25, 1.25]) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 3.6, 8), poleM);
+    pole.position.set(px, 1.8, 0);
+    g.add(pole);
+  }
+  const board = new THREE.Mesh(
+    new THREE.BoxGeometry(3.2, 1.25, 0.22),
+    new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: '#ffffff', emissiveIntensity: 0.95, roughness: 0.25 })
+  );
+  board.position.y = 3.2;
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(3.38, 1.4, 0.14), new THREE.MeshStandardMaterial({ color: neonCol, emissive: neonCol, emissiveIntensity: 0.85 }));
+  trim.position.set(0, 3.2, -0.05);
+  g.add(trim, board);
+  return g;
+}
+
 function makeTileProp(t, idx) {
   const g = new THREE.Group();
   const nm = t.name;
 
-  if (nm === '信義區') {
+  if (nm === '信義101百貨' || nm === '信義區') {
     // 台北 101 精細建模（裙樓＋7節竹節塔身玻璃帷幕＋金飾＋尖塔＋閃燈）
     const glass = makeWinMat('#247b6c', '#fef08a');
     const gold = new THREE.MeshStandardMaterial({ color: '#f1c40f', emissive: '#6e5200', metalness: 0.65 });
@@ -1880,8 +1962,111 @@ function makeTileProp(t, idx) {
       g.add(log);
     }
     g.add(cabin, roof);
+  } else if (t.type === 'shop') {
+    // 造型服飾店：發光 3D 霓虹招牌＋玻璃櫥窗＋展示假人台
+    const sign = makeNeonSign('造型服飾', '#1e1b4b', '#f472b6');
+    sign.position.set(0, 0.9, -0.6);
+    const shop = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.6, 1.8), makeWinMat('#312e81', '#fbcfe8'));
+    shop.position.y = 0.8;
+    const awning = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.22, 0.8), new THREE.MeshStandardMaterial({ color: '#ec4899', emissive: '#9d174d', emissiveIntensity: 0.35 }));
+    awning.position.set(0, 1.45, 1.15); awning.rotation.x = 0.3;
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.65, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207' }));
+    hat.position.set(0, 2.0, 0);
+    g.add(sign, shop, awning, hat);
+    g.userData.baseScale = 0.92;
+  } else if (t.type === 'cardshop') {
+    // 卡片商店：霓虹招牌＋旋轉黃金道具卡
+    const sign = makeNeonSign('卡片商店', '#0f172a', '#38bdf8');
+    sign.position.set(0, 0.8, -0.7);
+    const kiosk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.3, 1.6), new THREE.MeshStandardMaterial({ color: '#0369a1', roughness: 0.4 }));
+    kiosk.position.y = 0.65;
+    const card = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.4, 0.14), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.55, metalness: 0.6 }));
+    card.position.set(0, 2.25, 0.5);
+    animProps.push(now => { card.rotation.y = now * 0.0024; });
+    g.add(sign, kiosk, card);
+    g.userData.baseScale = 0.92;
+  } else if (t.type === 'autoshow') {
+    // 汽車展示中心：3D 霓虹招牌＋旋轉展車轉盤＋跑車模型
+    const sign = makeNeonSign('汽車中心', '#18181b', '#ef4444');
+    sign.position.set(0, 1.0, -0.9);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.9, 0.32, 20), new THREE.MeshStandardMaterial({ color: '#e2e8f0', metalness: 0.5, roughness: 0.25 }));
+    pad.position.y = 0.16;
+    const carG = new THREE.Group();
+    const cBody = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.48, 2.3), new THREE.MeshStandardMaterial({ color: '#ef4444', metalness: 0.65, roughness: 0.2 }));
+    cBody.position.y = 0.42;
+    const cCabin = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.42, 1.15), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.5, roughness: 0.15 }));
+    cCabin.position.set(0, 0.82, -0.1);
+    carG.add(cBody, cCabin);
+    carG.position.y = 0.25;
+    animProps.push(now => { carG.rotation.y = now * 0.0018; });
+    g.add(sign, pad, carG);
+    g.userData.baseScale = 0.95;
+  } else if (t.type === 'stock') {
+    // 台灣股市：霓虹大看板＋紅漲柱狀圖
+    const sign = makeNeonSign('台灣股市', '#052e16', '#22c55e');
+    sign.position.set(0, 1.1, -0.7);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.4, 1.8), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
+    base.position.y = 0.2;
+    g.add(sign, base);
+    for (let k = 0; k < 4; k++) {
+      const h = 0.7 + k * 0.55;
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.42, h, 0.42), new THREE.MeshStandardMaterial({ color: k % 2 ? '#ef4444' : '#22c55e', emissive: k % 2 ? '#991b1b' : '#166534', emissiveIntensity: 0.4 }));
+      bar.position.set(-0.78 + k * 0.52, 0.4 + h / 2, 0.35);
+      g.add(bar);
+    }
+    g.userData.baseScale = 0.92;
+  } else if (t.type === 'minigame') {
+    // 夜市小遊戲：霓虹招牌＋旋轉彩球遊戲攤
+    const sign = makeNeonSign('夜市遊戲', '#2e1065', '#a855f7');
+    sign.position.set(0, 0.9, -0.7);
+    const booth = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.4, 1.5), new THREE.MeshStandardMaterial({ color: '#7c3aed' }));
+    booth.position.y = 0.7;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.9, 0.85, 4), new THREE.MeshStandardMaterial({ color: '#facc15' }));
+    roof.rotation.y = Math.PI / 4; roof.position.y = 1.82;
+    g.add(sign, booth, roof);
+    g.userData.baseScale = 0.9;
+  } else if (t.subkind === 'mall') {
+    // 百貨公司：霓虹商場招牌＋挑高玻璃百貨大樓
+    const sign = makeNeonSign('百貨公司', '#1e293b', '#f59e0b');
+    sign.position.set(0, 1.6, -0.8);
+    const mall = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.6, 2.2), makeWinMat('#334155', '#fde68a'));
+    mall.position.y = 1.3;
+    g.add(sign, mall);
+    g.userData.baseScale = 0.88;
+  } else if (t.subkind === 'arcade') {
+    // 遊樂場：霓虹招牌＋旋轉摩天輪
+    const sign = makeNeonSign('歡樂遊樂', '#172554', '#06b6d4');
+    sign.position.set(0, 0.9, -0.8);
+    const wheel = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.14, 8, 18), new THREE.MeshStandardMaterial({ color: '#f43f5e', emissive: '#be123c', emissiveIntensity: 0.45 }));
+    wheel.position.set(0, 2.1, 0.45);
+    animProps.push(now => { wheel.rotation.z = now * 0.0012; });
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.9, 2.1, 4), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
+    stand.position.set(0, 1.05, 0.45);
+    g.add(sign, wheel, stand);
+    g.userData.baseScale = 0.9;
+  } else if (t.subkind === 'hotel') {
+    // 連鎖飯店：霓虹飯店招牌＋雙翼度假建築
+    const sign = makeNeonSign('連鎖飯店', '#0c4a6e', '#38bdf8');
+    sign.position.set(0, 1.4, -0.8);
+    const hotel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.4, 1.8), makeWinMat('#0284c7', '#fef08a'));
+    hotel.position.y = 1.2;
+    g.add(sign, hotel);
+    g.userData.baseScale = 0.88;
+  } else if (t.subkind === 'food') {
+    // 美食夜市：霓虹招牌＋紅燈籠攤位
+    const sign = makeNeonSign('美食夜市', '#450a0a', '#fb923c');
+    sign.position.set(0, 0.7, -0.7);
+    const stall = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.1, 1.4), new THREE.MeshStandardMaterial({ color: '#b91c1c' }));
+    stall.position.y = 0.55;
+    for (const lx of [-0.8, 0, 0.8]) {
+      const lan = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ea580c', emissiveIntensity: 0.7 }));
+      lan.position.set(lx, 1.35, 0.75);
+      g.add(lan);
+    }
+    g.add(sign, stall);
+    g.userData.baseScale = 0.88;
   } else {
-    // 花蓮七星潭太平洋海浪＋躍起藍鯨尾鰭地標
+    // 其他特色景點／城鎮（簡約地標塔＋海浪）
     const wave = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.22, 16), new THREE.MeshStandardMaterial({ color: '#0284c7' })); wave.position.y = 0.11;
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.4, 1.5, 8), new THREE.MeshStandardMaterial({ color: '#1e3a8a' })); stem.position.set(0, 0.85, 0); stem.rotation.x = -0.2;
     const fluke = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.25, 0.58), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.35 })); fluke.position.set(0, 1.55, -0.15);
@@ -1900,20 +2085,20 @@ board.add(labelGroup);
 const tileProps = new Array(R.BOARD.length).fill(null);
 const tileLabels = new Array(R.BOARD.length).fill(null);
 
-// 棋格立體造景：八角石台＋組別色環＋主題地面（都會廣場／海岸沙灘／山林／田園／廟埕）＋放大的地標建模；格子上不再印平面文字
-const TILE_R = 5.6;
-const LM_OFF = new THREE.Vector3(-1.9, 0, -2.5);   // 地標位置（棋格後方偏左）
-const HOUSE_OFF = new THREE.Vector3(2.6, 0, -2.4); // 地產建築（後方偏右）
-const COAST_TILES = new Set(['墾丁', '安平', '澎湖', '淡水', '基隆港', '綠島', '蘭嶼', '金門', '鹿港', '小琉球', '七美', '馬祖', '東引', '烈嶼', '賭場', '龜山島']);
-const URBAN_TILES = new Set(['台北', '信義區', '高雄', '台中', '新北', '台南', '竹科', '桃園', '新竹', '桃園機場', '屏東', '彰化', '嘉義', '宜蘭', '花蓮', '台東']);
+// 棋格立體造景：4 倍佔地（半徑加倍 11.2）＋組別色環＋主題地面＋誇張 3D 特色建物與霓虹看板
+const TILE_R = 11.2;
+const LM_OFF = new THREE.Vector3(-3.6, 0, -4.6);   // 地標位置（棋格後方偏左）
+const HOUSE_OFF = new THREE.Vector3(4.8, 0, -4.4); // 地產建築（後方偏右）
+const COAST_TILES = new Set(['墾丁', '安平古堡', '馬公港', '淡水老街', '基隆港', '綠島', '蘭嶼', '水頭碼頭', '料羅灣碼頭', '鹿港老街', '小琉球', '七美雙心', '望安綠蠵龜', '吉貝沙尾', '西嶼燈塔', '馬祖', '東引', '烈嶼小金門', '大膽島前線', '海峽賭場', '龜山島', '頭城烏石港', '佳樂水', '鵝鑾鼻燈塔']);
+const URBAN_TILES = new Set(['台北', '台北西門町', '信義101百貨', '高雄港灣', '高雄巨蛋百貨', '台中', '台中七期百貨', '新北板橋', '台南府城', '竹科園區', '桃園', '新竹城隍美食', '桃園機場', '屏東', '彰化', '嘉義', '宜蘭', '花蓮', '台東']);
 function tileScale(t, i) {
   if (!t) return 1;
   const nm = t.name;
-  if (['信義區', '台北', '高雄', '台中', '新北'].includes(nm)) return 2.35;
-  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '國家公園', '賭場', '起點', '醫院', '監獄'].includes(nm)) return 1.75;
-  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南', '竹科', '新竹', '桃園', '花蓮', '台東', '宜蘭'].includes(nm)) return 1.45;
-  if (['小琉球', '七美', '東引', '烈嶼', '龜山島', '拉拉山', '明池', '谷關', '梨山', '天祥', '甲仙', '梅山', '埡口', '向陽'].includes(nm)) return 0.52;
-  if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.78;
+  if (['信義101百貨', '台北', '台北西門町', '高雄港灣', '台中', '新北板橋'].includes(nm)) return 1.65;
+  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '海峽賭場', '起點', '醫院', '監獄'].includes(nm) || t.type === 'autoshow' || t.type === 'stock') return 1.32;
+  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南府城', '竹科園區', '桃園', '花蓮', '台東', '宜蘭'].includes(nm) || t.subkind === 'mall' || t.subkind === 'hotel' || t.subkind === 'arcade') return 1.18;
+  if (['小琉球', '七美雙心', '望安綠蠵龜', '吉貝沙尾', '東引', '烈嶼小金門', '大膽島前線', '龜山島', '拉拉山', '明池', '谷關溫泉', '梨山', '天祥', '甲仙芋頭街', '梅山', '埡口', '向陽'].includes(nm)) return 0.72;
+  if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.85;
   return 1.0;
 }
 function tileTheme(t, i) {
@@ -2052,7 +2237,7 @@ function makeLabelSprite(t, idx) {
   });
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
   sp.renderOrder = 10;
-  sp.scale.set(cw * 0.025, ch * 0.025, 1);
+  sp.scale.set(cw * 0.0325, ch * 0.0325, 1); // 地點字型放大成 1.3 倍
   sp.userData.tileIdx = idx;
   return sp;
 }
@@ -2212,21 +2397,7 @@ function houseMesh(level, color) {
     const sign = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.4, 0.45), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#785000' }));
     sign.position.set(-2.05, 2.0, 0.85); g.add(sign);
   } else if (level === 3) {
-    // 3級高層大樓：六層現代住宅大樓＋陽台＋水塔
-    const b = new THREE.Mesh(new THREE.BoxGeometry(3.4, 6.2, 2.6), wall); b.position.y = 3.1; g.add(b);
-    for (let y = 0.9; y < 5.9; y += 1.0) {
-      for (const x of [-0.95, 0, 0.95]) {
-        const w = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.14), win);
-        w.position.set(x, y, 1.32); g.add(w);
-      }
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 0.35), roof);
-      slab.position.set(0, y - 0.26, 1.36); g.add(slab);
-    }
-    const rf = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.45, 2.9), roof); rf.position.y = 6.42; g.add(rf);
-    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.0, 10), new THREE.MeshStandardMaterial({ color: '#cbd5e1', metalness: 0.7 }));
-    tank.position.set(0.95, 7.1, -0.45); g.add(tank);
-  } else if (level === 4) {
-    // 4級摩天大樓：三段退縮式玻璃帷幕地標摩天大樓＋發光霓虹條＋停機坪＋黃金尖塔
+    // 3級摩天大樓：三段退縮式玻璃帷幕地標摩天大樓＋發光霓虹條＋停機坪＋黃金尖塔
     const glass = new THREE.MeshStandardMaterial({ color: '#dbeafe', metalness: 0.55, roughness: 0.2 });
     const neon = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.3 });
     const goldMat = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207', metalness: 0.7, roughness: 0.2 });
@@ -2252,6 +2423,35 @@ function houseMesh(level, color) {
     const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.9 }));
     beacon.position.y = 16.25; g.add(beacon);
     g.userData.beacon = beacon;
+  } else if (level === 4) {
+    // 4級五星飯店：奢華雙翼度假飯店＋藍寶石泳池＋金冠屋頂
+    const marble = new THREE.MeshStandardMaterial({ color: '#fef3c7', roughness: 0.35 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#b45309', metalness: 0.7, roughness: 0.2 });
+    const pool = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.24, 1.6), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.35 }));
+    pool.position.set(0, 0.14, 1.85);
+    const main = new THREE.Mesh(new THREE.BoxGeometry(4.4, 10.5, 2.6), marble); main.position.y = 5.25;
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.2, 1.6, 8), roof); crown.position.y = 11.3;
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), goldMat); star.position.y = 12.8;
+    g.add(pool, main, crown, star);
+    for (let y = 1.6; y < 9.8; y += 1.2) {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(4.55, 0.45, 2.75), win); band.position.y = y; g.add(band);
+    }
+    g.userData.beacon = star;
+  } else if (level >= 5) {
+    // 5級連鎖旗艦店：雙子星玻璃巨塔＋高空連通天橋＋頂端皇冠霓虹塔
+    const glass = new THREE.MeshStandardMaterial({ color: '#e0f2fe', metalness: 0.65, roughness: 0.18 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#ca8a04', metalness: 0.75, roughness: 0.2 });
+    const neon = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.75 });
+    const podium = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.4, 4.2), neon); podium.position.y = 1.2;
+    const tL = new THREE.Mesh(new THREE.BoxGeometry(1.85, 13.5, 2.6), glass); tL.position.set(-1.35, 7.95, 0);
+    const tR = new THREE.Mesh(new THREE.BoxGeometry(1.85, 13.5, 2.6), glass); tR.position.set(1.35, 7.95, 0);
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.35, 1.6), goldMat); bridge.position.set(0, 10.5, 0);
+    const topArch = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.1, 2.0), roof); topArch.position.y = 15.2;
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.35, 3.2, 8), goldMat); spire.position.y = 17.3;
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 10), new THREE.MeshStandardMaterial({ color: '#fff', emissive: '#f43f5e', emissiveIntensity: 1.0 }));
+    beacon.position.y = 19.1;
+    g.add(podium, tL, tR, bridge, topArch, spire, beacon);
+    g.userData.beacon = beacon;
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   return g;
@@ -2276,7 +2476,7 @@ function syncBuildings() {
     }
     const p = tilePos(i);
     if (tileLabels[i]) {
-      const hOff = s.owner != null && s.level > 0 ? [11, 11, 12, 14, 19][s.level] : 11;
+      const hOff = s.owner != null && s.level > 0 ? ([14, 14, 15, 22, 25, 28][s.level] || 28) : 14;
       tileLabels[i].position.y = p.y + hOff;
     }
     if (s.owner != null) {
@@ -2535,10 +2735,109 @@ function makeSpecialtyMesh(key) {
   grp.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return grp;
 }
+function makeOutfitMesh(key) {
+  const grp = new THREE.Group();
+  const std = (color, opt = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.4, ...opt });
+  if (key === 'space_suit') {
+    const visor = new THREE.Mesh(new THREE.SphereGeometry(1.26, 16, 12), std('#bae6fd', { transparent: true, opacity: 0.55, metalness: 0.4 }));
+    visor.position.y = 3.75;
+    const jet = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.7), std('#e2e8f0'));
+    jet.position.set(0, 2.1, -1.05);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.14, 6, 16), std('#f97316'));
+    ring.rotation.x = Math.PI / 2; ring.position.y = 2.75;
+    grp.add(visor, jet, ring);
+  } else if (key === 'cowboy') {
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 0.12, 16), std('#78350f'));
+    brim.position.y = 4.68;
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.02, 0.75, 12), std('#92400e'));
+    crown.position.y = 5.05;
+    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.18, 6, 12), std('#dc2626'));
+    scarf.rotation.x = Math.PI / 2; scarf.position.y = 2.72;
+    grp.add(brim, crown, scarf);
+  } else if (key === 'luxury') {
+    const coat = new THREE.Mesh(new THREE.CylinderGeometry(0.98, 1.25, 1.5, 14), std('#7e22ce', { roughness: 0.35 }));
+    coat.position.y = 1.9;
+    const shades = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.28, 0.35), std('#0f172a', { metalness: 0.8 }));
+    shades.position.set(0, 3.85, 0.98);
+    const goldChain = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.1, 6, 16), std('#facc15', { metalness: 0.8 }));
+    goldChain.rotation.x = Math.PI / 2; goldChain.position.y = 2.65;
+    grp.add(coat, shades, goldChain);
+  } else if (key === 'ninja') {
+    const mask = new THREE.Mesh(new THREE.CylinderGeometry(1.14, 1.14, 0.95, 14), std('#1e293b'));
+    mask.position.y = 3.55;
+    const band = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.1, 6, 16), std('#ef4444'));
+    band.rotation.x = Math.PI / 2; band.position.y = 4.05;
+    const katana = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.7, 0.14), std('#cbd5e1', { metalness: 0.8 }));
+    katana.position.set(0.35, 2.5, -1.0); katana.rotation.z = -0.45;
+    grp.add(mask, band, katana);
+  } else if (key === 'race_suit') {
+    const helm = new THREE.Mesh(new THREE.SphereGeometry(1.24, 16, 12), std('#ef4444'));
+    helm.position.y = 3.75;
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.45, 0.45), std('#0f172a'));
+    visor.position.set(0, 3.82, 0.96);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.65, 1.75), std('#facc15'));
+    stripe.position.y = 1.98;
+    grp.add(helm, visor, stripe);
+  }
+  grp.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return grp;
+}
+
+function makeCarMesh(key) {
+  const grp = new THREE.Group();
+  const std = (color, opt = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.35, ...opt });
+  const tireM = std('#111827', { roughness: 0.85 });
+  const rimM = std('#e2e8f0', { metalness: 0.7 });
+  const addWheels = (xs, zs, r = 0.45) => {
+    for (const x of xs) for (const z of zs) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.32, 12), tireM);
+      w.rotation.z = Math.PI / 2; w.position.set(x, r, z);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.52, r * 0.52, 0.35, 8), rimM);
+      hub.rotation.z = Math.PI / 2; hub.position.set(x, r, z);
+      grp.add(w, hub);
+    }
+  };
+  if (key === 'scooter') {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.55, 2.3), std('#38bdf8'));
+    body.position.y = 0.65;
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.4, 8), rimM);
+    bar.position.set(0, 1.35, 0.95); bar.rotation.x = -0.25;
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.1, 0.14), tireM);
+    handle.position.set(0, 1.98, 0.8);
+    grp.add(body, bar, handle);
+    addWheels([0], [-0.85, 0.9], 0.38);
+  } else if (key === 'sedan') {
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.78, 3.6), std('#22c55e', { metalness: 0.35 }));
+    chassis.position.y = 0.75;
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.45, 1.0), std('#38bdf8', { transparent: true, opacity: 0.55 }));
+    hood.position.set(0, 1.25, 0.85);
+    grp.add(chassis, hood);
+    addWheels([-1.2, 1.2], [-1.1, 1.1], 0.46);
+  } else if (key === 'sports') {
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.68, 4.0), std('#ef4444', { metalness: 0.65, roughness: 0.2 }));
+    chassis.position.y = 0.68;
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 0.45), std('#0f172a'));
+    wing.position.set(0, 1.32, -1.75);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.42, 1.1), std('#7dd3fc', { transparent: true, opacity: 0.65 }));
+    glass.position.set(0, 1.15, 0.9);
+    grp.add(chassis, wing, glass);
+    addWheels([-1.32, 1.32], [-1.25, 1.25], 0.48);
+  } else if (key === 'cyber_suv') {
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.75, 1.05, 4.2), std('#cbd5e1', { metalness: 0.82, roughness: 0.22 }));
+    chassis.position.y = 0.92;
+    const light = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.16, 0.16), std('#38bdf8', { emissive: '#38bdf8', emissiveIntensity: 0.9 }));
+    light.position.set(0, 1.15, 2.08);
+    grp.add(chassis, light);
+    addWheels([-1.4, 1.4], [-1.35, 1.35], 0.58);
+  }
+  grp.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return grp;
+}
+
 function syncTokenDecor(tk, pl) {
   if (!tk || !tk.decoSlots) return;
   const eq = (pl && pl.equipped) || {};
-  const key = `${eq.hand || ''}|${eq.head || ''}|${eq.back || ''}|${eq.halo || ''}`;
+  const key = `${eq.hand || ''}|${eq.head || ''}|${eq.back || ''}|${eq.halo || ''}|${pl && pl.equippedOutfit || ''}|${pl && pl.equippedCar || ''}`;
   if (tk.decoKey === key) return;
   tk.decoKey = key;
   for (const slot of ['hand', 'head', 'back', 'halo']) {
@@ -2547,6 +2846,16 @@ function syncTokenDecor(tk, pl) {
     while (holder.children.length) holder.remove(holder.children[0]);
     const spKey = eq[slot];
     if (spKey) holder.add(makeSpecialtyMesh(spKey));
+  }
+  if (tk.outfitSlot) {
+    while (tk.outfitSlot.children.length) tk.outfitSlot.remove(tk.outfitSlot.children[0]);
+    if (pl && pl.equippedOutfit) tk.outfitSlot.add(makeOutfitMesh(pl.equippedOutfit));
+  }
+  if (tk.carSlot) {
+    while (tk.carSlot.children.length) tk.carSlot.remove(tk.carSlot.children[0]);
+    const hasCar = !!(pl && pl.equippedCar);
+    if (hasCar) tk.carSlot.add(makeCarMesh(pl.equippedCar));
+    if (tk.charBody) tk.charBody.position.y = hasCar ? 0.72 : 0;
   }
 }
 
@@ -2697,11 +3006,20 @@ function makeToken(pl) {
   decoHalo.position.set(-1.65, 4.95, 0.25);
   g.add(decoHead, decoBack, decoHalo);
   const decoSlots = { hand: decoHand, head: decoHead, back: decoBack, halo: decoHalo };
+  const outfitSlot = new THREE.Group();
+  g.add(outfitSlot);
+
+  const charBody = new THREE.Group();
+  while (g.children.length) charBody.add(g.children[0]);
+  g.add(charBody);
+  const carSlot = new THREE.Group();
+  g.add(carSlot);
+  g.add(godVis);
 
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   g.scale.setScalar(1.38);
   scene.add(g);
-  const tkObj = { g, leftArm, rightArm, leftLeg, rightLeg, godVis, ring, spirit, decoSlots, decoKey: '', pos: pl.pos, path: [], t: 0, moveN: 0 };
+  const tkObj = { g, charBody, leftArm, rightArm, leftLeg, rightLeg, godVis, ring, spirit, decoSlots, outfitSlot, carSlot, decoKey: '', pos: pl.pos, path: [], t: 0, moveN: 0 };
   syncTokenDecor(tkObj, pl);
   return tkObj;
 }
@@ -3785,17 +4103,24 @@ function frame(now) {
       } else if (tk.path.length) {
         if (!diceAnim && !biteAnim) {
           const legDur = stepDurMs(tk.from, tk.path[0]);
-          const hopH = isIslandLeg(tk.from, tk.path[0]) ? 8.5 : 4.6;
+          const driving = !!(pl.equippedCar && !isIslandLeg(tk.from, tk.path[0]));
+          const hopH = isIslandLeg(tk.from, tk.path[0]) ? 8.5 : (driving ? 0.55 : 3.2);
           tk.t += dt / legDur;
           const a = tokenWorld(tk.from, k), b = tokenWorld(tk.path[0], k), f = Math.min(1, tk.t);
-          tk.g.position.lerpVectors(a, b, f);
-          tk.g.position.y += Math.sin(f * Math.PI) * hopH;
+          const sf = f * f * (3 - 2 * f);
+          tk.g.position.lerpVectors(a, b, sf);
+          tk.g.position.y += Math.sin(sf * Math.PI) * hopH;
           tk.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
-          const swing = Math.sin(f * Math.PI * 2) * 0.65;
-          tk.leftArm.rotation.x = swing; tk.rightArm.rotation.x = -swing;
-          tk.leftLeg.rotation.x = -swing * 0.8; tk.rightLeg.rotation.x = swing * 0.8;
+          if (driving) {
+            tk.leftArm.rotation.x = -0.7; tk.rightArm.rotation.x = -0.7;
+            tk.leftLeg.rotation.x = 0; tk.rightLeg.rotation.x = 0;
+          } else {
+            const swing = Math.sin(sf * Math.PI * 2) * 0.65;
+            tk.leftArm.rotation.x = swing; tk.rightArm.rotation.x = -swing;
+            tk.leftLeg.rotation.x = -swing * 0.8; tk.rightLeg.rotation.x = swing * 0.8;
+          }
           if (f >= 1) {
-            tk.from = tk.path.shift(); tk.pos = tk.from; tk.t = 0; snd('step');
+            tk.from = tk.path.shift(); tk.pos = tk.from; tk.t = 0; snd(driving ? 'car' : 'step');
             if (G.move && G.move.bite && G.move.p === k && G.move.n === tk.moveN && tk.from === G.move.bite.at && tk.biteDoneN !== G.move.n) {
               tk.biteDoneN = G.move.n;
               if (G.biteFx && G.biteFx.p === k) lastBiteN = G.biteFx.n;
@@ -3849,7 +4174,8 @@ function frame(now) {
           continue;
         }
         if (npc.attachedTo == null) nt.attachedTo = null;
-        nt.g.visible = true;
+        nt.g.visible = !(npc.respawnIn > 0);
+        if (!nt.g.visible) continue;
         nt.g.scale.setScalar(1.25);
         const biteMoveTk = npc.kind === 'dog' && G.move && G.move.bite && G.move.bite.npcId === npc.id ? tokens[G.move.p] : null;
         const waitingBite = !!((biteMoveTk && biteMoveTk.moveN === G.move.n && (biteMoveTk.path.includes(G.move.bite.at) || (biteAnim && biteAnim.npcId === npc.id))) || (G.biteFx && G.biteFx.n !== lastBiteN && G.biteFx.npcId === npc.id));
@@ -4161,8 +4487,11 @@ function renderNews() {
   const syncBar = () => {
     bar.classList.remove('hidden');
     if (wasHidden) resize();
+    const artEl = $('#newsArt');
+    if (artEl) artEl.innerHTML = newsArtSVG(latest);
     $('#newsTitle').textContent = `[${latest.cat}] ${latest.title}`;
-    $('#newsTicker').textContent = G.news.slice(-5, -1).reverse().map(n => `• ${n.title}`).join('   ');
+    const tickEl = $('#newsTicker');
+    if (tickEl) tickEl.textContent = latest.body && latest.body !== latest.title ? latest.body : (G.news.slice(-3, -1).reverse().map(n => `• ${n.title}`).join('  '));
   };
   if (latest.id > lastNewsId) {
     const isInitial = lastNewsId === 0;
@@ -4341,6 +4670,29 @@ function openPlayerDetail(pid) {
       }).join('')}</div>` : '<div class="sub" style="margin:4px 0">購地、建設或造訪公園／廟宇／道具屋可獲得各地特產修飾棋子</div>'}
     </div>
     <div class="pd-section">
+      <h4>👕 造型服飾與 🚗 專屬座駕（點擊穿戴／卸下）</h4>
+      ${((p.outfits && p.outfits.length) || (p.cars && p.cars.length)) ? `<div class="pd-items">
+        ${(p.outfits || []).map(k => {
+          const of = R.OUTFITS[k]; if (!of) return '';
+          const eq = p.equippedOutfit === k;
+          const canEquip = NET.role === 'local' ? !p.bankrupt : (mine(pid) && !p.bankrupt);
+          return `<button class="sp-card ${eq ? 'equipped' : ''}" data-outfit="${k}" ${canEquip ? '' : 'disabled'}>
+            <span class="item-ico" style="font-size:22px;display:grid;place-items:center">${of.icon}</span>
+            <div class="item-meta"><b>${of.name}<span class="sp-slot">造型</span>${eq ? '<span class="sp-eq-tag">穿戴中</span>' : ''}</b><small>${of.desc}</small></div>
+          </button>`;
+        }).join('')}
+        ${(p.cars || []).map(k => {
+          const car = R.CARS[k]; if (!car) return '';
+          const eq = p.equippedCar === k;
+          const canEquip = NET.role === 'local' ? !p.bankrupt : (mine(pid) && !p.bankrupt);
+          return `<button class="sp-card ${eq ? 'equipped' : ''}" data-car="${k}" ${canEquip ? '' : 'disabled'}>
+            <span class="item-ico" style="font-size:22px;display:grid;place-items:center">${car.icon}</span>
+            <div class="item-meta"><b>${car.name}<span class="sp-slot">座駕</span>${eq ? '<span class="sp-eq-tag">駕駛中</span>' : ''}</b><small>${car.desc}</small></div>
+          </button>`;
+        }).join('')}
+      </div>` : '<div class="sub" style="margin:4px 0">造訪「造型服飾店」與「汽車展示中心」即可購買並裝備造型與座駕！</div>'}
+    </div>
+    <div class="pd-section">
       <h4>🏙️ 名下地產（點擊地名跳轉地圖焦點）</h4>
       ${lands.length ? `<div class="pd-lands">${lands.map(i => {
         const t = R.BOARD[i], st = G.tiles[i];
@@ -4365,6 +4717,18 @@ function openPlayerDetail(pid) {
     box.querySelectorAll('[data-sp]').forEach(btn => {
       btn.onclick = () => {
         send({ type: 'equipSpecialty', pid, specialty: btn.dataset.sp });
+        openPlayerDetail(pid);
+      };
+    });
+    box.querySelectorAll('[data-outfit]').forEach(btn => {
+      btn.onclick = () => {
+        send({ type: 'equipOutfit', pid, outfit: btn.dataset.outfit });
+        openPlayerDetail(pid);
+      };
+    });
+    box.querySelectorAll('[data-car]').forEach(btn => {
+      btn.onclick = () => {
+        send({ type: 'equipCar', pid, car: btn.dataset.car });
         openPlayerDetail(pid);
       };
     });
@@ -4540,9 +4904,34 @@ function askPrompt(q) {
     return;
   }
   if (q.k === 'shop') {
+    const owned = p.outfits || [];
+    openModal(`<h2>👕 ${t.name}（造型服飾店）</h2>
+      <div class="sub">購買造型立即穿戴在 3D 棋子上！目前現金：<b style="color:var(--gold)">$${p.cash.toLocaleString()}</b>・已收藏 <b>${owned.length}/${Object.keys(R.OUTFITS).length}</b> 套</div>
+      <div class="shop-grid">${Object.entries(R.OUTFITS).map(([k, of]) => {
+        const has = owned.includes(k), eq = p.equippedOutfit === k;
+        return `<button class="item-btn ${eq ? 'equipped' : ''}" data-outfit-buy="${k}" ${(!has && p.cash < of.price) ? 'disabled' : ''}>
+          <span class="item-ico" style="font-size:24px;display:grid;place-items:center">${of.icon}</span>
+          <div class="item-meta">
+            <b>${of.name} ${has ? `<span class="sp-eq-tag">${eq ? '穿戴中' : '已擁有'}</span>` : `<span class="price">$${of.price.toLocaleString()}</span>`}</b>
+            <small>${has ? (eq ? '點擊卸下造型' : '點擊立即換上此造型') : of.desc}</small>
+          </div>
+        </button>`;
+      }).join('')}</div>
+      <div class="row"><button class="primary" id="sDone">離開服飾店</button></div>`, box => {
+      box.querySelector('#sDone').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
+      box.querySelectorAll('[data-outfit-buy]').forEach(b => b.onclick = () => {
+        const k = b.dataset.outfitBuy;
+        if (owned.includes(k)) send({ type: 'equipOutfit', pid: p.id, outfit: k });
+        else send({ type: 'buyOutfit', outfit: k });
+        if (G.ask && G.ask.k === 'shop') askPrompt(G.ask);
+      });
+    });
+    return;
+  }
+  if (q.k === 'cardshop') {
     const giftName = q.freeItem ? `${R.ITEMS[q.freeItem].icon} ${R.ITEMS[q.freeItem].name}` : '（背包已滿）';
     const bagFull = p.items.length >= R.MAX_ITEMS;
-    openModal(`<h2>🏪 台灣道具屋</h2>
+    openModal(`<h2>🃏 ${t.name}（卡片道具屋）</h2>
       <div class="sub">免費贈禮：<b>${giftName}</b><br>目前現金：<b style="color:var(--gold)">$${p.cash.toLocaleString()}</b>・背包：<b>${p.items.length}/${R.MAX_ITEMS}</b>・骰子：<b>${p.dice || 1} 顆</b></div>
       <div class="shop-grid">${Object.entries(R.ITEMS).map(([k, it]) => {
         const isDie = k === 'add_die';
@@ -4562,14 +4951,73 @@ function askPrompt(q) {
           <span class="item-ico">${specialtySvg('sky_lantern')}</span>
           <div class="item-meta">
             <b>🎁 台灣特產盲盒 <span class="price">$500</span></b>
-            <small>${spFull ? `已集滿全部 ${totalSp} 種地方特產！` : `隨機獲得未擁有的各地特產飾品來修飾棋子（已收集 ${ownedSp}/${totalSp}）`}</small>
+            <small>${spFull ? `已集滿全部 ${totalSp} 種地方特產！` : `隨機獲得未擁有的各地特產飾品（已收集 ${ownedSp}/${totalSp}）`}</small>
           </div>
         </button>`;
       })()}</div>
-      <div class="row"><button class="primary" id="sDone">離開道具屋</button></div>`, box => {
+      <div class="row"><button class="primary" id="sDone">離開卡片商店</button></div>`, box => {
       box.querySelector('#sDone').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
       box.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
         send({ type: 'buyItem', item: b.dataset.buy });
+        if (G.ask && G.ask.k === 'cardshop') askPrompt(G.ask);
+      });
+    });
+    return;
+  }
+  if (q.k === 'autoshow') {
+    const owned = p.cars || [];
+    openModal(`<h2>🚘 ${t.name}（汽車展示中心）</h2>
+      <div class="sub">買車後角色會坐在車內駕駛移動，並播放引擎喇叭聲！目前現金：<b style="color:var(--gold)">$${p.cash.toLocaleString()}</b></div>
+      <div class="shop-grid">${Object.entries(R.CARS).map(([k, car]) => {
+        const has = owned.includes(k), eq = p.equippedCar === k;
+        return `<button class="item-btn ${eq ? 'equipped' : ''}" data-car-buy="${k}" ${(!has && p.cash < car.price) ? 'disabled' : ''}>
+          <span class="item-ico" style="font-size:24px;display:grid;place-items:center">${car.icon}</span>
+          <div class="item-meta">
+            <b>${car.name} ${has ? `<span class="sp-eq-tag">${eq ? '駕駛中' : '已擁有'}</span>` : `<span class="price">$${car.price.toLocaleString()}</span>`}</b>
+            <small>${has ? (eq ? '點擊下車步行' : '點擊立即駕駛此座駕') : car.desc}</small>
+          </div>
+        </button>`;
+      }).join('')}</div>
+      <div class="row"><button class="primary" id="sDone">離開汽車展示中心</button></div>`, box => {
+      box.querySelector('#sDone').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
+      box.querySelectorAll('[data-car-buy]').forEach(b => b.onclick = () => {
+        const k = b.dataset.carBuy;
+        if (owned.includes(k)) send({ type: 'equipCar', pid: p.id, car: k });
+        else send({ type: 'buyCar', car: k });
+        if (G.ask && G.ask.k === 'autoshow') askPrompt(G.ask);
+      });
+    });
+    return;
+  }
+  if (q.k === 'stock') {
+    const bets = q.bets || [800, 2000, 4000];
+    openModal(`<h2>📈 ${t.name}</h2>
+      <div class="sub">台股大盤即時開盤！選擇投入資金：<br>目前現金：<b style="color:var(--gold)">$${p.cash.toLocaleString()}</b>（漲停 +100% / 小漲 +40% / 平盤 / 回檔 -40%）</div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;justify-content:center">
+        ${bets.map(b => `<button class="${b >= 4000 ? 'sky' : 'primary'}" data-invest="${b}" ${p.cash < b ? 'disabled' : ''}>📊 買進 $${b.toLocaleString()}</button>`).join('')}
+        <button id="sNo">觀望不買</button>
+      </div>`, box => {
+      box.querySelector('#sNo').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
+      box.querySelectorAll('[data-invest]').forEach(btn => btn.onclick = () => {
+        closeModal();
+        send({ type: 'answer', yes: true, invest: Number(btn.dataset.invest) });
+      });
+    });
+    return;
+  }
+  if (q.k === 'minigame') {
+    openModal(`<h2>🎯 ${t.name}</h2>
+      <div class="sub">夜市九宮格／彈珠台開玩！選一個幸運格位，有機會贏得最高 <b>$1,800</b> 大獎！</div>
+      <div class="row" style="flex-wrap:wrap;gap:10px;justify-content:center">
+        <button class="primary" data-pick="0">🏮 紅燈籠格</button>
+        <button class="sky" data-pick="1">🎯 金彈珠格</button>
+        <button class="primary" data-pick="2">🧧 財神福袋</button>
+        <button id="mNo">不玩離開</button>
+      </div>`, box => {
+      box.querySelector('#mNo').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
+      box.querySelectorAll('[data-pick]').forEach(btn => btn.onclick = () => {
+        closeModal();
+        send({ type: 'answer', yes: true, pick: Number(btn.dataset.pick) });
       });
     });
     return;
@@ -4578,51 +5026,39 @@ function askPrompt(q) {
   const buy = q.k === 'buy', curLv = s.level || 0, nextLv = buy ? 0 : curLv + 1;
   const godHint = p.god ? (p.god.kind === 'tudigong' && buy ? '（土地公半價優惠）' : p.god.kind === 'fushen' && buy ? '（福神 8 折優惠）' : p.god.kind === 'shuaishen' ? '（衰神 1.5 倍漲價）' : '') : '';
   if (buy) {
-    const unitBuild = q.buildCost != null ? q.buildCost : R.buildCostOf(G, p, q.i);
-    const withBuildCost = q.cost + unitBuild;
-    const canBuildNow = p.cash >= withBuildCost;
-    openModal(`<h2>🏡 要買下「${t.name}」嗎？</h2>
+    openModal(`<h2>🏡 要買下「${t.name}」的土地嗎？</h2>
       <div class="deal"><span>地點</span><b>${t.name}${t.group ? `（${R.GROUPS[t.group].name}）` : ''}</b>
         <span>購地價格</span><b>$${q.cost.toLocaleString()} ${godHint}</b>
-        <span>加蓋一樓</span><b>$${unitBuild.toLocaleString()}（合計 $${withBuildCost.toLocaleString()}）</b>
         <span>目前現金</span><b>$${p.cash.toLocaleString()}</b></div>
-      <div class="sub">買下後，下次再回到同一位置即可一路蓋樓至【🏙️ 摩天大樓】！</div>
+      <div class="sub">首次抵達只能購買土地！之後每次再回到此地，即可依序蓋成：溫馨洋房 → 高級住宅 → 摩天大樓 → 五星飯店 → 連鎖旗艦店！</div>
       <div class="row">
         <button id="aNo">不要</button>
-        <button class="primary" id="aYes">買下空地 ($${q.cost.toLocaleString()})</button>
-        ${canBuildNow ? `<button class="sky" id="aYesBuild">🏠 買地＋蓋一樓 ($${withBuildCost.toLocaleString()})</button>` : ''}
+        <button class="primary" id="aYes">買下土地 ($${q.cost.toLocaleString()})</button>
       </div>`, box => {
       box.querySelector('#aYes').onclick = () => { closeModal(); send({ type: 'answer', yes: true }); };
-      if (box.querySelector('#aYesBuild')) {
-        box.querySelector('#aYesBuild').onclick = () => { closeModal(); send({ type: 'answer', yes: true, buildFirst: true }); };
-      }
       box.querySelector('#aNo').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
     });
     return;
   }
 
-  const remain = R.MAX_LEVEL - curLv, skyCost = q.cost * remain, canSky = remain > 1 && p.cash >= skyCost;
-  const curRent = R.rentAt(G, q.i, curLv), nextRent = R.rentAt(G, q.i, nextLv), skyRent = R.rentAt(G, q.i, R.MAX_LEVEL);
+  const remain = R.MAX_LEVEL - curLv;
+  const curRent = R.rentAt(G, q.i, curLv), nextRent = R.rentAt(G, q.i, nextLv);
   const track = R.LEVEL_NAME.map((nm, idx) => {
     const cls = idx < curLv ? 'done' : idx === curLv ? 'cur' : idx === nextLv ? 'next' : '';
-    return `<div class="lv-step ${cls}${idx === R.MAX_LEVEL ? ' sky' : ''}">${idx === R.MAX_LEVEL ? '🏙️ ' : ''}Lv.${idx}<br>${nm}</div>`;
+    return `<div class="lv-step ${cls}${idx >= 3 ? ' sky' : ''}">${idx === 3 ? '🏙️ ' : idx === 4 ? '🏨 ' : idx === 5 ? '👑 ' : ''}Lv.${idx}<br>${nm}</div>`;
   }).join('<span class="lv-arrow">→</span>');
-  openModal(`<h2>🏗️ 回到自家「${t.name}」：蓋樓升級</h2>
+  openModal(`<h2>🏗️ 回到自家「${t.name}」：逐階擴建</h2>
     <div class="lv-track">${track}</div>
     <div class="deal"><span>地點</span><b>${t.name}${t.group ? `（${R.GROUPS[t.group].name}）` : ''}</b>
-      <span>蓋樓費用</span><b>$${q.cost.toLocaleString()} / 階 ${godHint}</b>
+      <span>擴建費用</span><b>$${q.cost.toLocaleString()} ${godHint}</b>
       <span>建築升級</span><b>${R.LEVEL_NAME[curLv]} → ${R.LEVEL_NAME[nextLv]}</b>
-      <span>過路費躍升</span><b>$${curRent.toLocaleString()} → <span style="color:#4ade80">$${nextRent.toLocaleString()}</span>${remain > 1 ? `（摩天大樓 $${skyRent.toLocaleString()}）` : ''}</b>
+      <span>過路費躍升</span><b>$${curRent.toLocaleString()} → <span style="color:#4ade80">$${nextRent.toLocaleString()}</span></b>
       <span>現金</span><b>$${p.cash.toLocaleString()} → $${(p.cash - q.cost).toLocaleString()}</b></div>
     <div class="row">
-      <button id="aNo">暫不蓋樓</button>
-      <button class="primary" id="aYes">🏗️ 蓋成【${R.LEVEL_NAME[nextLv]}】($${q.cost.toLocaleString()})</button>
-      ${canSky ? `<button class="sky" id="aSky">🏙️ 直衝摩天大樓 ($${skyCost.toLocaleString()})</button>` : ''}
+      <button id="aNo">暫不擴建</button>
+      <button class="${nextLv >= 3 ? 'sky' : 'primary'}" id="aYes">🏗️ 蓋成【${R.LEVEL_NAME[nextLv]}】($${q.cost.toLocaleString()})</button>
     </div>`, box => {
     box.querySelector('#aYes').onclick = () => { closeModal(); send({ type: 'answer', yes: true, levels: 1 }); };
-    if (box.querySelector('#aSky')) {
-      box.querySelector('#aSky').onclick = () => { closeModal(); send({ type: 'answer', yes: true, levels: remain }); };
-    }
     box.querySelector('#aNo').onclick = () => { closeModal(); send({ type: 'answer', yes: false }); };
   });
 }
@@ -4815,7 +5251,7 @@ function openHelp() {
 
 // ============================================================ 動作送出與套用
 function send(a) {
-  const pid = (a.type === 'setRounds' || a.type === 'rename' || a.type === 'setKind' || a.type === 'equipSpecialty') ? (a.pid != null ? a.pid : [...NET.myIds][0] || 0) : G.cur;
+  const pid = (a.type === 'setRounds' || a.type === 'rename' || a.type === 'setKind' || a.type === 'equipSpecialty' || a.type === 'equipOutfit' || a.type === 'equipCar') ? (a.pid != null ? a.pid : [...NET.myIds][0] || 0) : G.cur;
   if (NET.role === 'client') { NET.host && NET.host.send({ t: 'act', pid, a }); return; }
   const err = R.act(G, pid, a);
   if (err) { toast(err); return; }
@@ -4908,7 +5344,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v169</span></h2><div class="sub">原創 3D 台灣地產桌遊：78 格全台灣、北中南橫支線（路口可選方向）與離島地圖、依地標比例縮放的點位模型、神明附身與 Breaking News 實況廣播！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v170</span></h2><div class="sub">原創 3D 台灣地產桌遊：125 格全台灣（含鄉鎮、美食、百貨、遊樂場、造型商店、汽車中心、股市與澎湖/金門離島不規則小地圖）、4 倍佔地 3D 霓虹造景、漸進 6 階地標建設、定點神明野狗與右上角 Breaking News！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>

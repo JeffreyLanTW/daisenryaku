@@ -3,8 +3,8 @@
 (function (root) {
   'use strict';
 
-  // ----- 棋盤：78 格真實台灣多路線路網（含海路七美／東引／烈嶼，以及本島北橫／中橫／南橫跨山支線與交會選路）-----
-  // type: start / land / chance / fate / tax / jail / gojail / park / shop / temple / hospital / station / casino
+  // ----- 棋盤：125 格全台灣多路線路網（城鎮雙停駐點、鄉鎮景點美食連鎖飯店遊樂場百貨、澎湖12格與金門14格離島小地圖、北中南橫跨山支線）-----
+  // type: start / land / chance / fate / tax / jail / gojail / park / shop / cardshop / autoshow / stock / minigame / temple / hospital / station / casino
   const GROUPS = {
     south: { name: '高屏南', color: '#3fb6c8' },
     yunjia: { name: '雲嘉南', color: '#6cc070' },
@@ -16,66 +16,160 @@
     island: { name: '離島群島', color: '#9b6cd6' },
   };
   const L = (name, group, price, opt = {}) => ({ type: 'land', name, group, price, ...opt });
-  const MAIN_COUNT = 67;
+  const MAIN_COUNT = 88;
   const BOARD = [
-    // 0..12 南台灣・高屏小琉球嘉南
+    // 0..17 南台灣・高屏小琉球台南嘉義
     { type: 'start', name: '起點' },
-    L('墾丁', 'south', 1200), L('恆春', 'south', 1300), { type: 'fate', name: '命運' },
-    L('屏東', 'south', 1500), L('小琉球', 'island', 1700, { branch: '高屏海路' }), L('高雄', 'south', 1800), { type: 'station', name: '高鐵左營', price: 2200 },
-    L('台南', 'yunjia', 1900), L('安平', 'yunjia', 2000), { type: 'chance', name: '機會' },
-    { type: 'shop', name: '道具屋' }, L('嘉義', 'yunjia', 2100),
-    // 13..26 阿里山・雲林北港・七美澎湖・鹿港彰化南投日月潭・台中
-    { type: 'jail', name: '監獄' },
-    L('阿里山', 'scenic', 2600), L('雲林', 'yunjia', 2000), { type: 'temple', name: '北港廟宇' },
-    L('七美', 'island', 2200), L('澎湖', 'island', 2500), L('鹿港', 'central', 2400), L('彰化', 'central', 2300),
-    L('南投', 'central', 2200), L('日月潭', 'scenic', 2800), { type: 'hospital', name: '醫院' },
-    { type: 'station', name: '台中高鐵', price: 2400 }, L('台中', 'central', 3000), { type: 'chance', name: '機會', branch: '西部縱貫線' },
-    // 27..47 桃竹苗・馬祖東引賭場烈嶼金門・大台北都會區
-    L('三義', 'taoyuan', 2300), L('苗栗', 'taoyuan', 2400), L('竹科', 'taoyuan', 3200), L('新竹', 'taoyuan', 2800),
-    { type: 'fate', name: '命運' }, L('桃園', 'taoyuan', 3100),
-    L('馬祖', 'island', 2700, { branch: '海空離島線' }), L('東引', 'island', 2500), { type: 'casino', name: '賭場' }, L('烈嶼', 'island', 2600), L('金門', 'island', 2900),
-    { type: 'station', name: '桃園機場', price: 2600 }, { type: 'shop', name: '道具屋' },
-    L('淡水', 'north', 3500), { type: 'park', name: '國家公園' }, { type: 'temple', name: '行天宮' },
-    L('新北', 'north', 4200), L('台北', 'north', 5400), L('信義區', 'north', 6200),
-    { type: 'chance', name: '機會' }, { type: 'station', name: '基隆港', price: 2500 },
-    // 48..66 東北角・平溪・龜山島・宜花東・綠島蘭嶼南迴
-    { type: 'gojail', name: '入獄' },
-    L('九份', 'scenic', 3500), L('平溪', 'scenic', 3200), { type: 'tax', name: '國稅局' },
-    L('龜山島', 'island', 2800), L('宜蘭', 'east', 3000), L('羅東', 'east', 2900), { type: 'fate', name: '命運' },
-    { type: 'temple', name: '迎神殿' }, L('太魯閣', 'scenic', 3800), L('花蓮', 'east', 3300),
-    { type: 'shop', name: '道具屋' }, L('玉里', 'east', 2900), { type: 'chance', name: '機會' },
-    L('台東', 'east', 3100), L('知本', 'scenic', 3000), L('綠島', 'island', 3300), L('蘭嶼', 'island', 3400),
+    L('墾丁', 'south', 1300, { subkind: 'scenic' }),
+    L('恆春', 'south', 1200, { subkind: 'town' }),
+    L('墾丁大街美食', 'south', 1400, { subkind: 'food' }),
     { type: 'fate', name: '命運' },
-    // 67..69 北橫公路支線（桃園 32 -> 大溪 67 -> 拉拉山 68 -> 明池 69 -> 宜蘭 53）
-    L('大溪', 'taoyuan', 2700, { branch: '北橫公路', next: [68] }),
-    L('拉拉山', 'scenic', 2900, { branch: '北橫公路', next: [69] }),
-    L('明池', 'scenic', 2800, { branch: '北橫公路', next: [53] }),
-    // 70..73 中橫公路支線（台中 25 -> 谷關 70 -> 梨山 71 -> 合歡山 72 -> 天祥 73 -> 太魯閣 57）
-    L('谷關', 'central', 2600, { branch: '中橫公路', next: [71] }),
-    L('梨山', 'scenic', 2900, { branch: '中橫公路', next: [72] }),
-    L('合歡山', 'scenic', 3400, { branch: '中橫公路', next: [73] }),
-    L('天祥', 'scenic', 2800, { branch: '中橫公路', next: [57] }),
-    // 74..77 南橫公路支線（屏東 4 -> 甲仙 74 -> 梅山 75 -> 埡口 76 -> 向陽 77 -> 機會(池上) 61）
-    L('甲仙', 'south', 2100, { branch: '南橫公路', next: [75] }),
-    L('梅山', 'scenic', 2400, { branch: '南橫公路', next: [76] }),
-    L('埡口', 'scenic', 2900, { branch: '南橫公路', next: [77] }),
-    L('向陽', 'scenic', 2700, { branch: '南橫公路', next: [61] }),
+    L('東港海鮮市集', 'south', 1500, { subkind: 'food' }),
+    L('屏東', 'south', 1600, { subkind: 'city', branch: '南橫公路' }),
+    L('小琉球', 'island', 1700, { subkind: 'scenic', branch: '高屏海路' }),
+    L('高雄港灣', 'south', 2200, { subkind: 'city' }),
+    L('高雄巨蛋百貨', 'south', 2500, { subkind: 'mall' }),
+    { type: 'station', name: '高鐵左營', price: 2200 },
+    L('橋頭糖廠遊樂場', 'south', 1800, { subkind: 'arcade' }),
+    L('台南府城', 'yunjia', 2100, { subkind: 'city' }),
+    L('台南夜市美食', 'yunjia', 1900, { subkind: 'food' }),
+    L('安平古堡', 'yunjia', 2000, { subkind: 'scenic' }),
+    { type: 'chance', name: '機會' },
+    { type: 'shop', name: '造型服飾店' },
+    L('嘉義', 'yunjia', 2100, { subkind: 'city' }),
+    // 18..34 阿里山・雲嘉・日月潭・台中
+    { type: 'jail', name: '監獄' },
+    L('阿里山', 'scenic', 2600, { subkind: 'scenic' }),
+    L('雲林斗六', 'yunjia', 1800, { subkind: 'town' }),
+    L('劍湖山遊樂場', 'yunjia', 2300, { subkind: 'arcade' }),
+    { type: 'temple', name: '北港廟宇', branch: '澎湖海路' },
+    L('鹿港老街', 'central', 2200, { subkind: 'scenic' }),
+    L('彰化', 'central', 2300, { subkind: 'city' }),
+    L('日月潭連鎖飯店', 'central', 2700, { subkind: 'hotel' }),
+    L('南投', 'central', 2000, { subkind: 'town' }),
+    L('日月潭', 'scenic', 2800, { subkind: 'scenic' }),
+    { type: 'hospital', name: '醫院' },
+    { type: 'station', name: '台中高鐵', price: 2400 },
+    L('台中七期百貨', 'central', 3200, { subkind: 'mall' }),
+    L('台中', 'central', 3000, { subkind: 'city', branch: '中橫公路' }),
+    L('麗寶遊樂場', 'central', 2700, { subkind: 'arcade' }),
+    { type: 'stock', name: '台灣股市' },
+    { type: 'chance', name: '機會', branch: '西部縱貫線' },
+    // 35..57 桃竹苗・馬祖東引・海峽賭場・大台北基隆
+    L('三義木雕村', 'taoyuan', 2100, { subkind: 'town' }),
+    L('苗栗大湖', 'taoyuan', 2200, { subkind: 'food' }),
+    L('竹科園區', 'taoyuan', 3400, { subkind: 'city' }),
+    L('新竹城隍美食', 'taoyuan', 2500, { subkind: 'food' }),
+    { type: 'cardshop', name: '卡片商店' },
+    { type: 'fate', name: '命運' },
+    L('桃園', 'taoyuan', 3100, { subkind: 'city' }),
+    L('馬祖', 'island', 2700, { subkind: 'scenic', branch: '海空離島線' }),
+    L('東引', 'island', 2500, { subkind: 'scenic' }),
+    { type: 'casino', name: '海峽賭場', branch: '金門航線' },
+    { type: 'station', name: '桃園機場', price: 2600 },
+    { type: 'autoshow', name: '汽車展示中心' },
+    L('淡水老街', 'north', 3300, { subkind: 'scenic' }),
+    { type: 'park', name: '陽明山公園' },
+    { type: 'temple', name: '行天宮' },
+    { type: 'shop', name: '西門服飾店' },
+    L('新北板橋', 'north', 4000, { subkind: 'city' }),
+    L('台北西門町', 'north', 4800, { subkind: 'city' }),
+    L('台北', 'north', 5400, { subkind: 'city' }),
+    L('信義101百貨', 'north', 6200, { subkind: 'mall' }),
+    { type: 'minigame', name: '夜市小遊戲' },
+    { type: 'chance', name: '機會' },
+    { type: 'station', name: '基隆港', price: 2500 },
+    // 58..87 東北角・平溪・龜山島・宜花東・南迴
+    { type: 'gojail', name: '入獄' },
+    L('九份山城', 'scenic', 3500, { subkind: 'scenic' }),
+    L('平溪天燈', 'scenic', 3200, { subkind: 'scenic' }),
+    { type: 'tax', name: '國稅局' },
+    L('龜山島', 'island', 2800, { subkind: 'scenic' }),
+    L('頭城烏石港', 'east', 2600, { subkind: 'port' }),
+    L('宜蘭', 'east', 3000, { subkind: 'city' }),
+    L('羅東夜市', 'east', 2800, { subkind: 'food' }),
+    L('礁溪連鎖飯店', 'east', 3200, { subkind: 'hotel' }),
+    { type: 'fate', name: '命運' },
+    { type: 'temple', name: '迎神殿' },
+    L('太魯閣', 'scenic', 3800, { subkind: 'scenic' }),
+    L('花蓮', 'east', 3300, { subkind: 'city' }),
+    L('花蓮東大門美食', 'east', 3000, { subkind: 'food' }),
+    { type: 'cardshop', name: '卡片商店' },
+    L('海洋遊樂場', 'east', 3200, { subkind: 'arcade' }),
+    L('玉里', 'east', 2500, { subkind: 'town' }),
+    L('池上米鄉', 'east', 2600, { subkind: 'food' }),
+    { type: 'chance', name: '機會' },
+    { type: 'stock', name: '台灣股市' },
+    L('台東', 'east', 3100, { subkind: 'city' }),
+    L('知本溫泉飯店', 'scenic', 3000, { subkind: 'hotel' }),
+    L('綠島', 'island', 3300, { subkind: 'scenic' }),
+    L('蘭嶼', 'island', 3400, { subkind: 'scenic' }),
+    L('太麻里', 'east', 2600, { subkind: 'scenic' }),
+    { type: 'autoshow', name: '汽車展示中心' },
+    { type: 'minigame', name: '夜市小遊戲' },
+    { type: 'fate', name: '命運' },
+    L('佳樂水', 'south', 2200, { subkind: 'scenic' }),
+    L('鵝鑾鼻燈塔', 'south', 2400, { subkind: 'scenic' }),
+    // 88..99 澎湖群島不規則小地圖（12 格：北港 22 -> 88..99 -> 鹿港 23）
+    { type: 'station', name: '馬公港', price: 2400, branch: '澎湖群島', next: [89] },
+    { type: 'temple', name: '澎湖天后宮', branch: '澎湖群島', next: [90] },
+    L('中央老街美食', 'island', 2200, { subkind: 'food', branch: '澎湖群島', next: [91] }),
+    { type: 'shop', name: '澎湖服飾店', branch: '澎湖群島', next: [92] },
+    L('跨海大橋', 'island', 2500, { subkind: 'scenic', branch: '澎湖群島', next: [93] }),
+    L('西嶼燈塔', 'island', 2300, { subkind: 'scenic', branch: '澎湖群島', next: [94] }),
+    L('吉貝沙尾', 'island', 2400, { subkind: 'scenic', branch: '澎湖群島', next: [95] }),
+    { type: 'cardshop', name: '澎湖卡片屋', branch: '澎湖群島', next: [96] },
+    L('山水遊樂場', 'island', 2600, { subkind: 'arcade', branch: '澎湖群島', next: [97] }),
+    L('望安綠蠵龜', 'island', 2300, { subkind: 'scenic', branch: '澎湖群島', next: [98] }),
+    L('七美雙心', 'island', 2500, { subkind: 'scenic', branch: '澎湖群島', next: [99] }),
+    L('澎湖免稅百貨', 'island', 2900, { subkind: 'mall', branch: '澎湖群島', next: [23] }),
+    // 100..113 金門群島不規則小地圖（14 格：海峽賭場 44 -> 100..113 -> 桃園機場 45）
+    { type: 'station', name: '水頭碼頭', price: 2500, branch: '金門群島', next: [101] },
+    L('莒光樓', 'island', 2600, { subkind: 'scenic', branch: '金門群島', next: [102] }),
+    L('金城模範美食', 'island', 2400, { subkind: 'food', branch: '金門群島', next: [103] }),
+    { type: 'cardshop', name: '金門卡片屋', branch: '金門群島', next: [104] },
+    L('烈嶼小金門', 'island', 2500, { subkind: 'town', branch: '金門群島', next: [105] }),
+    L('大膽島前線', 'island', 2600, { subkind: 'scenic', branch: '金門群島', next: [106] }),
+    L('古寧頭戰史館', 'island', 2500, { subkind: 'scenic', branch: '金門群島', next: [107] }),
+    { type: 'minigame', name: '慈湖小遊戲', branch: '金門群島', next: [108] },
+    L('山后民俗村', 'island', 2400, { subkind: 'town', branch: '金門群島', next: [109] }),
+    L('太武山', 'island', 2700, { subkind: 'scenic', branch: '金門群島', next: [110] }),
+    { type: 'stock', name: '金沙股市廣場', branch: '金門群島', next: [111] },
+    L('金門遊樂場', 'island', 2700, { subkind: 'arcade', branch: '金門群島', next: [112] }),
+    L('昇恆昌百貨', 'island', 3100, { subkind: 'mall', branch: '金門群島', next: [113] }),
+    { type: 'station', name: '料羅灣碼頭', price: 2600, branch: '金門群島', next: [45] },
+    // 114..116 北橫公路支線（桃園 41 -> 114..116 -> 宜蘭 64）
+    L('大溪老街', 'taoyuan', 2700, { subkind: 'town', branch: '北橫公路', next: [115] }),
+    L('拉拉山', 'scenic', 2900, { subkind: 'scenic', branch: '北橫公路', next: [116] }),
+    L('明池', 'scenic', 2800, { subkind: 'scenic', branch: '北橫公路', next: [64] }),
+    // 117..120 中橫公路支線（台中 31 -> 117..120 -> 太魯閣 69）
+    L('谷關溫泉', 'central', 2600, { subkind: 'hotel', branch: '中橫公路', next: [118] }),
+    L('梨山', 'scenic', 2900, { subkind: 'scenic', branch: '中橫公路', next: [119] }),
+    L('合歡山', 'scenic', 3400, { subkind: 'scenic', branch: '中橫公路', next: [120] }),
+    L('天祥', 'scenic', 2800, { subkind: 'scenic', branch: '中橫公路', next: [69] }),
+    // 121..124 南橫公路支線（屏東 6 -> 121..124 -> 池上機會 76）
+    L('甲仙芋頭街', 'south', 2100, { subkind: 'food', branch: '南橫公路', next: [122] }),
+    L('梅山', 'scenic', 2400, { subkind: 'scenic', branch: '南橫公路', next: [123] }),
+    L('埡口', 'scenic', 2900, { subkind: 'scenic', branch: '南橫公路', next: [124] }),
+    L('向陽', 'scenic', 2700, { subkind: 'scenic', branch: '南橫公路', next: [76] }),
   ];
-  // 建立路網有向圖與反向邊（交接處可選擇主線或橫貫公路）
+  // 建立路網有向圖與反向邊（交接處可選擇主線、外島小地圖或橫貫公路）
   for (let i = 0; i < BOARD.length; i++) {
     if (!BOARD[i].next) BOARD[i].next = [(i + 1) % MAIN_COUNT];
     BOARD[i].prev = [];
   }
-  BOARD[4].next = [5, 74];   // 屏東：高屏海路(小琉球) / 南橫公路(甲仙)
-  BOARD[25].next = [26, 70]; // 台中：西部縱貫線(大甲) / 中橫公路(谷關)
-  BOARD[32].next = [33, 67]; // 桃園：海空離島線(馬祖) / 北橫公路(大溪)
+  BOARD[6].next = [7, 121];   // 屏東：高屏海路(小琉球) / 南橫公路(甲仙)
+  BOARD[22].next = [23, 88];  // 北港廟宇：彰化主線(鹿港) / 澎湖群島小地圖(馬公港)
+  BOARD[31].next = [32, 117]; // 台中：西部縱貫線(麗寶) / 中橫公路(谷關)
+  BOARD[41].next = [42, 114]; // 桃園：海空離島線(馬祖) / 北橫公路(大溪)
+  BOARD[44].next = [45, 100]; // 海峽賭場：桃園機場 / 金門群島小地圖(水頭碼頭)
   for (let i = 0; i < BOARD.length; i++) {
     for (const j of BOARD[i].next) BOARD[j].prev.push(i);
   }
   const N = BOARD.length;
-  const START_BONUS = 2000, START_CASH = 18000, MAX_LEVEL = 4, JAIL_TURNS = 2, MAX_ITEMS = 8;
-  const LEVEL_NAME = ['空地', '一樓平房', '二樓透天', '高層大樓', '摩天大樓'];
-  const RENT_MUL = [1.5, 6, 14, 24, 36];
+  const START_BONUS = 2000, START_CASH = 18000, MAX_LEVEL = 5, JAIL_TURNS = 2, MAX_ITEMS = 8;
+  const LEVEL_NAME = ['空地', '溫馨洋房', '高級住宅', '摩天大樓', '五星飯店', '連鎖旗艦店'];
+  const RENT_MUL = [1.5, 5, 11, 20, 32, 48];
 
   // ----- 神明與地圖移動 NPC -----
   const GODS = {
@@ -109,6 +203,23 @@
     seize: { name: '徵收卡', price: 2800, icon: '📜', desc: '以 1.2 倍地價與建築現值強行收購對手一塊土地' },
   };
   const ITEM_KEYS = Object.keys(ITEMS).filter(k => !ITEMS[k].shopOnly);
+
+  // ----- 商店服飾造型 & 汽車展示中心座駕 -----
+  const OUTFITS = {
+    space_suit: { name: '星際太空裝', price: 1800, icon: '🧑‍🚀', color: '#e2e8f0', accent: '#38bdf8', desc: '全罩透明太空頭盔＋白銀太空服與噴射背包！' },
+    cowboy: { name: '西部牛仔裝', price: 1400, icon: '🤠', color: '#92400e', accent: '#f59e0b', desc: '帥氣寬邊牛仔帽＋棕革背心與紅領巾！' },
+    luxury: { name: '名牌精品裝', price: 2400, icon: '🤵', color: '#111827', accent: '#facc15', desc: '高級訂製黑金西裝禮服＋閃耀鑽石領結！' },
+    ninja: { name: '潮流忍者裝', price: 1600, icon: '🥷', color: '#1e1b4b', accent: '#ef4444', desc: '暗夜忍裝＋紅巾護額與背後雙太刀！' },
+    race_suit: { name: '極速賽車服', price: 2000, icon: '🏎️', color: '#dc2626', accent: '#fef08a', desc: '流線賽車安全帽＋紅白競速連身服！' },
+  };
+  const CARS = {
+    scooter: { name: '復古偉士牌機車', price: 1800, icon: '🛵', color: '#38bdf8', desc: '靈巧可愛的台灣街頭經典復古速克達！' },
+    sedan: { name: '都會豪華房車', price: 3500, icon: '🚗', color: '#e2e8f0', desc: '寬敞舒適的銀白雙門敞篷豪華房車！' },
+    sports: { name: '烈焰超跑', price: 6000, icon: '🏎️', color: '#ef4444', desc: '低趴流線、尾翼霸氣的鮮紅旗艦超跑！' },
+    cyber_suv: { name: '未來越野休旅', price: 8500, icon: '🚙', color: '#facc15', desc: '配備霓虹燈條與全景車頂的霸氣未來休旅！' },
+  };
+  const OUTFIT_KEYS = Object.keys(OUTFITS);
+  const CAR_KEYS = Object.keys(CARS);
 
   // ----- 各地特色特產（24 種台灣各地名產，可收集並修飾 3D 棋子外觀）-----
   const SLOT_NAMES = { hand: '手持', head: '頭飾', back: '背飾', halo: '伴隨' };
@@ -314,15 +425,15 @@
     p.god = null;
     const npc = (G.npcs || []).find(n => n.kind === oldKind && n.attachedTo === p.id);
     if (npc) {
-      // 神明離開附身者，從玩家所在處飛往隨機一格停留
+      // 神明附身 5 回合結束後，消失 10 回合才會再出現在棋盤裡
       npc.attachedTo = null;
+      npc.respawnIn = 10;
       npc.from = p.pos;
-      npc.pos = randomBoardTile(G, npc);
       npc.moveN = (npc.moveN || 0) + 1;
     }
     if (!silent) {
-      log(G, `${GODS[oldKind].icon} ${GODS[oldKind].name} 離開了 ${p.name}`);
-      pushNews(G, '神明離去', `${GODS[oldKind].icon} ${GODS[oldKind].name} 結束附身，離開 ${p.name} 回到台灣地圖！`, '神明動向', '#95a5a6');
+      log(G, `${GODS[oldKind].icon} ${GODS[oldKind].name} 離開了 ${p.name}（暫離棋盤 10 回合）`);
+      pushNews(G, '神明離去', `${GODS[oldKind].icon} ${GODS[oldKind].name} 結束附身，暫時隱遁 10 回合後再重返棋盤！`, '神明動向', '#95a5a6');
     }
   }
   function attachGod(G, p, kind, reason = '神明附身') {
@@ -334,7 +445,7 @@
     });
     if (p.god) releaseGod(G, p, true);
     const npc = (G.npcs || []).find(n => n.kind === kind);
-    if (npc) { npc.attachedTo = p.id; npc.pos = p.pos; }
+    if (npc) { npc.attachedTo = p.id; npc.respawnIn = 0; npc.pos = p.pos; }
     p.god = { kind, turns: gInfo.turns, fresh: G.cur === p.id && G.phase !== 'roll' };
     G.fxSeq = (G.fxSeq || 0) + 1;
     G.godFx = { p: p.id, at: p.pos, kind, n: G.fxSeq };
@@ -441,15 +552,6 @@
       return 'blocked';
     }
     if (b >= 0) G.blocks.splice(b, 1);
-    const hitDog = (G.npcs || []).find(n => n.attachedTo == null && n.kind === 'dog' && n.pos === p.pos);
-    if (hitDog) {
-      const atPos = p.pos;
-      const stopWalk = encounterNpc(G, p, hitDog);
-      if (stopWalk) {
-        if (p.pos !== path[path.length - 1]) path.push(p.pos);
-        return { bite: { at: atPos, npcId: hitDog.id } };
-      }
-    }
     return null;
   }
 
@@ -550,8 +652,15 @@
 
   // ----- 抵達格子 -----
   function arrive(G, p) {
-    const hitGod = (G.npcs || []).find(n => n.attachedTo == null && n.kind !== 'dog' && n.pos === p.pos);
-    if (hitGod) encounterNpc(G, p, hitGod);
+    // 正正走到同一格才會觸發神明附身或野狗攻擊（未消失冷卻中的 NPC）
+    const hitNpc = (G.npcs || []).find(n => n.attachedTo == null && !(n.respawnIn > 0) && n.pos === p.pos);
+    if (hitNpc) {
+      const bit = encounterNpc(G, p, hitNpc);
+      if (bit) {
+        G.biteFx = { p: p.id, at: p.pos, npcId: hitNpc.id, approachFrom: null, n: (G.fxSeq || 0) + 1 };
+        return;
+      }
+    }
     const i = p.pos, t = BOARD[i], s = G.tiles[i];
     if (t.type === 'land' || t.type === 'station') {
       if (s.owner == null) {
@@ -620,10 +729,28 @@
       return;
     }
     if (t.type === 'shop') {
-      const freeItem = giveItem(G, p, null, '逛道具屋獲得贈禮');
       const unownedSp = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
-      if (unownedSp.length) giveSpecialty(G, p, unownedSp[Math.floor(rnd(G) * unownedSp.length)], '逛道具屋獲贈地方特產');
-      G.ask = { k: 'shop', i, freeItem, bought: [] };
+      if (unownedSp.length) giveSpecialty(G, p, unownedSp[Math.floor(rnd(G) * unownedSp.length)], '逛服飾店獲贈伴手禮');
+      G.ask = { k: 'shop', i, bought: [] };
+      return;
+    }
+    if (t.type === 'cardshop') {
+      const freeItem = giveItem(G, p, null, '逛卡片商店獲贈卡片');
+      const unownedSp = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
+      if (unownedSp.length) giveSpecialty(G, p, unownedSp[Math.floor(rnd(G) * unownedSp.length)], '逛卡片商店獲贈地方特產');
+      G.ask = { k: 'cardshop', i, freeItem, bought: [] };
+      return;
+    }
+    if (t.type === 'autoshow') {
+      G.ask = { k: 'autoshow', i, bought: [] };
+      return;
+    }
+    if (t.type === 'stock') {
+      G.ask = { k: 'stock', i };
+      return;
+    }
+    if (t.type === 'minigame') {
+      G.ask = { k: 'minigame', i };
       return;
     }
     if (t.type === 'casino') {
@@ -695,7 +822,7 @@
       news: [{ id: 1, cat: '開局快訊', title: `🎲 環島富豪 3D 正式開賽！共 ${seats.length} 位玩家角逐台灣地產王！`, body: '78 格全台灣多路線地圖（含北橫／中橫／南橫與海峽賭場）全面啟動！', color: '#f1c40f', round: 1 }],
       tiles: BOARD.map(() => ({ owner: null, level: 0 })),
       blocks: [],
-      npcs: GOD_NPC_INIT.map((n, id) => ({ id, kind: n.kind, pos: n.pos, from: n.pos, attachedTo: null, moveN: 0 })),
+      npcs: GOD_NPC_INIT.map((n, id) => ({ id, kind: n.kind, pos: n.pos, from: n.pos, attachedTo: null, respawnIn: 0, moveN: 0 })),
       log: [`遊戲開始！每人起始資金 $${START_CASH}（${maxRounds ? `上限 ${maxRounds} 輪` : '無限回合'}）`],
       players: seats.map((s, k) => {
         const ch = s.char != null ? ((s.char | 0) % CHARS.length + CHARS.length) % CHARS.length : k % CHARS.length;
@@ -715,6 +842,10 @@
           items: ['remote'],
           specialties: [],
           equipped: {},
+          outfits: [],
+          equippedOutfit: null,
+          cars: [],
+          equippedCar: null,
           god: null,
           reverse: false,
           remote: 0,
@@ -773,6 +904,40 @@
       }
       return null;
     }
+    if (a.type === 'equipOutfit') {
+      const targetId = a.pid != null ? (a.pid | 0) : pid;
+      const tp = G.players[targetId];
+      if (!tp || tp.bankrupt) return '找不到玩家';
+      const k = a.outfit;
+      const of = OUTFITS[k];
+      if (!of) return '沒有這個造型服飾';
+      if (!tp.outfits || !tp.outfits.includes(k)) return '尚未購買此造型';
+      if (a.unequip || tp.equippedOutfit === k) {
+        tp.equippedOutfit = null;
+        log(G, `👕 ${tp.name} 換回原本服裝`);
+      } else {
+        tp.equippedOutfit = k;
+        log(G, `✨ ${tp.name} 換上了造型「${of.icon} ${of.name}」`);
+      }
+      return null;
+    }
+    if (a.type === 'equipCar') {
+      const targetId = a.pid != null ? (a.pid | 0) : pid;
+      const tp = G.players[targetId];
+      if (!tp || tp.bankrupt) return '找不到玩家';
+      const k = a.car;
+      const car = CARS[k];
+      if (!car) return '沒有這款座駕';
+      if (!tp.cars || !tp.cars.includes(k)) return '尚未購買此座駕';
+      if (a.unequip || tp.equippedCar === k) {
+        tp.equippedCar = null;
+        log(G, `🚶 ${tp.name} 收起座駕改為步行`);
+      } else {
+        tp.equippedCar = k;
+        log(G, `🚗 ${tp.name} 駕駛座駕「${car.icon} ${car.name}」上路！`);
+      }
+      return null;
+    }
     if (a.type === 'rename') {
       const targetId = a.pid != null ? (a.pid | 0) : pid;
       const tp = G.players[targetId];
@@ -807,16 +972,48 @@
         if (G.winner != null) G.phase = 'over';
         return null;
       }
+      case 'buyOutfit': {
+        if (!G.ask || G.ask.k !== 'shop') return '目前不在造型服飾店';
+        const of = OUTFITS[a.outfit];
+        if (!of) return '沒有這個造型服飾';
+        if (!p.outfits) p.outfits = [];
+        if (p.outfits.includes(a.outfit)) return '你已經擁有這套造型了';
+        if (p.cash < of.price) return '現金不足';
+        p.cash -= of.price;
+        p.outfits.push(a.outfit);
+        p.equippedOutfit = a.outfit;
+        G.ask.bought = G.ask.bought || [];
+        G.ask.bought.push(a.outfit);
+        log(G, `👗 ${p.name} 在服飾店花了 $${of.price} 購入並換上「${of.icon} ${of.name}」！`);
+        pushNews(G, '時尚快訊', `👗 ${p.name} 購入超炫造型「${of.icon} ${of.name}」，閃亮登場！`, '服飾造型', '#ec4899');
+        return null;
+      }
+      case 'buyCar': {
+        if (!G.ask || G.ask.k !== 'autoshow') return '目前不在汽車展示中心';
+        const car = CARS[a.car];
+        if (!car) return '沒有這款車輛';
+        if (!p.cars) p.cars = [];
+        if (p.cars.includes(a.car)) return '你已經擁有這台車了';
+        if (p.cash < car.price) return '現金不足';
+        p.cash -= car.price;
+        p.cars.push(a.car);
+        p.equippedCar = a.car;
+        G.ask.bought = G.ask.bought || [];
+        G.ask.bought.push(a.car);
+        log(G, `🚗 ${p.name} 在汽車展示中心花了 $${car.price} 購入「${car.icon} ${car.name}」並立即上車！`);
+        pushNews(G, '名車入手', `🚗 ${p.name} 豪氣購入「${car.icon} ${car.name}」，正式成為有車一族！`, '汽車展中心', '#38bdf8');
+        return null;
+      }
       case 'buyItem': {
-        if (!G.ask || G.ask.k !== 'shop') return '目前不在道具屋';
+        if (!G.ask || (G.ask.k !== 'shop' && G.ask.k !== 'cardshop')) return '目前不在商店';
         if (a.item === 'specialty_box') {
           const boxPrice = 500;
           if (p.cash < boxPrice) return '現金不足';
           const unowned = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
-          if (!unowned.length) return '已集滿全部 12 種台灣地方特產！';
+          if (!unowned.length) return `已集滿全部 ${SPECIALTY_KEYS.length} 種台灣地方特產！`;
           p.cash -= boxPrice;
           const picked = unowned[Math.floor(rnd(G) * unowned.length)];
-          giveSpecialty(G, p, picked, '在道具屋開啟台灣特產盲盒');
+          giveSpecialty(G, p, picked, '在商店開啟台灣特產盲盒');
           G.ask.bought = G.ask.bought || [];
           G.ask.bought.push('specialty_box');
           return null;
@@ -868,8 +1065,60 @@
           if (G.winner != null) G.phase = 'over';
           return null;
         }
-        if (q.k === 'shop') {
+        if (q.k === 'shop' || q.k === 'cardshop' || q.k === 'autoshow') {
           G.phase = 'done';
+          return null;
+        }
+        if (q.k === 'stock') {
+          if (!a.yes) {
+            log(G, `📈 ${p.name} 在台灣股市觀望後收手離場`);
+            G.phase = 'done';
+            return null;
+          }
+          const invest = [800, 1500, 2500].includes(Number(a.bet)) ? Number(a.bet) : 800;
+          if (p.cash < invest) { G.phase = 'done'; return null; }
+          const r = rnd(G);
+          if (r < 0.48) {
+            const profit = Math.round(invest * (0.6 + rnd(G) * 0.9));
+            gain(G, p, profit);
+            log(G, `📈 ${p.name} 投資台股大漲！投入 $${invest} 淨賺 $${profit}！`);
+            pushNews(G, '台股紅盤', `📈 ${p.name} 精準進場台灣股市，單日獲利 $${profit}！`, '財經快訊', '#ef4444');
+            G.fx = { k: 'casino_win', i: q.i, amt: profit };
+          } else if (r < 0.85) {
+            const loss = Math.round(invest * 0.5);
+            pay(G, p, loss, null, '股市震盪停損');
+            log(G, `📉 ${p.name} 遭遇台股震盪，小賠 $${loss}`);
+            G.fx = { k: 'casino_lose', i: q.i, amt: loss };
+          } else {
+            const bonus = invest * 2;
+            gain(G, p, bonus);
+            log(G, `🚀 ${p.name} 押中漲停飆股！暴賺 $${bonus}！`);
+            pushNews(G, '飆股漲停', `🚀 狂賀！${p.name} 押中護國神山漲停板，一口氣狂賺 $${bonus}！`, '股市奇蹟', '#f59e0b');
+            G.fx = { k: 'casino_win', i: q.i, amt: bonus };
+          }
+          G.phase = G.winner != null ? 'over' : 'done';
+          return null;
+        }
+        if (q.k === 'minigame') {
+          if (!a.yes) {
+            log(G, `🎮 ${p.name} 逛過夜市攤位沒有參加小遊戲`);
+            G.phase = 'done';
+            return null;
+          }
+          const rollVal = roll(G);
+          if (rollVal >= 4) {
+            const prize = rollVal * 350;
+            gain(G, p, prize);
+            log(G, `🎯 ${p.name} 在夜市小遊戲大顯身手（${rollVal} 點），贏得獎金 $${prize}！`);
+            pushNews(G, '夜市神射手', `🎯 ${p.name} 在夜市小遊戲連中紅心，抱回獎金 $${prize}！`, '娛樂快報', '#22c55e');
+            G.fx = { k: 'casino_win', i: q.i, amt: prize };
+          } else {
+            const fee = 300;
+            pay(G, p, Math.min(p.cash, fee), null, '參加夜市小遊戲');
+            giveItem(G, p, null, '夜市小遊戲安慰獎');
+            G.fx = { k: 'turn', i: q.i };
+          }
+          G.phase = G.winner != null ? 'over' : 'done';
           return null;
         }
         if (q.k === 'casino') {
@@ -905,43 +1154,35 @@
         }
         if (a.yes) {
           if (q.k === 'buy') {
-            const unitBuild = buildCostOf(G, p, q.i);
-            const wantBuild = !!a.buildFirst && p.cash >= q.cost + unitBuild;
-            const totalCost = q.cost + (wantBuild ? unitBuild : 0);
-            if (p.cash >= totalCost) {
-              p.cash -= totalCost;
+            // 第一次走到地點只能購買空地（level = 0），後續再依序蓋房升級
+            if (p.cash >= q.cost) {
+              p.cash -= q.cost;
               G.tiles[q.i].owner = p.id;
-              if (wantBuild) {
-                G.tiles[q.i].level = 1;
-                log(G, `🏠 ${p.name} 以 $${q.cost} 買下 ${BOARD[q.i].name}，並立即花了 $${unitBuild} 蓋成【${LEVEL_NAME[1]}】`);
-                G.fx = { k: 'build', i: q.i, lv: 1 };
-              } else {
-                log(G, `${p.name} 以 $${q.cost} 買下 ${BOARD[q.i].name}`);
-                G.fx = { k: 'buy', i: q.i };
-              }
+              G.tiles[q.i].level = 0;
+              log(G, `🚩 ${p.name} 以 $${q.cost} 買下 ${BOARD[q.i].name} 空地`);
+              G.fx = { k: 'buy', i: q.i };
               if (groupOwned(G, q.i)) {
                 const gName = GROUPS[BOARD[q.i].group].name;
                 pushNews(G, '地產壟斷', `👑 ${p.name} 買下「${BOARD[q.i].name}」，成功獨佔整個【${gName}】過路費全面翻倍！`, '重大購地', p.color);
-              } else if (BOARD[q.i].price >= 3500 || wantBuild) {
-                pushNews(G, wantBuild ? '買地興建' : '豪宅置產', `🏠 ${p.name} 斥資 $${totalCost} 買下「${BOARD[q.i].name}」${wantBuild ? `並蓋起【${LEVEL_NAME[1]}】` : ''}！`, '地產成交', p.color);
+              } else if (BOARD[q.i].price >= 3500) {
+                pushNews(G, '豪宅置產', `🏠 ${p.name} 斥資 $${q.cost} 買下「${BOARD[q.i].name}」！`, '地產成交', p.color);
               }
               giveSpecialty(G, p, specialtyOfTile(q.i), `購入「${BOARD[q.i].name}」獲贈地方特產`);
             }
           } else {
             const curLv = G.tiles[q.i].level || 0;
-            const maxAdd = Math.max(1, MAX_LEVEL - curLv);
-            const addLv = Math.max(1, Math.min(maxAdd, a.levels ? (a.levels | 0) : 1));
-            const totalCost = q.cost * addLv;
-            if (p.cash >= totalCost) {
-              p.cash -= totalCost;
-              G.tiles[q.i].level = curLv + addLv;
+            if (curLv < MAX_LEVEL && p.cash >= q.cost) {
+              p.cash -= q.cost;
+              G.tiles[q.i].level = curLv + 1;
               const lv = G.tiles[q.i].level;
-              log(G, `🏗️ ${p.name} 把 ${BOARD[q.i].name} 蓋成【${LEVEL_NAME[lv]}】（$${totalCost}）`);
+              log(G, `🏗️ ${p.name} 把 ${BOARD[q.i].name} 蓋成【${LEVEL_NAME[lv]}】（$${q.cost}）`);
               G.fx = { k: 'build', i: q.i, lv };
-              if (lv === MAX_LEVEL) {
-                pushNews(G, '摩天大樓落成', `🏙️ 震撼地標！${p.name} 將「${BOARD[q.i].name}」正式蓋成最高級【摩天大樓】！過路費暴漲至 $${rentOf(G, q.i)}！`, '地產巔峰', p.color);
-              } else if (addLv >= 2 || lv === 3) {
-                pushNews(G, '加蓋擴建', `🏢 ${p.name} 豪砸 $${totalCost}，將「${BOARD[q.i].name}」擴建為【${LEVEL_NAME[lv]}】！`, '建築升級', p.color);
+              if (lv === 3) {
+                pushNews(G, '摩天大樓落成', `🏙️ 震撼地標！${p.name} 將「${BOARD[q.i].name}」蓋成【摩天大樓】！過路費暴漲至 $${rentOf(G, q.i)}！`, '地產里程碑', p.color);
+              } else if (lv === 4) {
+                pushNews(G, '五星飯店開幕', `🏨 奢華新地標！${p.name} 將「${BOARD[q.i].name}」升級為【五星飯店】！`, '飯店開幕', p.color);
+              } else if (lv === MAX_LEVEL) {
+                pushNews(G, '連鎖旗艦總部', `🏢 王者誕生！${p.name} 將「${BOARD[q.i].name}」擴建為最高級【連鎖旗艦店】！過路費高達 $${rentOf(G, q.i)}！`, '地產巔峰', p.color);
               }
               giveSpecialty(G, p, specialtyOfTile(q.i), `建設「${BOARD[q.i].name}」獲贈地方特產`);
             }
@@ -1038,26 +1279,19 @@
 
   function stepNpcs(G) {
     if (!G.npcs) return;
+    // 神明與野狗皆固定駐點不遊蕩；神明附身結束消失 10 回合後才重現棋盤
     for (const npc of G.npcs) {
       if (npc.attachedTo != null) continue;
-      // 神明棋子停留原地不巡邏，只有野狗會在路上遊蕩
-      if (npc.kind !== 'dog') continue;
-      npc.from = npc.pos;
-      const steps = rnd(G) < 0.35 ? 1 : 2;
-      let curPos = npc.pos;
-      if (rnd(G) < 0.35 && BOARD[curPos].prev.length) {
-        curPos = BOARD[curPos].prev[Math.floor(rnd(G) * BOARD[curPos].prev.length)];
-      } else {
-        for (let s = 0; s < steps; s++) {
-          const nx = BOARD[curPos].next;
-          curPos = nx[Math.floor(rnd(G) * nx.length)];
+      if (npc.respawnIn > 0) {
+        npc.respawnIn--;
+        if (npc.respawnIn === 0) {
+          npc.pos = randomBoardTile(G, npc);
+          npc.from = npc.pos;
+          npc.moveN = (npc.moveN || 0) + 1;
+          const gInfo = GODS[npc.kind];
+          if (gInfo) log(G, `✨ ${gInfo.icon} ${gInfo.name} 重新降臨在「${BOARD[npc.pos].name}」！`);
         }
       }
-      npc.pos = curPos;
-      npc.moveN = (npc.moveN || 0) + 1;
-      // 若剛好停在站立玩家的格子上，觸發遭遇（保留移動起點供畫面先播狗走過來再播咬人）
-      const hit = G.players.find(q => !q.bankrupt && q.jail === 0 && q.skip === 0 && q.pos === npc.pos);
-      if (hit) encounterNpc(G, hit, npc, npc.from);
     }
   }
 
@@ -1152,6 +1386,15 @@
       if (q.k === 'card') return { type: 'answer', yes: true };
       if (q.k === 'shop') {
         const bought = (q.bought && q.bought.length) || 0;
+        const unownedOf = OUTFIT_KEYS.filter(k => !(p.outfits || []).includes(k));
+        if (bought === 0 && unownedOf.length && p.cash >= 3600) {
+          const pick = unownedOf[Math.floor(rnd(G) * unownedOf.length)];
+          if (p.cash >= OUTFITS[pick].price + 1600) return { type: 'buyOutfit', outfit: pick };
+        }
+        return { type: 'answer', yes: false };
+      }
+      if (q.k === 'cardshop') {
+        const bought = (q.bought && q.bought.length) || 0;
         if (bought === 0 && (p.dice || 1) < 2 && p.cash >= 3800) return { type: 'buyItem', item: 'add_die' };
         if (bought === 0 && p.cash >= 2200 && (p.specialties || []).length < SPECIALTY_KEYS.length && !q.bought.includes('specialty_box')) {
           return { type: 'buyItem', item: 'specialty_box' };
@@ -1162,6 +1405,22 @@
           if (!p.items.includes('remote')) return { type: 'buyItem', item: 'remote' };
         }
         return { type: 'answer', yes: false };
+      }
+      if (q.k === 'autoshow') {
+        const bought = (q.bought && q.bought.length) || 0;
+        if (bought === 0 && !p.equippedCar) {
+          const affordable = CAR_KEYS.filter(k => !(p.cars || []).includes(k) && p.cash >= CARS[k].price + 2400);
+          if (affordable.length) return { type: 'buyCar', car: affordable[affordable.length - 1] };
+        }
+        return { type: 'answer', yes: false };
+      }
+      if (q.k === 'stock') {
+        if (p.cash >= 4500) return { type: 'answer', yes: true, bet: 1500 };
+        if (p.cash >= 2200) return { type: 'answer', yes: true, bet: 800 };
+        return { type: 'answer', yes: false };
+      }
+      if (q.k === 'minigame') {
+        return { type: 'answer', yes: p.cash >= 600 };
       }
       if (q.k === 'casino') {
         if (p.cash >= 5000) return { type: 'answer', yes: true, bet: 1500 };
@@ -1220,7 +1479,7 @@
   }
 
   const API = {
-    BOARD, GROUPS, ITEMS, SPECIALTIES, SLOT_NAMES, GODS, CHARS, LEVEL_NAME, MAX_LEVEL, MAX_ITEMS, N,
+    BOARD, GROUPS, ITEMS, SPECIALTIES, SLOT_NAMES, OUTFITS, CARS, GODS, CHARS, LEVEL_NAME, MAX_LEVEL, MAX_ITEMS, N,
     START_CASH, START_BONUS,
     newGame, act, aiAction, rentOf, rentAt, buildCost, buyPriceOf, buildCostOf, netWorth, lands, cur, specialtyOfTile,
   };

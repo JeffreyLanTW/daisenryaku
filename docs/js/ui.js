@@ -1288,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v169</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v170</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1320,6 +1320,7 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v170</span><span class="cl-date">2026.11.15</span><p>【環島富豪 125 格全島重製・造型汽車・漸進式 6 階建築・離島不規則小地圖】全台灣棋盤擴增至 125 格（含鄉鎮、美食、景點、連鎖飯店、遊樂場、百貨公司，澎湖 12 格與金門 14 格不規則離島小地圖）；新增 3D 霓虹看板、造型服飾店（太空裝/牛仔/名牌/忍者/賽車服）、汽車展示中心（坐車移動＋汽車音效）、卡片商店、台灣股市與夜市小遊戲；首次僅購地、後續逐階蓋成洋房/高級住宅/摩天大樓/五星飯店/連鎖旗艦店；棋格佔地放大 4 倍、字型放大 1.3 倍、移動更流暢；神明與野狗改為定點觸發且神明退駕 10 回合後重生；Breaking News 移至右上角圖文簡報。</p></div>
         <div class="cl-item"><span class="cl-ver">v169</span><span class="cl-date">2026.11.15</span><p>【環島富豪 鏡頭焦點模式切換・特產擴充至 24 種・修復收藏卸下 Bug】右下角鏡頭按鈕升級為四段焦點切換（🎯原本自動 → 👤鎖定玩家 → 🐕鎖定野狗 → 📌固定視角）；修復在他人回合打開玩家收藏無法穿戴／卸下特產之 Bug；台灣各地特產由 12 種大幅擴充至 24 種（含台北小籠包、基隆天婦羅、大溪豆干、大湖草莓、高雄船長帽、東港黑鮪魚、九份淘金、花蓮大理石、馬祖藍眼淚等），並提升自家地標巡視與 AI 商店盲盒收集率。</p></div>
         <div class="cl-item"><span class="cl-ver">v168</span><span class="cl-date">2026.11.15</span><p>【環島富豪 各地特色特產道具系統・3D 棋子外觀修飾】新增 12 種台灣各地特色特產（珍珠奶茶、鳳梨酥禮盒、愛文芒果冰、金門高粱酒、宜蘭三星蔥、原民彩羽冠、澎湖仙人掌、阿里山茶簍、竹科光翼、北港平安令旗、平溪祈福天燈、三義木雕貓頭鷹），涵蓋手持／頭飾／背飾／伴隨 4 大部位；買地、建設、參拜、造訪國家公園或於道具屋開啟「台灣特產盲盒」皆可收集，並於玩家詳情與道具欄隨時穿戴／卸下即時修飾 3D 棋子。</p></div>
         <div class="cl-item"><span class="cl-ver">v167</span><span class="cl-date">2026.11.15</span><p>【環島富豪 修復踩到入獄格觸發交通動畫卡死問題】修正玩家或 AI 踩到「入獄」格同時產生移動路徑與 <code>transportFx</code> 時，<code>waitingTransportHold</code> 未檢查路徑清空而與動畫啟動條件互鎖導致遊戲卡死之問題，確保先走至入獄格再派出警備囚車押送入監並正常推進回合。</p></div>
@@ -1552,7 +1553,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v169</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v170</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
