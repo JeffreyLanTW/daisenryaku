@@ -251,30 +251,40 @@
   };
   const SPECIALTY_KEYS = Object.keys(SPECIALTIES);
   const TILE_SPECIALTY = {
-    '台中': 'bubble_tea', '台中高鐵': 'bubble_tea',
-    '台北': 'xiaolongbao', '信義區': 'xiaolongbao', '新北': 'xiaolongbao',
-    '基隆港': 'keelung_tempura', '淡水': 'keelung_tempura',
-    '桃園': 'daxi_tofu', '大溪': 'daxi_tofu',
-    '苗栗': 'miaoli_strawberry',
-    '南投': 'pineapple_cake', '嘉義': 'pineapple_cake',
-    '台南': 'mango_ice', '安平': 'mango_ice',
-    '金門': 'kinmen_kaoliang', '烈嶼': 'kinmen_kaoliang',
-    '宜蘭': 'yilan_scallion', '羅東': 'yilan_scallion',
-    '台東': 'taitung_sugar_apple', '知本': 'taitung_sugar_apple', '玉里': 'taitung_sugar_apple',
-    '日月潭': 'sun_moon_jade', '拉拉山': 'sun_moon_jade', '明池': 'sun_moon_jade', '谷關': 'sun_moon_jade', '梨山': 'sun_moon_jade', '合歡山': 'sun_moon_jade', '埡口': 'sun_moon_jade', '向陽': 'sun_moon_jade',
-    '澎湖': 'penghu_cactus', '七美': 'penghu_cactus', '小琉球': 'penghu_cactus', '龜山島': 'penghu_cactus',
-    '高雄': 'kaohsiung_anchor', '高鐵左營': 'kaohsiung_anchor',
-    '屏東': 'pingtung_tuna', '墾丁': 'pingtung_tuna', '恆春': 'pingtung_tuna', '甲仙': 'pingtung_tuna', '梅山': 'pingtung_tuna',
-    '彰化': 'changhua_meatball', '鹿港': 'changhua_meatball',
+    '起點': 'bubble_tea',
+    '台中': 'bubble_tea', '台中高鐵': 'bubble_tea', '台中七期百貨': 'bubble_tea', '麗寶遊樂場': 'bubble_tea',
+    '台北': 'xiaolongbao', '台北西門町': 'xiaolongbao', '信義101百貨': 'xiaolongbao', '新北板橋': 'xiaolongbao', '西門服飾店': 'xiaolongbao', '造型服飾店': 'xiaolongbao',
+    '基隆港': 'keelung_tempura', '淡水老街': 'keelung_tempura',
+    '桃園': 'daxi_tofu', '大溪老街': 'daxi_tofu',
+    '苗栗大湖': 'miaoli_strawberry',
+    '南投': 'pineapple_cake', '嘉義': 'pineapple_cake', '機會': 'pineapple_cake',
+    '台南府城': 'mango_ice', '台南夜市美食': 'mango_ice', '安平古堡': 'mango_ice', '夜市小遊戲': 'mango_ice',
+    '水頭碼頭': 'kinmen_kaoliang', '莒光樓': 'kinmen_kaoliang', '金城模範美食': 'kinmen_kaoliang', '金門卡片屋': 'kinmen_kaoliang',
+    '烈嶼小金門': 'kinmen_kaoliang', '大膽島前線': 'kinmen_kaoliang', '古寧頭戰史館': 'kinmen_kaoliang', '慈湖小遊戲': 'kinmen_kaoliang',
+    '山后民俗村': 'kinmen_kaoliang', '太武山': 'kinmen_kaoliang', '金沙股市廣場': 'kinmen_kaoliang', '金門遊樂場': 'kinmen_kaoliang',
+    '昇恆昌百貨': 'kinmen_kaoliang', '料羅灣碼頭': 'kinmen_kaoliang',
+    '頭城烏石港': 'yilan_scallion', '宜蘭': 'yilan_scallion', '羅東夜市': 'yilan_scallion', '礁溪連鎖飯店': 'yilan_scallion',
+    '台東': 'taitung_sugar_apple', '知本溫泉飯店': 'taitung_sugar_apple', '玉里': 'taitung_sugar_apple', '池上米鄉': 'taitung_sugar_apple', '太麻里': 'taitung_sugar_apple',
+    '日月潭': 'sun_moon_jade', '日月潭連鎖飯店': 'sun_moon_jade', '拉拉山': 'sun_moon_jade', '明池': 'sun_moon_jade',
+    '谷關溫泉': 'sun_moon_jade', '梨山': 'sun_moon_jade', '合歡山': 'sun_moon_jade', '埡口': 'sun_moon_jade', '向陽': 'sun_moon_jade',
+    '馬公港': 'penghu_cactus', '中央老街美食': 'penghu_cactus', '澎湖服飾店': 'penghu_cactus', '跨海大橋': 'penghu_cactus',
+    '西嶼燈塔': 'penghu_cactus', '吉貝沙尾': 'penghu_cactus', '澎湖卡片屋': 'penghu_cactus', '山水遊樂場': 'penghu_cactus',
+    '望安綠蠵龜': 'penghu_cactus', '七美雙心': 'penghu_cactus', '澎湖免稅百貨': 'penghu_cactus',
+    '小琉球': 'penghu_cactus', '龜山島': 'penghu_cactus',
+    '高雄港灣': 'kaohsiung_anchor', '高雄巨蛋百貨': 'kaohsiung_anchor', '高鐵左營': 'kaohsiung_anchor', '橋頭糖廠遊樂場': 'kaohsiung_anchor', '汽車展示中心': 'kaohsiung_anchor',
+    '屏東': 'pingtung_tuna', '墾丁': 'pingtung_tuna', '恆春': 'pingtung_tuna', '墾丁大街美食': 'pingtung_tuna',
+    '東港海鮮市集': 'pingtung_tuna', '佳樂水': 'pingtung_tuna', '鵝鑾鼻燈塔': 'pingtung_tuna', '甲仙芋頭街': 'pingtung_tuna', '梅山': 'pingtung_tuna',
+    '彰化': 'changhua_meatball', '鹿港老街': 'changhua_meatball',
     '蘭嶼': 'lanyu_flying_fish', '綠島': 'lanyu_flying_fish',
-    '阿里山': 'alishan_tea', '天祥': 'alishan_tea', '國家公園': 'alishan_tea',
-    '竹科': 'hsinchu_wind', '新竹': 'hsinchu_wind', '桃園機場': 'hsinchu_wind',
-    '北港廟宇': 'yunlin_talisman', '行天宮': 'yunlin_talisman', '迎神殿': 'yunlin_talisman', '雲林': 'yunlin_talisman',
-    '九份': 'jiufen_gold',
-    '花蓮': 'hualien_marble', '太魯閣': 'hualien_marble',
-    '平溪': 'sky_lantern',
-    '三義': 'wood_carving',
-    '馬祖': 'matsu_tears', '東引': 'matsu_tears',
+    '阿里山': 'alishan_tea', '天祥': 'alishan_tea', '陽明山公園': 'alishan_tea', '醫院': 'alishan_tea',
+    '竹科園區': 'hsinchu_wind', '新竹城隍美食': 'hsinchu_wind', '桃園機場': 'hsinchu_wind', '台灣股市': 'hsinchu_wind',
+    '北港廟宇': 'yunlin_talisman', '行天宮': 'yunlin_talisman', '迎神殿': 'yunlin_talisman', '澎湖天后宮': 'yunlin_talisman',
+    '雲林斗六': 'yunlin_talisman', '劍湖山遊樂場': 'yunlin_talisman', '監獄': 'yunlin_talisman', '入獄': 'yunlin_talisman',
+    '九份山城': 'jiufen_gold', '國稅局': 'jiufen_gold',
+    '花蓮': 'hualien_marble', '花蓮東大門美食': 'hualien_marble', '太魯閣': 'hualien_marble', '海洋遊樂場': 'hualien_marble',
+    '平溪天燈': 'sky_lantern', '命運': 'sky_lantern',
+    '三義木雕村': 'wood_carving', '卡片商店': 'wood_carving',
+    '馬祖': 'matsu_tears', '東引': 'matsu_tears', '海峽賭場': 'matsu_tears',
   };
   function specialtyOfTile(i) {
     const t = BOARD[i];
@@ -282,9 +292,12 @@
     if (TILE_SPECIALTY[t.name]) return TILE_SPECIALTY[t.name];
     if (t.group === 'island') return 'penghu_cactus';
     if (t.group === 'east') return 'sun_moon_jade';
-    if (t.group === 'north') return 'bubble_tea';
-    if (t.group === 'south') return 'mango_ice';
-    return null;
+    if (t.group === 'north') return 'xiaolongbao';
+    if (t.group === 'south') return 'pingtung_tuna';
+    if (t.group === 'central') return 'bubble_tea';
+    if (t.group === 'taoyuan') return 'hsinchu_wind';
+    if (t.group === 'yunjia') return 'mango_ice';
+    return 'bubble_tea';
   }
 
   // ----- 機會與命運卡 -----
@@ -392,6 +405,28 @@
     if (autoEq) p.equipped[sp.slot] = key;
     log(G, `🎁 ${p.name} ${source ? source + '，' : ''}獲得地方特產「${sp.icon} ${sp.name}」${autoEq ? '（已自動裝飾棋子）' : '（可於玩家資訊／道具欄修飾棋子）'}`);
     return key;
+  }
+  function triggerTileItemEvent(G, p, i, triggerLabel) {
+    const spKey = specialtyOfTile(i);
+    if (spKey && !(p.specialties || []).includes(spKey)) {
+      giveSpecialty(G, p, spKey, triggerLabel);
+      G.itemEvent = { n: (G.fxSeq = (G.fxSeq || 0) + 1), p: p.id, tile: i, kind: 'specialty', key: spKey, trigger: triggerLabel };
+      return;
+    }
+    const t = BOARD[i];
+    if (t && (['park', 'temple', 'shop', 'cardshop', 'autoshow'].includes(t.type) || ['food', 'scenic', 'arcade', 'mall', 'hotel', 'port'].includes(t.subkind))) {
+      const unowned = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
+      if (unowned.length && rnd(G) < 0.45) {
+        const k = unowned[Math.floor(rnd(G) * unowned.length)];
+        giveSpecialty(G, p, k, `${t.name}特產巡禮`);
+        G.itemEvent = { n: (G.fxSeq = (G.fxSeq || 0) + 1), p: p.id, tile: i, kind: 'specialty', key: k, trigger: `${t.name}特產巡禮` };
+      } else if ((p.items || []).length < MAX_ITEMS && rnd(G) < 0.35) {
+        const itKey = giveItem(G, p, null, `${t.name}奇遇`);
+        if (itKey) {
+          G.itemEvent = { n: (G.fxSeq = (G.fxSeq || 0) + 1), p: p.id, tile: i, kind: 'item', key: itKey, trigger: `${t.name}奇遇` };
+        }
+      }
+    }
   }
   function freeUpgrade(G, p) {
     const own = lands(G, p).filter(i => (BOARD[i].type === 'land' || BOARD[i].type === 'station') && G.tiles[i].level < MAX_LEVEL);
@@ -669,7 +704,6 @@
         return;
       }
       if (s.owner === p.id) {
-        giveSpecialty(G, p, specialtyOfTile(i), `巡視自家「${t.name}」獲贈地方特產`);
         if (s.level < MAX_LEVEL) {
           const cost = buildCostOf(G, p, i);
           if (p.god && p.god.kind === 'fushen') {
@@ -677,13 +711,19 @@
             log(G, `🍀 福神顯靈！${p.name} 的 ${t.name} 免費升級為${LEVEL_NAME[s.level]}`);
             G.fx = { k: 'build', i, lv: s.level };
             pushNews(G, s.level === MAX_LEVEL ? '摩天大樓落成' : '福神庇佑', `🍀 福神顯靈！${p.name} 的「${t.name}」免費加蓋成【${LEVEL_NAME[s.level]}】！`, s.level === MAX_LEVEL ? '地產巔峰' : '免費建設', '#2ecc71');
+            triggerTileItemEvent(G, p, i, `福神加蓋「${t.name}」`);
             if (s.level < MAX_LEVEL && p.cash >= cost) G.ask = { k: 'build', i, cost };
             return;
           }
-          if (p.cash >= cost) G.ask = { k: 'build', i, cost };
-          else log(G, `${p.name} 回到自家「${t.name}」，目前資金不足蓋樓（需 $${cost}）`);
+          if (p.cash >= cost) {
+            G.ask = { k: 'build', i, cost };
+          } else {
+            log(G, `${p.name} 回到自家「${t.name}」，目前資金不足蓋樓（需 $${cost}）`);
+            triggerTileItemEvent(G, p, i, `巡視自家「${t.name}」`);
+          }
         } else {
           log(G, `🏙️ ${p.name} 巡視自家的「${t.name}」摩天大樓！`);
+          triggerTileItemEvent(G, p, i, `巡視自家「${t.name}」`);
         }
         return;
       }
@@ -729,27 +769,28 @@
       return;
     }
     if (t.type === 'shop') {
-      const unownedSp = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
-      if (unownedSp.length) giveSpecialty(G, p, unownedSp[Math.floor(rnd(G) * unownedSp.length)], '逛服飾店獲贈伴手禮');
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
       G.ask = { k: 'shop', i, bought: [] };
       return;
     }
     if (t.type === 'cardshop') {
       const freeItem = giveItem(G, p, null, '逛卡片商店獲贈卡片');
-      const unownedSp = SPECIALTY_KEYS.filter(k => !(p.specialties || []).includes(k));
-      if (unownedSp.length) giveSpecialty(G, p, unownedSp[Math.floor(rnd(G) * unownedSp.length)], '逛卡片商店獲贈地方特產');
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
       G.ask = { k: 'cardshop', i, freeItem, bought: [] };
       return;
     }
     if (t.type === 'autoshow') {
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
       G.ask = { k: 'autoshow', i, bought: [] };
       return;
     }
     if (t.type === 'stock') {
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
       G.ask = { k: 'stock', i };
       return;
     }
     if (t.type === 'minigame') {
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
       G.ask = { k: 'minigame', i };
       return;
     }
@@ -775,7 +816,7 @@
         const card = rnd(G) < 0.5 ? 'summon_god' : 'dismiss_god';
         giveItem(G, p, card, `${t.name} 祈福獲贈`);
       }
-      giveSpecialty(G, p, specialtyOfTile(i), `${t.name} 參拜結緣`);
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
       return;
     }
     if (t.type === 'tax') {
@@ -788,7 +829,11 @@
     if (t.type === 'hospital') { log(G, `🏥 ${p.name} 經過醫院探病`); return; }
     if (t.type === 'park') {
       log(G, `🌲 ${p.name} 在國家公園休息賞景`);
-      giveSpecialty(G, p, specialtyOfTile(i), '造訪國家公園獲贈伴手禮');
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
+      return;
+    }
+    if (t.type === 'start') {
+      triggerTileItemEvent(G, p, i, `巡訪「${t.name}」`);
     }
   }
 
@@ -817,6 +862,8 @@
       move: null,
       moveSeq: 0,
       fx: null,
+      fxSeq: 0,
+      itemEvent: null,
       dice: null,
       newsSeq: 1,
       news: [{ id: 1, cat: '開局快訊', title: `🎲 環島富豪 3D 正式開賽！共 ${seats.length} 位玩家角逐台灣地產王！`, body: '78 格全台灣多路線地圖（含北橫／中橫／南橫與海峽賭場）全面啟動！', color: '#f1c40f', round: 1 }],
@@ -1167,7 +1214,7 @@
               } else if (BOARD[q.i].price >= 3500) {
                 pushNews(G, '豪宅置產', `🏠 ${p.name} 斥資 $${q.cost} 買下「${BOARD[q.i].name}」！`, '地產成交', p.color);
               }
-              giveSpecialty(G, p, specialtyOfTile(q.i), `購入「${BOARD[q.i].name}」獲贈地方特產`);
+              triggerTileItemEvent(G, p, q.i, `購買「${BOARD[q.i].name}」`);
             }
           } else {
             const curLv = G.tiles[q.i].level || 0;
@@ -1184,7 +1231,7 @@
               } else if (lv === MAX_LEVEL) {
                 pushNews(G, '連鎖旗艦總部', `🏢 王者誕生！${p.name} 將「${BOARD[q.i].name}」擴建為最高級【連鎖旗艦店】！過路費高達 $${rentOf(G, q.i)}！`, '地產巔峰', p.color);
               }
-              giveSpecialty(G, p, specialtyOfTile(q.i), `建設「${BOARD[q.i].name}」獲贈地方特產`);
+              triggerTileItemEvent(G, p, q.i, `建設「${BOARD[q.i].name}」`);
             }
           }
         }

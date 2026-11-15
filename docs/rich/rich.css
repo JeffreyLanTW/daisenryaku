@@ -78,10 +78,16 @@ main { position: relative; flex: 1; min-height: 0; width: 100%; background: #1b5
 #turnName b { color: var(--text); }
 .acts { display: flex; gap: 8px; }
 .acts button { min-width: 92px; padding: 10px 14px; font-size: 15px; }
-#cardPop { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(420px, 86%); padding: 18px 20px; border-radius: 14px; text-align: center; z-index: 10;
-  background: #1a2230; border: 2px solid var(--c, var(--gold)); box-shadow: 0 20px 50px rgba(0, 0, 0, .6); animation: pop .35s ease; cursor: pointer; }
-#cardPop h3 { margin: 0 0 8px; color: var(--c, var(--gold)); letter-spacing: .2em; }
-#cardPop p { margin: 0; font-size: 16px; line-height: 1.6; }
+#cardPop { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(440px, 88%); padding: 16px 20px; border-radius: 16px; text-align: center; z-index: 10;
+  background: rgba(18, 25, 36, .88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 2px solid var(--c, var(--gold)); box-shadow: 0 20px 50px rgba(0, 0, 0, .65); animation: pop .35s ease; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#cardPop .card-art { width: 68px; height: 68px; border-radius: 14px; padding: 6px;
+  background: rgba(255,255,255,.06); border: 1px solid color-mix(in srgb, var(--c, var(--gold)) 60%, #fff 15%);
+  box-shadow: 0 6px 18px rgba(0,0,0,.45); display: grid; place-items: center; }
+#cardPop .card-art svg { width: 100%; height: 100%; display: block; }
+#cardPop h3 { margin: 0; color: var(--c, var(--gold)); letter-spacing: .2em; font-size: 18px; }
+#cardPop p { margin: 0; font-size: 15px; line-height: 1.55; color: #f1f5f9; }
 @keyframes pop { from { transform: translateX(-50%) scale(.85); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 #logBox { position: absolute; right: 10px; top: 10px; width: min(340px, 75%); max-height: 58%; overflow-y: auto; font-size: 13px; line-height: 1.6; z-index: 11;
   background: rgba(18, 24, 32, .95); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
@@ -90,8 +96,8 @@ main { position: relative; flex: 1; min-height: 0; width: 100%; background: #1b5
 #zoomCtl button.on { color: #1a1205; background: var(--gold); border-color: var(--gold); }
 #toast { position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%); background: rgba(18, 24, 32, .95); border: 1px solid var(--gold); border-radius: 10px; padding: 8px 16px; font-size: 14px; z-index: 25; }
 
-#modal { position: fixed; inset: 0; z-index: 20; background: rgba(5, 8, 12, .74); display: flex; align-items: center; justify-content: center; padding: 16px; }
-#modalBox { background: var(--panel); border: 1px solid #2c3948; border-radius: 14px; padding: 18px 20px; width: min(600px, 100%); max-height: 92dvh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0, 0, 0, .55); }
+#modal { position: fixed; inset: 0; z-index: 20; background: rgba(6, 10, 16, .32); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+#modalBox { background: rgba(15, 22, 32, .72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, .18); border-radius: 16px; padding: 18px 20px; width: min(680px, 100%); max-height: 92dvh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0, 0, 0, .58); }
 #modalBox h2 { margin: 0 0 6px; color: var(--gold); letter-spacing: .06em; }
 .sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; line-height: 1.6; }
 .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
@@ -229,7 +235,56 @@ button.sky:hover:not(:disabled) { filter: brightness(1.08); background: linear-g
 .sp-card:disabled { opacity: .82; cursor: default; }
 .sp-slot { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 99px; background: #1e293b; color: #93c5fd; margin-left: 4px; font-weight: 700; }
 .sp-eq-tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 99px; background: #854d0e; color: #fef08a; margin-left: 4px; font-weight: 800; }
+
+/* 圖文事件對話框橫幅 & 特產預覽標籤 */
+.dlg-hero { display: flex; align-items: center; gap: 14px; padding: 10px 12px; margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .07), rgba(15, 22, 32, .45));
+  border: 1px solid rgba(255, 255, 255, .14); border-left: 4px solid var(--hc, var(--gold)); border-radius: 12px; }
+.dlg-hero-art { width: 68px; height: 68px; flex-shrink: 0; border-radius: 12px; padding: 4px;
+  background: rgba(10, 15, 24, .55); border: 1px solid rgba(255, 255, 255, .15); display: grid; place-items: center; }
+.dlg-hero-art svg { width: 100%; height: 100%; display: block; }
+.dlg-hero-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.dlg-hero-meta h2 { margin: 0 !important; font-size: 18px; line-height: 1.3; }
+.dlg-hero-sub { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dlg-group-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800;
+  color: #fff; background: color-mix(in srgb, var(--hc, var(--gold)) 26%, rgba(15, 23, 42, .85));
+  border: 1px solid color-mix(in srgb, var(--hc, var(--gold)) 65%, transparent); }
+.dlg-sp-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; margin-top: 2px; border-radius: 9px;
+  background: rgba(234, 179, 8, .12); border: 1px solid rgba(250, 204, 21, .35); font-size: 12px; color: #fef08a; }
+.dlg-sp-chip svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+/* 道具 / 特產獲得圖文橫幅提示 */
+.item-toast { position: absolute; left: 50%; top: 72px; transform: translateX(-50%); z-index: 15;
+  width: min(420px, 90%); display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(20, 28, 42, .88), rgba(35, 24, 14, .88));
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 2px solid var(--itc, var(--gold)); border-radius: 14px;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .62); cursor: pointer; animation: itemToastIn .32s cubic-bezier(.16, 1, .3, 1); }
+@keyframes itemToastIn { from { transform: translateX(-50%) translateY(-10px) scale(.94); opacity: 0; } to { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; } }
+.item-toast .it-art { width: 48px; height: 48px; flex-shrink: 0; border-radius: 10px; padding: 5px;
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .18); display: grid; place-items: center; }
+.item-toast .it-art svg { width: 100%; height: 100%; display: block; }
+.item-toast .it-meta { min-width: 0; flex: 1; }
+.item-toast .it-tag { font-size: 11px; font-weight: 800; color: #fde68a; letter-spacing: .04em; }
+.item-toast .it-title { font-size: 15px; font-weight: 900; color: #fff; margin: 1px 0; }
+.item-toast .it-desc { font-size: 12px; color: #cbd5e1; line-height: 1.35; }
+
+/* 左上角玩家卡片透明玻璃視窗 + 3D 穿戴展示台 */
+.pd-showcase { display: grid; grid-template-columns: 240px 1fr; gap: 14px; align-items: center; margin-bottom: 10px; }
+.pd-stage { position: relative; width: 240px; height: 260px; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(circle at 50% 62%, rgba(250, 204, 21, .16), rgba(15, 23, 42, .42) 68%, rgba(8, 12, 18, .65));
+  border: 1px solid rgba(255, 255, 255, .16); box-shadow: inset 0 0 24px rgba(56, 189, 248, .12);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
+.pd-stage:active { cursor: grabbing; }
+#pdStageMount { width: 240px; height: 260px; display: grid; place-items: center; }
+#pdCanvas { width: 240px !important; height: 260px !important; display: block; }
+.pd-stage-hint { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); pointer-events: none;
+  font-size: 10px; color: rgba(226, 232, 240, .78); background: rgba(10, 15, 24, .55); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pd-head-info { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pd-head-info .pd-summary { grid-template-columns: repeat(2, 1fr); margin: 4px 0 0; }
 @media (max-width: 700px) {
   .pd-summary { grid-template-columns: repeat(2, 1fr); }
   .pd-items { grid-template-columns: 1fr; }
+  .pd-showcase { grid-template-columns: 1fr; }
+  .pd-stage { max-width: 240px; margin: 0 auto; }
 }
