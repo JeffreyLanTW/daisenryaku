@@ -66,7 +66,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color('#1b5b94');
 scene.fog = new THREE.Fog('#1b5b94', 680 * WS, 1650 * WS);
 
-const camera = new THREE.PerspectiveCamera(42, 1, 1, 3600 * WS);
+const camera = new THREE.PerspectiveCamera(42, 1, 8, 2800 * WS);
 scene.add(new THREE.HemisphereLight('#f2f8ff', '#294032', 1.25));
 const sun = new THREE.DirectionalLight('#fff4df', 2.3);
 sun.position.set(-140 * WS, 260 * WS, 160 * WS);
@@ -138,18 +138,18 @@ const FUJIAN_POLY = [
 // 125 格真實世界台灣經緯度座標 [lon, lat, 地形高程]（嚴格對應 logic.js：0..87 環島主線、88..99 澎湖不規則小地圖、100..113 金門不規則小地圖、114..124 北中南橫）
 const ROUTE_COORDS = [
   // 0..17 南台灣・墾丁恆春高屏小琉球嘉南
-  [120.85, 21.92, 1.55], // 0 起點
-  [120.78, 21.95, 1.50], // 1 墾丁
+  [120.82, 21.91, 1.55], // 0 起點
+  [120.76, 21.96, 1.50], // 1 墾丁
   [120.74, 22.01, 1.68], // 2 恆春
   [120.71, 22.07, 1.62], // 3 墾丁大街美食
   [120.67, 22.22, 1.60], // 4 命運
   [120.47, 22.47, 1.52], // 5 東港海鮮市集
   [120.49, 22.64, 1.62], // 6 屏東（南橫起點）
   [120.37, 22.34, 1.50], // 7 小琉球
-  [120.28, 22.58, 1.55], // 8 高雄港灣
-  [120.30, 22.66, 1.62], // 9 高雄巨蛋百貨
-  [120.31, 22.74, 1.70], // 10 高鐵左營
-  [120.30, 22.82, 1.65], // 11 橋頭糖廠遊樂場
+  [120.25, 22.55, 1.55], // 8 高雄港灣
+  [120.31, 22.66, 1.64], // 9 高雄巨蛋百貨
+  [120.33, 22.75, 1.72], // 10 高鐵左營
+  [120.29, 22.84, 1.65], // 11 橋頭糖廠遊樂場
   [120.22, 22.96, 1.65], // 12 台南府城
   [120.19, 23.02, 1.58], // 13 台南夜市美食
   [120.14, 23.00, 1.50], // 14 安平古堡
@@ -168,9 +168,9 @@ const ROUTE_COORDS = [
   [120.69, 23.90, 2.20], // 26 南投
   [120.92, 23.86, 4.00], // 27 日月潭
   [120.96, 23.97, 3.20], // 28 醫院
-  [120.62, 24.11, 1.65], // 29 台中高鐵
-  [120.65, 24.16, 1.70], // 30 台中七期百貨
-  [120.69, 24.22, 1.75], // 31 台中（中橫起點）
+  [120.59, 24.09, 1.65], // 29 台中高鐵
+  [120.65, 24.16, 1.72], // 30 台中七期百貨
+  [120.71, 24.23, 1.78], // 31 台中（中橫起點）
   [120.69, 24.32, 1.65], // 32 麗寶遊樂場
   [120.59, 24.34, 1.55], // 33 台灣股市
   [120.64, 24.40, 1.60], // 34 機會
@@ -189,14 +189,14 @@ const ROUTE_COORDS = [
   [121.32, 25.13, 1.85], // 46 汽車展示中心
   [121.44, 25.19, 1.50], // 47 淡水老街
   [121.55, 25.25, 3.40], // 48 陽明山公園
-  [121.53, 25.15, 1.70], // 49 行天宮
-  [121.46, 25.04, 1.60], // 50 西門服飾店
-  [121.40, 25.00, 1.60], // 51 新北板橋
-  [121.50, 25.05, 1.65], // 52 台北西門町
-  [121.54, 25.04, 1.68], // 53 台北
-  [121.57, 25.03, 1.70], // 54 信義101百貨
-  [121.63, 25.06, 1.78], // 55 夜市小遊戲
-  [121.70, 25.08, 1.85], // 56 機會
+  [121.51, 25.15, 1.70], // 49 行天宮
+  [121.41, 25.09, 1.60], // 50 西門服飾店
+  [121.39, 24.98, 1.60], // 51 新北板橋
+  [121.48, 25.03, 1.65], // 52 台北西門町
+  [121.55, 25.07, 1.68], // 53 台北
+  [121.61, 25.00, 1.72], // 54 信義101百貨
+  [121.67, 25.06, 1.78], // 55 夜市小遊戲
+  [121.73, 25.09, 1.85], // 56 機會
   [121.76, 25.14, 1.50], // 57 基隆港
   // 58..87 東北角・宜花東・綠島蘭嶼南迴
   [121.91, 25.11, 1.80], // 58 入獄
@@ -227,8 +227,8 @@ const ROUTE_COORDS = [
   [120.93, 22.42, 2.10], // 83 汽車展示中心
   [120.90, 22.26, 2.25], // 84 夜市小遊戲
   [120.88, 22.14, 2.40], // 85 命運
-  [120.85, 22.00, 1.75], // 86 佳樂水
-  [120.85, 21.90, 1.55], // 87 鵝鑾鼻燈塔
+  [120.87, 22.00, 1.75], // 86 佳樂水
+  [120.89, 21.88, 1.55], // 87 鵝鑾鼻燈塔
   // 88..99 澎湖群島不規則小地圖（12 格）
   [119.57, 23.56, 1.50], // 88 馬公港
   [119.52, 23.59, 1.52], // 89 澎湖天后宮
@@ -345,13 +345,57 @@ function rawHeight(x, z) {
   return h + m * rough * smooth01(0, 9 * WS, dc);
 }
 // 棋格高程：本島取地形高度（山區略降，像走在山谷公路上）；離島沿用島嶼高度
-const TILE_MAIN = ROUTE_COORDS.map(([lon, lat]) => { const [x, z] = twXZ(lon, lat); return onMainland(x, z); });
+const TILE_R = 11.2;
+const TILE_XZ = ROUTE_COORDS.map(([lon, lat]) => twXZ(lon, lat));
+const COAST_TILES = new Set(['墾丁', '安平古堡', '馬公港', '淡水老街', '基隆港', '綠島', '蘭嶼', '水頭碼頭', '料羅灣碼頭', '鹿港老街', '小琉球', '七美雙心', '望安綠蠵龜', '吉貝沙尾', '西嶼燈塔', '馬祖', '東引', '烈嶼小金門', '大膽島前線', '海峽賭場', '龜山島', '頭城烏石港', '佳樂水', '鵝鑾鼻燈塔']);
+const URBAN_TILES = new Set(['台北', '台北西門町', '信義101百貨', '高雄港灣', '高雄巨蛋百貨', '台中', '台中七期百貨', '新北板橋', '台南府城', '竹科園區', '桃園', '新竹城隍美食', '桃園機場', '屏東', '彰化', '嘉義', '宜蘭', '花蓮', '台東']);
+function tileScale(t, i) {
+  if (!t) return 1;
+  const nm = t.name;
+  if (['信義101百貨', '台北', '台北西門町', '高雄港灣', '台中', '新北板橋'].includes(nm)) return 1.65;
+  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '海峽賭場', '起點', '醫院', '監獄'].includes(nm) || t.type === 'autoshow' || t.type === 'stock') return 1.32;
+  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南府城', '竹科園區', '桃園', '花蓮', '台東', '宜蘭'].includes(nm) || t.subkind === 'mall' || t.subkind === 'hotel' || t.subkind === 'arcade') return 1.18;
+  if (['小琉球', '七美雙心', '望安綠蠵龜', '吉貝沙尾', '東引', '烈嶼小金門', '大膽島前線', '龜山島', '拉拉山', '明池', '谷關溫泉', '梨山', '天祥', '甲仙芋頭街', '梅山', '埡口', '向陽'].includes(nm)) return 0.72;
+  if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.85;
+  return 1.0;
+}
+function tileBaseScale(t, i) {
+  const raw = tileScale(t, i);
+  const p = TILE_XZ[i];
+  if (!p) return raw;
+  let minD = Infinity;
+  for (let j = 0; j < TILE_XZ.length; j++) {
+    if (j === i) continue;
+    const d = Math.hypot(p[0] - TILE_XZ[j][0], p[1] - TILE_XZ[j][1]);
+    if (d < minD) minD = d;
+  }
+  const cap = (minD * 0.54) / (TILE_R * 1.02);
+  return Math.max(0.74, Math.min(raw, cap));
+}
+const TILE_MAIN = TILE_XZ.map(([x, z]) => onMainland(x, z));
 const TILE_ELEV = ROUTE_COORDS.map(([lon, lat, elev], i) => {
-  if (!TILE_MAIN[i]) return elev;
-  const [x, z] = twXZ(lon, lat);
+  const jitter = (i % 7) * 0.05;
+  if (!TILE_MAIN[i] || (R.BOARD[i] && URBAN_TILES.has(R.BOARD[i].name)) || elev <= 2.2) return elev + jitter;
+  const [x, z] = TILE_XZ[i];
   const r = rawHeight(x, z);
-  return Math.max(1.6, r > 3 ? 3 + (r - 3) * 0.72 : r) + 0.25;
+  return Math.max(1.6, r > 3 ? 3 + (r - 3) * 0.72 : r) + 0.25 + jitter;
 });
+for (let i = 0; i < R.BOARD.length; i++) {
+  const baseElev = TILE_ELEV[i];
+  const [ax, az] = TILE_XZ[i];
+  const bi = tileBaseScale(R.BOARD[i], i);
+  for (let k = 0; k < 16; k++) {
+    const cand = baseElev + k * 0.60;
+    let ok = true;
+    for (let j = 0; j < i; j++) {
+      if (Math.hypot(ax - TILE_XZ[j][0], az - TILE_XZ[j][1]) < TILE_R * 1.12 * (bi + tileBaseScale(R.BOARD[j], j)) && Math.abs(cand - TILE_ELEV[j]) < 0.58) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) { TILE_ELEV[i] = cand; break; }
+  }
+}
 const ROAD_SEGS = [];
 for (let i = 0; i < R.BOARD.length; i++) {
   for (const j of (R.BOARD[i].next || [])) {
@@ -1392,904 +1436,1006 @@ function makeTileProp(t, idx) {
   const nm = t.name;
 
   if (nm === '信義101百貨' || nm === '信義區') {
-    // 台北 101 精細建模（裙樓＋7節竹節塔身玻璃帷幕＋金飾＋尖塔＋閃燈）
+    // 台北 101 精細建模（如意裙樓＋8節竹節塔身＋金融副樓＋尖塔＋閃燈，最高 y ~ 15.8）
     const glass = makeWinMat('#247b6c', '#fef08a');
     const gold = new THREE.MeshStandardMaterial({ color: '#f1c40f', emissive: '#6e5200', metalness: 0.65 });
-    const base = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.6, 2.8), glass);
-    base.position.y = 0.8; g.add(base);
-    for (let k = 0; k < 7; k++) {
-      const s = 1 - k * 0.055;
-      const seg = new THREE.Mesh(new THREE.CylinderGeometry(1.18 * s, 0.94 * s, 1.15, 4), glass);
-      seg.rotation.y = Math.PI / 4; seg.position.y = 2.15 + k * 1.12; g.add(seg);
-      const ring = new THREE.Mesh(new THREE.BoxGeometry(1.7 * s, 0.14, 1.7 * s), gold);
-      ring.position.y = 2.68 + k * 1.12; g.add(ring);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.1, 3.2), glass);
+    base.position.y = 1.05; g.add(base);
+    const skylight = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.55, 4), new THREE.MeshStandardMaterial({ color: '#bae6fd', emissive: '#0284c7', emissiveIntensity: 0.35 }));
+    skylight.rotation.y = Math.PI / 4; skylight.position.set(0, 2.35, 1.0); g.add(skylight);
+    for (const [rx, rz, ry] of [[0, 1.65, 0], [0, -1.65, 0], [1.65, 0, Math.PI / 2], [-1.65, 0, Math.PI / 2]]) {
+      const ruyi = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.1, 6, 12), gold);
+      ruyi.position.set(rx, 1.45, rz); ruyi.rotation.y = ry; g.add(ruyi);
     }
-    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.22, 2.8, 6), gold);
-    spire.position.y = 11.2; g.add(spire);
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#ff5252', emissive: '#ff1744' }));
-    beacon.position.y = 12.6; g.add(beacon);
+    const annex = new THREE.Mesh(new THREE.BoxGeometry(1.3, 4.8, 1.3), makeWinMat('#1e293b', '#bae6fd'));
+    annex.position.set(-1.55, 2.4, -1.05); g.add(annex);
+    for (let k = 0; k < 8; k++) {
+      const s = 1 - k * 0.048;
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(1.22 * s, 0.96 * s, 1.2, 4), glass);
+      seg.rotation.y = Math.PI / 4; seg.position.y = 2.65 + k * 1.18; g.add(seg);
+      const ring = new THREE.Mesh(new THREE.BoxGeometry(1.78 * s, 0.16, 1.78 * s), gold);
+      ring.position.y = 3.22 + k * 1.18; g.add(ring);
+    }
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.24, 3.2, 6), gold);
+    spire.position.y = 13.8; g.add(spire);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: '#ff5252', emissive: '#ff1744', emissiveIntensity: 0.95 }));
+    beacon.position.y = 15.55; g.add(beacon);
     animProps.push(now => { beacon.scale.setScalar(0.85 + Math.sin(now * 0.006) * 0.3); });
-    g.userData.baseScale = 0.62;
-  } else if (nm === '台北') {
-    // 中正紀念堂（白玉階梯基座＋八角藍瓦重簷寶頂）
-    const base = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.65, 3.0), new THREE.MeshStandardMaterial({ color: '#f1f5f9' }));
-    base.position.y = 0.32;
-    const hall = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.5, 2.1), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
-    hall.position.y = 1.4;
-    const r1 = new THREE.Mesh(new THREE.ConeGeometry(2.1, 1.1, 8), new THREE.MeshStandardMaterial({ color: '#1d4ed8', roughness: 0.4 }));
-    r1.position.y = 2.65;
-    const r2 = new THREE.Mesh(new THREE.ConeGeometry(1.3, 0.9, 8), new THREE.MeshStandardMaterial({ color: '#1e40af', roughness: 0.4 }));
-    r2.position.y = 3.45;
-    g.add(base, hall, r1, r2);
+    g.userData.baseScale = 1.05;
   } else if (nm === '高雄' || nm === '高雄港灣') {
-    // 高雄 85 大樓（雙塔撐起高空帷幕主樓＋金頂尖塔）
+    // 高雄 85 大樓（最高 y = 11.2）＋流行音樂中心珊瑚六角塔＋港灣天車
     const bm = makeWinMat('#335c81', '#bae6fd');
-    for (const dx of [-0.85, 0.85]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.9, 4.0, 1.2), bm);
-      leg.position.set(dx, 2.0, 0); g.add(leg);
+    for (const dx of [-0.95, 0.95]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(1.0, 5.2, 1.35), bm);
+      leg.position.set(dx, 2.6, -0.3); g.add(leg);
     }
-    const mid = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.2, 1.2), bm); mid.position.y = 5.4;
-    const top = new THREE.Mesh(new THREE.ConeGeometry(0.85, 2.0, 4), new THREE.MeshStandardMaterial({ color: '#f39c12', metalness: 0.5 }));
-    top.rotation.y = Math.PI / 4; top.position.y = 7.9;
-    g.add(mid, top);
-    g.userData.baseScale = 0.65;
-  } else if (t.type === 'start') {
-    // 鵝鑾鼻燈塔＋紅色迎賓拱柱＋南國椰子樹
-    const lhBase = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.6, 12), new THREE.MeshStandardMaterial({ color: '#cbd5e1' }));
-    lhBase.position.y = 0.3;
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.85, 3.8, 12), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
-    body.position.y = 2.4;
-    const balcony = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.22, 12), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
-    balcony.position.y = 4.25;
-    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.75, 12), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#facc15', emissiveIntensity: 0.8 }));
-    lamp.position.y = 4.7;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.85, 12), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
-    roof.position.y = 5.45;
-    const palm = palmTree(0.65); palm.position.set(1.6, 0, 0.6);
-    g.add(lhBase, body, balcony, lamp, roof, palm);
-  } else if (nm === '阿里山') {
-    // 阿里山森林紅色蒸汽小火車＋千年檜木神木
-    const tr = tree(1.1, '#1e5e32'); tr.position.set(-1.1, 0, -0.4);
-    const loco = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.0, 1.0), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
-    loco.position.set(0.8, 0.65, 0.6);
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.35, 1.0), new THREE.MeshStandardMaterial({ color: '#b91c1c' }));
-    cab.position.set(0.25, 0.9, 0.6);
-    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.6, 8), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
-    chimney.position.set(1.35, 1.4, 0.6);
-    g.add(tr, loco, cab, chimney);
-  } else if (nm === '日月潭') {
-    // 日月潭慈恩八角寶塔
-    g.add(makePagodaOrTower('#fde68a', '#b91c1c', 4));
+    const mid = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.8, 1.35), bm); mid.position.set(0, 7.0, -0.3);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.3, 4), new THREE.MeshStandardMaterial({ color: '#f39c12', emissive: '#92400e', metalness: 0.55 }));
+    top.rotation.y = Math.PI / 4; top.position.set(0, 10.05, -0.3);
+    const coralM = new THREE.MeshStandardMaterial({ color: '#fb7185', emissive: '#881337', emissiveIntensity: 0.25 });
+    for (const [cx, ch] of [[-1.35, 1.9], [-0.45, 2.4]]) {
+      const waveT = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, ch, 6), coralM);
+      waveT.position.set(cx, ch / 2, 1.2); g.add(waveT);
+    }
+    const gantry = new THREE.Mesh(new THREE.BoxGeometry(0.28, 2.8, 0.28), new THREE.MeshStandardMaterial({ color: '#ef4444' }));
+    gantry.position.set(1.5, 1.4, 1.1);
+    const boom = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.22, 0.22), new THREE.MeshStandardMaterial({ color: '#f97316' }));
+    boom.position.set(1.15, 2.65, 1.1);
+    g.add(mid, top, gantry, boom);
+    g.userData.baseScale = 1.02;
+  } else if (nm === '台北') {
+    // 3層中正紀念堂（y ~ 5.8）＋前方自由廣場五門牌樓＋後方新光摩天大樓（h = 7.2）
+    const base = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.9, 2.8), new THREE.MeshStandardMaterial({ color: '#f1f5f9' }));
+    base.position.set(-0.2, 0.45, 0);
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.0, 2.0), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
+    hall.position.set(-0.2, 1.9, 0);
+    const r1 = new THREE.Mesh(new THREE.ConeGeometry(2.15, 1.25, 8), new THREE.MeshStandardMaterial({ color: '#1d4ed8', roughness: 0.4 }));
+    r1.position.set(-0.2, 3.52, 0);
+    const r2 = new THREE.Mesh(new THREE.ConeGeometry(1.38, 1.15, 8), new THREE.MeshStandardMaterial({ color: '#1e40af', roughness: 0.4 }));
+    r2.position.set(-0.2, 4.65, 0);
+    const finial = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.7 }));
+    finial.position.set(-0.2, 5.52, 0);
+    const skTower = new THREE.Mesh(new THREE.BoxGeometry(1.25, 7.2, 1.25), makeWinMat('#b91c1c', '#fef08a'));
+    skTower.position.set(1.45, 3.6, -1.15);
+    const archTop = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.36, 0.42), new THREE.MeshStandardMaterial({ color: '#1d4ed8' }));
+    archTop.position.set(-0.2, 1.45, 1.65);
+    for (const ax of [-1.2, -0.4, 0.4, 1.2]) {
+      const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.4, 6), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
+      pil.position.set(ax - 0.2, 0.7, 1.65); g.add(pil);
+    }
+    g.add(base, hall, r1, r2, finial, skTower, archTop);
+    g.userData.baseScale = 0.98;
+  } else if (nm === '台北西門町') {
+    // 西門紅樓雙層八角廳＋萬年商業霓虹廣告塔（h = 7.0）＋彩虹斑馬線
+    const hall = new THREE.Mesh(new THREE.CylinderGeometry(1.32, 1.38, 2.2, 8), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.75 }));
+    hall.position.set(-0.65, 1.1, -0.15);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.52, 1.1, 8), new THREE.MeshStandardMaterial({ color: '#334155' }));
+    roof.position.set(-0.65, 2.75, -0.15);
+    const wannian = new THREE.Mesh(new THREE.BoxGeometry(1.35, 7.0, 1.25), makeWinMat('#1e1b4b', '#f472b6'));
+    wannian.position.set(1.15, 3.5, -0.55);
+    const neonCols = ['#ef4444', '#facc15', '#38bdf8', '#a855f7'];
+    neonCols.forEach((c, k) => {
+      const board = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.85, 0.18), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.7 }));
+      board.position.set(1.15, 2.0 + k * 1.35, 0.12); g.add(board);
+    });
+    const cols = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#a855f7'];
+    cols.forEach((c, k) => {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 0.18), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.25 }));
+      strip.position.set(0, 0.05, 0.72 + k * 0.19); g.add(strip);
+    });
+    g.add(hall, roof, wannian);
+    g.userData.baseScale = 0.96;
+  } else if (nm === '新北' || nm === '新北板橋') {
+    // 新板特區雙子星摩天商辦（h=6.2 & 5.0＋天橋）＋耶誕城發光竹筍巨塔（h=4.5）
+    const tw1 = new THREE.Mesh(new THREE.BoxGeometry(1.15, 6.2, 1.15), makeWinMat('#1e3a5f', '#fef08a')); tw1.position.set(-0.95, 3.1, -0.35);
+    const tw2 = new THREE.Mesh(new THREE.BoxGeometry(1.05, 5.0, 1.05), makeWinMat('#334155', '#38bdf8')); tw2.position.set(0.95, 2.5, -0.35);
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 0.55), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04' }));
+    bridge.position.set(0, 3.6, -0.35);
+    const shoot = new THREE.Mesh(new THREE.ConeGeometry(0.65, 4.5, 8), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.55 }));
+    shoot.position.set(0, 2.25, 0.95);
+    for (let k = 0; k < 3; k++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55 - k * 0.14, 0.07, 6, 14), new THREE.MeshStandardMaterial({ color: '#f472b6', emissive: '#db2777' }));
+      ring.rotation.x = Math.PI / 2; ring.position.set(0, 1.1 + k * 1.1, 0.95); g.add(ring);
+    }
+    g.add(tw1, tw2, bridge, shoot);
+    g.userData.baseScale = 0.96;
+  } else if (nm === '台中') {
+    // 台中公園湖心亭雙尖頂＋白拱橋（前景）＋七期高聳玻璃摩天大樓（h=6.2 背景）
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.6, 0.22, 16), new THREE.MeshStandardMaterial({ color: '#38bdf8' })); water.position.set(-0.2, 0.11, 0.5);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.85, 1.15), new THREE.MeshStandardMaterial({ color: '#ffffff' })); base.position.set(-0.2, 0.62, 0.5);
+    for (const dx of [-0.52, 0.52]) {
+      const top = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.1, 8), new THREE.MeshStandardMaterial({ color: '#dc2626' })); top.position.set(dx - 0.2, 1.6, 0.5); g.add(top);
+    }
+    const archBridge = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.11, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
+    archBridge.position.set(-1.1, 0.25, 1.25);
+    const sevenTower = new THREE.Mesh(new THREE.BoxGeometry(1.45, 6.2, 1.35), makeWinMat('#0f172a', '#fde68a'));
+    sevenTower.position.set(0.95, 3.1, -0.95);
+    g.add(water, base, archBridge, sevenTower);
+    g.userData.baseScale = 0.96;
+  } else if (nm === '台南' || nm === '台南府城') {
+    // 台南府城三層赤崁樓／大南門（y ~ 5.4）＋贔屭御碑＋紅燈籠
+    const stone = new THREE.Mesh(new THREE.BoxGeometry(3.3, 1.3, 1.8), new THREE.MeshStandardMaterial({ color: '#d6d3d1', roughness: 0.85 })); stone.position.y = 0.65;
+    const h1 = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.2, 1.4), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); h1.position.y = 1.9;
+    const e1 = new THREE.Mesh(new THREE.ConeGeometry(2.05, 0.8, 4), new THREE.MeshStandardMaterial({ color: '#b45309' }));
+    e1.rotation.y = Math.PI / 4; e1.scale.set(1.35, 1, 0.85); e1.position.y = 2.85;
+    const h2 = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.0, 1.1), new THREE.MeshStandardMaterial({ color: '#dc2626' })); h2.position.y = 3.55;
+    const e2 = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.85, 4), new THREE.MeshStandardMaterial({ color: '#d97706' }));
+    e2.rotation.y = Math.PI / 4; e2.scale.set(1.3, 1, 0.85); e2.position.y = 4.45;
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.25, 0.25), new THREE.MeshStandardMaterial({ color: '#facc15' })); ridge.position.y = 5.25;
+    for (const sx of [-1.05, 1.05]) {
+      const stele = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.95, 0.18), new THREE.MeshStandardMaterial({ color: '#64748b' }));
+      stele.position.set(sx, 0.48, 1.25); g.add(stele);
+    }
+    const lan = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#b91c1c' }));
+    lan.position.set(0, 1.45, 1.05);
+    g.add(stone, h1, e1, h2, e2, ridge, lan);
+    g.userData.baseScale = 0.96;
   } else if (nm === '竹科' || nm === '竹科園區') {
-    // 竹科半導體晶圓廠（玻璃帷幕廠辦＋旋轉發光矽晶圓）
-    const fab = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.7, 2.0), makeWinMat('#334155', '#38bdf8'));
-    fab.position.y = 0.85;
-    const glow = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.22, 2.1), new THREE.MeshStandardMaterial({ color: '#22d3ee', emissive: '#0891b2' }));
-    glow.position.y = 1.45;
-    const wafer = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.12, 18), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', metalness: 0.8 }));
-    wafer.rotation.x = Math.PI / 2; wafer.position.y = 2.65;
-    animProps.push(now => { wafer.rotation.z = now * 0.002; });
-    g.add(fab, glow, wafer);
+    // 竹科半導體晶圓巨廈＋雙科技高塔（h=4.6）＋巨型發光旋轉矽晶圓（r=1.35 at y=5.5）
+    const fab = new THREE.Mesh(new THREE.BoxGeometry(3.3, 2.2, 2.2), makeWinMat('#334155', '#38bdf8')); fab.position.y = 1.1;
+    const tL = new THREE.Mesh(new THREE.BoxGeometry(0.85, 4.6, 0.95), makeWinMat('#1e293b', '#22d3ee')); tL.position.set(-1.35, 2.3, -0.5);
+    const tR = new THREE.Mesh(new THREE.BoxGeometry(0.85, 4.6, 0.95), makeWinMat('#1e293b', '#22d3ee')); tR.position.set(1.35, 2.3, -0.5);
+    const wafer = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 0.16, 20), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.5, metalness: 0.85 }));
+    wafer.rotation.x = Math.PI / 2; wafer.position.y = 5.5;
+    animProps.push(now => { wafer.rotation.z = now * 0.0022; });
+    g.add(fab, tL, tR, wafer);
+    g.userData.baseScale = 0.96;
+  } else if (nm === '桃園') {
+    // 桃園國際都會雙塔（h = 5.2）＋傳統彩繪牌樓＋金頂尖塔
+    const tw1 = new THREE.Mesh(new THREE.BoxGeometry(1.05, 5.2, 1.05), makeWinMat('#1e3a8a', '#fde68a')); tw1.position.set(-1.05, 2.6, -0.45);
+    const tw2 = new THREE.Mesh(new THREE.BoxGeometry(0.95, 4.4, 0.95), makeWinMat('#334155', '#38bdf8')); tw2.position.set(1.05, 2.2, -0.45);
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.48, 0.6), new THREE.MeshStandardMaterial({ color: '#dc2626' })); arch.position.set(0, 1.85, 0.85);
+    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.3, 4), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.55 }));
+    spire.rotation.y = Math.PI / 4; spire.position.set(-1.05, 5.85, -0.45);
+    g.add(tw1, tw2, arch, spire);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '花蓮') {
+    // 花蓮文創高聳鐘塔大樓（h=4.8）＋七星潭月牙海灣＋原住民豐年祭圖騰巨柱與大理石拱門
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(1.35, 4.8, 1.25), makeWinMat('#78350f', '#fde68a')); tower.position.set(-0.95, 2.4, -0.35);
+    const clock = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.14, 12), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#ca8a04' }));
+    clock.rotation.x = Math.PI / 2; clock.position.set(-0.95, 4.0, 0.32);
+    const bay = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.25, 6, 14, Math.PI), new THREE.MeshStandardMaterial({ color: '#0ea5e9' }));
+    bay.rotation.x = -Math.PI / 2; bay.position.set(0.7, 0.2, 0.7);
+    const totem = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 3.8, 8), new THREE.MeshStandardMaterial({ color: '#dc2626' })); totem.position.set(1.15, 1.9, -0.4);
+    const marbleArch = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.16, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#f1f5f9' }));
+    marbleArch.position.set(0.25, 1.25, 0.6);
+    g.add(tower, clock, bay, totem, marbleArch);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '宜蘭') {
+    // 蘭陽博物館單面山幾何建築（h=4.2＋鏡面水池）＋幾米廣場飛天火車與長頸鹿高塔
+    const pond = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.8, 0.18, 16), new THREE.MeshStandardMaterial({ color: '#0ea5e9', roughness: 0.2 })); pond.position.y = 0.09;
+    const museum = new THREE.Mesh(new THREE.ConeGeometry(1.85, 4.2, 4), makeWinMat('#475569', '#bae6fd'));
+    museum.rotation.y = Math.PI / 4; museum.rotation.z = -0.3; museum.position.set(-0.35, 1.85, -0.2);
+    const giraffe = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 3.6, 8), new THREE.MeshStandardMaterial({ color: '#facc15' }));
+    giraffe.position.set(1.25, 1.8, 0.65);
+    const train = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.55, 0.55), new THREE.MeshStandardMaterial({ color: '#ef4444' }));
+    train.position.set(0.45, 3.3, 0.85); train.rotation.z = 0.18;
+    g.add(pond, museum, giraffe, train);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '屏東') {
+    // 大鵬灣斜張A字高塔（h=5.4＋鋼纜）＋東隆宮黃金牌樓＋躍水黑鮪魚
+    const towerL = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.26, 5.4, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
+    towerL.position.set(-0.55, 2.7, -0.2); towerL.rotation.z = -0.14;
+    const towerR = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.26, 5.4, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
+    towerR.position.set(-1.15, 2.7, -0.2); towerR.rotation.z = 0.14;
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.24, 0.85), new THREE.MeshStandardMaterial({ color: '#94a3b8' })); deck.position.set(0, 0.65, 0.2);
+    const goldArch = new THREE.Mesh(new THREE.BoxGeometry(1.65, 2.2, 0.35), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207', metalness: 0.65 }));
+    goldArch.position.set(1.1, 1.1, -0.65);
+    const tuna = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.8, 8), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.65 }));
+    tuna.rotation.z = -0.95; tuna.position.set(0.75, 2.0, 0.75);
+    g.add(towerL, towerR, deck, goldArch, tuna);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '彰化') {
+    // 八卦山金色大佛（y ~ 5.2 雙層蓮座＋背光）＋扇形車庫弧形磚牆與蒸汽火車
+    const lotus1 = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.65, 0.65, 12), new THREE.MeshStandardMaterial({ color: '#f1f5f9' })); lotus1.position.set(-0.25, 0.32, -0.25);
+    const lotus2 = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.55, 12), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); lotus2.position.set(-0.25, 0.9, -0.25);
+    const goldM = new THREE.MeshStandardMaterial({ color: '#eab308', emissive: '#854d0e', emissiveIntensity: 0.25, metalness: 0.6 });
+    const knee = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.25, 0.75, 12), goldM); knee.position.set(-0.25, 1.55, -0.25);
+    const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 1.1, 1.85, 12), goldM); robe.position.set(-0.25, 2.75, -0.25);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 10), goldM); head.position.set(-0.25, 4.18, -0.25);
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), goldM); crown.position.set(-0.25, 4.92, -0.25);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.11, 6, 18), new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#ca8a04', emissiveIntensity: 0.55 }));
+    halo.position.set(-0.25, 4.05, -0.7);
+    const roundhouse = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 0.75, 8, 1, false, 0, Math.PI), new THREE.MeshStandardMaterial({ color: '#b91c1c' }));
+    roundhouse.position.set(1.05, 0.38, 0.85);
+    const loco = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.45), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
+    loco.position.set(1.05, 0.35, 1.25);
+    g.add(lotus1, lotus2, knee, robe, head, crown, halo, roundhouse, loco);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '嘉義') {
+    // 北回歸線太陽館太空梭巨塔（h=5.2＋多環渾天儀）＋檜意森活村木屋
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 0.55, 8), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); base.position.set(-0.3, 0.28, -0.2);
+    const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.48, 4.7, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); pylon.position.set(-0.3, 2.75, -0.2);
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.12, 8, 18), new THREE.MeshStandardMaterial({ color: '#eab308', metalness: 0.6 }));
+    ring1.position.set(-0.3, 4.15, -0.2); ring1.rotation.x = Math.PI / 6;
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.1, 8, 16), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.6 }));
+    ring2.position.set(-0.3, 4.15, -0.2); ring2.rotation.y = Math.PI / 3;
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.45 }));
+    orb.position.set(-0.3, 4.15, -0.2);
+    const hinoki = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.85, 1.0), new THREE.MeshStandardMaterial({ color: '#92400e' })); hinoki.position.set(1.1, 0.42, 0.85);
+    const hRoof = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.55, 4), new THREE.MeshStandardMaterial({ color: '#334155' })); hRoof.rotation.y = Math.PI / 4; hRoof.position.set(1.1, 1.12, 0.85);
+    g.add(base, pylon, ring1, ring2, orb, hinoki, hRoof);
+    g.userData.baseScale = 0.95;
+  } else if (t.type === 'start') {
+    // 鵝鑾鼻燈塔起點＋紅色迎賓拱柱＋南國椰子樹（y ~ 6.2）
+    const lhBase = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.75, 12), new THREE.MeshStandardMaterial({ color: '#cbd5e1' })); lhBase.position.y = 0.38;
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.92, 4.1, 12), new THREE.MeshStandardMaterial({ color: '#ffffff' })); body.position.y = 2.75;
+    const balcony = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.25, 12), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); balcony.position.y = 4.78;
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.8, 12), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#facc15', emissiveIntensity: 0.85 })); lamp.position.y = 5.25;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.78, 0.95, 12), new THREE.MeshStandardMaterial({ color: '#dc2626' })); roof.position.y = 6.05;
+    const palm = palmTree(0.8); palm.position.set(1.65, 0, 0.65);
+    g.add(lhBase, body, balcony, lamp, roof, palm);
+    g.userData.baseScale = 0.96;
+  } else if (nm === '阿里山') {
+    // 阿里山多節紅色蒸汽小火車＋木造車站＋千年檜木神木（y ~ 4.8）
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.58, 2.2, 8), new THREE.MeshStandardMaterial({ color: '#7c2d12' })); trunk.position.set(-1.15, 1.1, -0.45);
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(1.3, 2.9, 8), new THREE.MeshStandardMaterial({ color: '#15803d', flatShading: true })); crown.position.set(-1.15, 3.35, -0.45);
+    const station = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.1), new THREE.MeshStandardMaterial({ color: '#92400e' })); station.position.set(0.6, 0.55, -0.75);
+    const loco = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.0, 0.95), new THREE.MeshStandardMaterial({ color: '#dc2626' })); loco.position.set(0.8, 0.58, 0.7);
+    const car = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.9, 0.9), new THREE.MeshStandardMaterial({ color: '#ef4444' })); car.position.set(-0.9, 0.52, 0.7);
+    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.75, 8), new THREE.MeshStandardMaterial({ color: '#1e293b' })); chimney.position.set(1.35, 1.45, 0.7);
+    g.add(trunk, crown, station, loco, car, chimney);
+    g.userData.baseScale = 0.94;
+  } else if (nm === '日月潭') {
+    // 日月潭 5層慈恩八角寶塔＋碧湖碼頭＋紅燈柱（y ~ 6.4）
+    const lake = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.75, 0.18, 16), new THREE.MeshStandardMaterial({ color: '#0ea5e9', roughness: 0.2 })); lake.position.y = 0.09;
+    const pag = makePagodaOrTower('#fde68a', '#b91c1c', 5); pag.position.y = 0.18;
+    const pier = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.18, 0.6), new THREE.MeshStandardMaterial({ color: '#92400e' })); pier.position.set(1.1, 0.22, 1.05);
+    const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#b91c1c' })); lantern.position.set(1.6, 0.85, 1.05);
+    g.add(lake, pag, pier, lantern);
+    g.userData.baseScale = 0.95;
   } else if (nm === '太魯閣' || nm === '天祥') {
-    // 太魯閣／天祥：陡峭大理石峽谷雙壁＋紅色吊橋＋牌樓/塔亭
+    // 太魯閣／天祥：陡峭大理石峽谷雙壁（y ~ 5.4）＋紅色吊橋＋牌樓/寶塔
     const cliffM = new THREE.MeshStandardMaterial({ color: '#cbd5e1', flatShading: true, roughness: 0.85 });
     for (const sx of [-1.55, 1.55]) {
-      const c = new THREE.Mesh(new THREE.ConeGeometry(0.95, 4.1, 5), cliffM); c.position.set(sx, 2.0, -0.25); g.add(c);
-      const sub = new THREE.Mesh(new THREE.ConeGeometry(0.65, 2.8, 5), new THREE.MeshStandardMaterial({ color: '#94a3b8', flatShading: true }));
-      sub.position.set(sx * 0.82, 1.4, 0.55); g.add(sub);
+      const c = new THREE.Mesh(new THREE.ConeGeometry(1.05, 5.4, 5), cliffM); c.position.set(sx, 2.7, -0.25); g.add(c);
+      const sub = new THREE.Mesh(new THREE.ConeGeometry(0.72, 3.6, 5), new THREE.MeshStandardMaterial({ color: '#94a3b8', flatShading: true }));
+      sub.position.set(sx * 0.8, 1.8, 0.55); g.add(sub);
     }
     const bridgeRed = new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.45 });
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.16, 0.68), bridgeRed);
-    deck.position.set(0, 1.55, 0.2);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 0.7), bridgeRed); deck.position.set(0, 1.85, 0.2);
     for (const bx of [-1.05, 1.05]) {
-      const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.4, 0.65), bridgeRed);
-      pylon.position.set(bx, 2.1, 0.2); g.add(pylon);
+      const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.8, 0.7), bridgeRed); pylon.position.set(bx, 2.6, 0.2); g.add(pylon);
     }
-    const cable = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.04, 6, 14, Math.PI), bridgeRed);
-    cable.rotation.z = Math.PI; cable.position.set(0, 2.75, 0.2);
+    const cable = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.05, 6, 14, Math.PI), bridgeRed);
+    cable.rotation.z = Math.PI; cable.position.set(0, 3.4, 0.2);
     g.add(deck, cable);
     if (nm === '太魯閣') {
-      const archRoof = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.35, 0.72), new THREE.MeshStandardMaterial({ color: '#15803d' }));
-      archRoof.position.set(0, 0.95, 1.0); g.add(archRoof);
-      for (const dx of [-0.65, 0.65]) {
-        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.95, 8), bridgeRed);
-        col.position.set(dx, 0.48, 1.0); g.add(col);
+      const archRoof = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.42, 0.78), new THREE.MeshStandardMaterial({ color: '#15803d' })); archRoof.position.set(0, 1.25, 1.05); g.add(archRoof);
+      for (const dx of [-0.7, 0.7]) {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.2, 8), bridgeRed); col.position.set(dx, 0.6, 1.05); g.add(col);
       }
     } else {
-      const pag = makePagodaOrTower('#fef3c7', '#dc2626', 2);
-      pag.scale.setScalar(0.55); pag.position.set(0, 0.0, -0.75); g.add(pag);
+      const pag = makePagodaOrTower('#fef3c7', '#dc2626', 3);
+      pag.scale.setScalar(0.75); pag.position.set(0, 0, -0.8); g.add(pag);
     }
+    g.userData.baseScale = 0.94;
   } else if (nm === '九份' || nm === '九份山城' || nm === '鹿港老街' || nm === '鹿港' || nm === '大溪老街' || nm === '大溪') {
-    // 老街／山城階梯紅磚街屋＋成串紅燈籠
+    // 老街／山城階梯紅磚街屋（4層阿妹茶樓 / 3層巴洛克牌樓）＋成串紅燈籠（y ~ 4.6..5.2）
     const brick = new THREE.MeshStandardMaterial({ color: nm.includes('九份') ? '#78350f' : '#b91c1c', roughness: 0.8 });
     const roofM = new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.6 });
-    const tiers = nm.includes('九份') ? 3 : 2;
+    const tiers = nm.includes('九份') ? 4 : 3;
     for (let k = 0; k < tiers; k++) {
-      const w = 2.7 - k * 0.48, d = 1.75 - k * 0.3;
-      const tier = new THREE.Mesh(new THREE.BoxGeometry(w, 0.85, d), brick);
-      tier.position.set(k * 0.12 - 0.1, 0.42 + k * 0.88, -0.15);
-      const r = new THREE.Mesh(new THREE.ConeGeometry(w * 0.72, 0.55, 4), roofM);
-      r.rotation.y = Math.PI / 4; r.position.set(k * 0.12 - 0.1, 1.1 + k * 0.88, -0.15);
+      const w = 2.8 - k * 0.42, d = 1.85 - k * 0.26;
+      const tier = new THREE.Mesh(new THREE.BoxGeometry(w, 1.05, d), brick);
+      tier.position.set(k * 0.1 - 0.1, 0.52 + k * 1.08, -0.15);
+      const r = new THREE.Mesh(new THREE.ConeGeometry(w * 0.74, 0.65, 4), roofM);
+      r.rotation.y = Math.PI / 4; r.position.set(k * 0.1 - 0.1, 1.35 + k * 1.08, -0.15);
       g.add(tier, r);
     }
     if (!nm.includes('九份')) {
-      const gable = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.95, 0.55, 6), new THREE.MeshStandardMaterial({ color: '#fef3c7' }));
-      gable.position.set(0, 2.25, 0.45); g.add(gable);
+      const gable = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 1.05, 0.75, 6), new THREE.MeshStandardMaterial({ color: '#fef3c7' }));
+      gable.position.set(0, 3.85, 0.35); g.add(gable);
     }
-    const lanM = new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#b91c1c', emissiveIntensity: 0.65 });
-    for (const lx of [-0.95, -0.32, 0.32, 0.95]) {
-      const lan = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 8), lanM);
-      lan.scale.y = 1.25; lan.position.set(lx, 1.35 + Math.abs(lx) * 0.1, 0.9); g.add(lan);
+    const lanM = new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#b91c1c', emissiveIntensity: 0.7 });
+    for (const lx of [-1.0, -0.35, 0.35, 1.0]) {
+      const lan = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), lanM);
+      lan.scale.y = 1.25; lan.position.set(lx, 1.65 + Math.abs(lx) * 0.12, 0.98); g.add(lan);
     }
-  } else if (nm === '台南' || nm === '台南府城' || nm === '恆春') {
-    // 台南府城／恆春：紅磚台灣古城門樓（拱門墩座＋朱紅重簷城樓）
-    const brick = new THREE.MeshStandardMaterial({ color: '#991b1b', roughness: 0.82 });
-    const stone = new THREE.MeshStandardMaterial({ color: '#d6d3d1', roughness: 0.85 });
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.1, 1.7), stone); wall.position.y = 0.55;
+    g.userData.baseScale = 0.94;
+  } else if (nm === '恆春') {
+    // 恆春古城紅磚城門（拱形通道＋雙層馬背門樓＋紅燈籠，y ~ 4.2）
+    const brick = new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.85 });
     for (const dx of [-1.05, 1.05]) {
-      const pier = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.35, 1.75), brick); pier.position.set(dx, 0.68, 0); g.add(pier);
+      const pier = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.85, 1.5), brick); pier.position.set(dx, 0.92, 0); g.add(pier);
     }
-    const hall = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.95, 1.25), new THREE.MeshStandardMaterial({ color: '#dc2626' })); hall.position.y = 1.58;
-    const eave = new THREE.Mesh(new THREE.ConeGeometry(1.85, 0.72, 4), new THREE.MeshStandardMaterial({ color: '#b45309' }));
-    eave.rotation.y = Math.PI / 4; eave.scale.set(1.35, 1, 0.85); eave.position.y = 2.38;
-    g.add(wall, hall, eave);
-    if (nm === '台南府城') {
-      const top = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 0.9), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); top.position.y = 2.55;
-      const eave2 = new THREE.Mesh(new THREE.ConeGeometry(1.25, 0.58, 4), new THREE.MeshStandardMaterial({ color: '#d97706' }));
-      eave2.rotation.y = Math.PI / 4; eave2.scale.set(1.3, 1, 0.85); eave2.position.y = 3.15;
-      g.add(top, eave2);
-    }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.05, 0.75, 1.5), brick); lintel.position.y = 2.2;
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.85, 1.1), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); hall.position.y = 2.95;
+    const gateRoof = new THREE.Mesh(new THREE.ConeGeometry(1.9, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
+    gateRoof.rotation.y = Math.PI / 4; gateRoof.scale.set(1.3, 1, 0.85); gateRoof.position.y = 3.8;
+    g.add(lintel, hall, gateRoof);
+    g.userData.baseScale = 0.92;
   } else if (nm === '安平' || nm === '安平古堡') {
-    // 安平古堡熱蘭遮城（階梯紅磚稜堡＋純白八角瞭望燈樓＋砲管）
+    // 安平古堡熱蘭遮城（階梯紅磚稜堡＋純白高聳瞭望燈樓＋砲管，y ~ 5.4）
     const brickM = new THREE.MeshStandardMaterial({ color: '#991b1b', roughness: 0.85 });
-    const f1 = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.75, 2.4), brickM); f1.position.y = 0.38;
-    const f2 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.75, 1.9), brickM); f2.position.y = 1.12;
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.74, 2.35, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); tower.position.set(0.25, 2.4, -0.1);
-    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.42, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.75 })); lantern.position.set(0.25, 3.7, -0.1);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.78, 0.65, 8), new THREE.MeshStandardMaterial({ color: '#dc2626' })); cap.position.set(0.25, 4.18, -0.1);
-    const cannon = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.9, 6), new THREE.MeshStandardMaterial({ color: '#1e293b', metalness: 0.6 }));
-    cannon.rotation.z = Math.PI / 2; cannon.position.set(-1.35, 1.55, 0.45);
+    const f1 = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.9, 2.5), brickM); f1.position.y = 0.45;
+    const f2 = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.9, 2.0), brickM); f2.position.y = 1.35;
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.78, 2.95, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); tower.position.set(0.25, 3.0, -0.1);
+    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.48, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.8 })); lantern.position.set(0.25, 4.6, -0.1);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.82, 0.72, 8), new THREE.MeshStandardMaterial({ color: '#dc2626' })); cap.position.set(0.25, 5.1, -0.1);
+    const cannon = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.05, 6), new THREE.MeshStandardMaterial({ color: '#1e293b', metalness: 0.6 }));
+    cannon.rotation.z = Math.PI / 2; cannon.position.set(-1.35, 1.9, 0.45);
     g.add(f1, f2, tower, lantern, cap, cannon);
+    g.userData.baseScale = 0.94;
   } else if (nm === '台東') {
-    // 台東鹿野高台彩色熱氣球（上下飄浮動畫）
-    const bal = new THREE.Group();
-    const env = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 10), new THREE.MeshStandardMaterial({ color: '#fb7185' }));
-    env.scale.set(0.95, 1.25, 0.95); env.position.y = 2.6;
-    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.14, 6, 16), new THREE.MeshStandardMaterial({ color: '#facc15' }));
-    stripe.rotation.x = Math.PI / 2; stripe.position.y = 2.65;
-    const basket = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.55), new THREE.MeshStandardMaterial({ color: '#92400e' }));
-    basket.position.y = 0.9;
-    bal.add(env, stripe, basket); g.add(bal);
-    animProps.push(now => { bal.position.y = 0.35 + Math.sin(now * 0.0028) * 0.45; });
-  } else if (nm === '澎湖') {
-    // 澎湖雙心石滬（潮間帶玄武岩雙心環）＋漁翁島白塔
-    const seaPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.14, 16), new THREE.MeshStandardMaterial({ color: '#0ea5e9', roughness: 0.25 })); seaPlate.position.y = 0.08;
-    const stoneM = new THREE.MeshStandardMaterial({ color: '#475569', roughness: 0.95 });
-    for (const [hx, hz, hr] of [[-0.45, 0.2, 0.62], [0.42, -0.25, 0.45]]) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(hr, 0.12, 5, 12), stoneM);
-      ring.rotation.x = Math.PI / 2; ring.position.set(hx, 0.24, hz); g.add(ring);
-    }
-    const lh = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.34, 1.9, 10), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
-    lh.position.set(1.0, 1.0, -0.8);
-    g.add(seaPlate, lh);
+    // 台東鹿野高台雙熱氣球（上下飄浮動畫，y ~ 4.8）
+    const hill = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 0.45, 12), new THREE.MeshStandardMaterial({ color: '#16a34a' })); hill.position.y = 0.22;
+    g.add(hill);
+    const defs = [[0, 3.2, 0, 1.15, '#fb7185', '#facc15'], [1.1, 2.4, 0.55, 0.78, '#38bdf8', '#f97316']];
+    defs.forEach(([bx, by, bz, sc, col, band], k) => {
+      const bal = new THREE.Group();
+      const env = new THREE.Mesh(new THREE.SphereGeometry(1.05 * sc, 12, 10), new THREE.MeshStandardMaterial({ color: col }));
+      env.scale.set(0.95, 1.25, 0.95); env.position.set(bx, by, bz);
+      const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.88 * sc, 0.13 * sc, 6, 16), new THREE.MeshStandardMaterial({ color: band }));
+      stripe.rotation.x = Math.PI / 2; stripe.position.set(bx, by, bz);
+      const basket = new THREE.Mesh(new THREE.BoxGeometry(0.5 * sc, 0.42 * sc, 0.5 * sc), new THREE.MeshStandardMaterial({ color: '#92400e' }));
+      basket.position.set(bx, by - 1.65 * sc, bz);
+      bal.add(env, stripe, basket); g.add(bal);
+      animProps.push(now => { bal.position.y = 0.35 + Math.sin(now * 0.0028 + k * 1.6) * 0.42; });
+    });
+    g.userData.baseScale = 0.94;
   } else if (nm === '綠島' || nm === '西嶼燈塔' || nm === '鵝鑾鼻燈塔' || nm === '東引') {
-    // 海濱礁岩高聳白色／條紋燈塔＋發光燈室
-    const cliff = new THREE.Mesh(new THREE.ConeGeometry(1.4, 0.95, 7), new THREE.MeshStandardMaterial({ color: '#475569', flatShading: true }));
-    cliff.position.set(-0.2, 0.45, 0);
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.56, 2.6, 12), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
-    tower.position.set(-0.2, 2.05, 0);
-    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.55, 12), new THREE.MeshStandardMaterial({ color: nm === '綠島' ? '#0f172a' : '#dc2626' }));
-    stripe.position.set(-0.2, 2.05, 0);
-    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.9 }));
-    lantern.position.set(-0.2, 3.55, 0);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
-    cap.position.set(-0.2, 3.98, 0);
+    // 海濱礁岩高聳白色／條紋燈塔（y ~ 5.2）
+    const cliff = new THREE.Mesh(new THREE.ConeGeometry(1.45, 1.15, 7), new THREE.MeshStandardMaterial({ color: '#475569', flatShading: true })); cliff.position.set(-0.2, 0.58, 0);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.62, 3.3, 12), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); tower.position.set(-0.2, 2.65, 0);
+    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.54, 0.68, 12), new THREE.MeshStandardMaterial({ color: nm === '綠島' ? '#0f172a' : '#dc2626' })); stripe.position.set(-0.2, 2.65, 0);
+    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.5, 10), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.9 })); lantern.position.set(-0.2, 4.5, 0);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.55, 10), new THREE.MeshStandardMaterial({ color: '#dc2626' })); cap.position.set(-0.2, 5.0, 0);
     g.add(cliff, tower, stripe, lantern, cap);
     if (nm === '東引') {
-      const stele = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.35, 0.28), new THREE.MeshStandardMaterial({ color: '#64748b' }));
-      stele.position.set(0.95, 0.68, 0.2); g.add(stele);
+      const stele = new THREE.Mesh(new THREE.BoxGeometry(0.72, 1.65, 0.32), new THREE.MeshStandardMaterial({ color: '#64748b' })); stele.position.set(1.0, 0.82, 0.25); g.add(stele);
     } else if (nm === '綠島') {
-      const turb = makeWindTurbine(); turb.position.set(1.05, 0, -0.35); turb.scale.setScalar(0.68); g.add(turb);
+      const turb = makeWindTurbine(); turb.position.set(1.1, 0, -0.35); turb.scale.setScalar(0.85); g.add(turb);
     }
+    g.userData.baseScale = 0.94;
   } else if (nm === '蘭嶼') {
-    // 達悟族拼板舟（弧形船身＋紅白黑船眼圖騰雙尖首）
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.48, 0.82), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
-    hull.position.y = 0.38;
-    const keel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.24, 0.86), new THREE.MeshStandardMaterial({ color: '#b91c1c' }));
-    keel.position.y = 0.24;
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.16, 0.88), new THREE.MeshStandardMaterial({ color: '#0f172a' }));
-    stripe.position.y = 0.52;
-    for (const sx of [-1.25, 1.25]) {
-      const stem = new THREE.Mesh(new THREE.ConeGeometry(0.24, 1.25, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
-      stem.position.set(sx, 0.9, 0); stem.rotation.z = sx < 0 ? 0.35 : -0.35;
-      g.add(stem);
+    // 達悟族拼板舟＋高翹雙船首（y ~ 3.8）＋發呆亭
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.55, 0.9), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); hull.position.set(0, 0.42, 0.4);
+    const keel = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.28, 0.94), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); keel.position.set(0, 0.26, 0.4);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 0.96), new THREE.MeshStandardMaterial({ color: '#0f172a' })); stripe.position.set(0, 0.58, 0.4);
+    for (const sx of [-1.35, 1.35]) {
+      const stem = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.85, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
+      stem.position.set(sx, 1.3, 0.4); stem.rotation.z = sx < 0 ? 0.32 : -0.32; g.add(stem);
     }
-    const paddle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 1.9), new THREE.MeshStandardMaterial({ color: '#92400e' }));
-    paddle.position.set(0, 0.68, 0); paddle.rotation.y = 0.6;
-    g.add(hull, keel, stripe, paddle);
-  } else if (nm === '彰化') {
-    // 彰化八卦山大佛（蓮花座＋莊嚴金色盤坐大佛＋背光）
-    const lotus = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.4, 0.6, 10), new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.65 })); lotus.position.y = 0.3;
-    const goldM = new THREE.MeshStandardMaterial({ color: '#eab308', emissive: '#854d0e', emissiveIntensity: 0.22, metalness: 0.58, roughness: 0.32 });
-    const knee = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.12, 0.48, 12), goldM); knee.position.y = 0.82;
-    const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.96, 1.4, 12), goldM); robe.position.y = 1.55;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 12, 10), goldM); head.position.y = 2.6;
-    const crown = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), goldM); crown.position.y = 3.08;
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.09, 6, 18), new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#ca8a04', emissiveIntensity: 0.5 })); halo.position.set(0, 2.55, -0.35);
-    g.add(lotus, knee, robe, head, crown, halo);
+    const pavilion = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1.2, 4), new THREE.MeshStandardMaterial({ color: '#a16207' }));
+    pavilion.rotation.y = Math.PI / 4; pavilion.position.set(0, 3.25, -0.65);
+    const stilt = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.7, 1.0), new THREE.MeshStandardMaterial({ color: '#78350f' }));
+    stilt.position.set(0, 1.35, -0.65);
+    g.add(hull, keel, stripe, pavilion, stilt);
+    g.userData.baseScale = 0.94;
   } else if (nm === '墾丁') {
-    // 墾丁大尖石山帆船石＋雙熱帶椰樹＋彩色海灘遮陽傘
-    const sailRock = new THREE.Mesh(new THREE.ConeGeometry(0.82, 2.2, 5), new THREE.MeshStandardMaterial({ color: '#64748b', flatShading: true }));
-    sailRock.position.set(-0.9, 1.05, -0.3);
-    const p1 = palmTree(0.8); p1.position.set(0.85, 0, -0.4);
-    const umb = new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.45, 6), new THREE.MeshStandardMaterial({ color: '#ef4444' })); umb.position.set(0.2, 1.0, 0.75);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.0, 6), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); pole.position.set(0.2, 0.5, 0.75);
+    // 墾丁大尖石山（y ~ 4.2）＋雙熱帶椰樹＋沙灘遮陽傘
+    const sailRock = new THREE.Mesh(new THREE.ConeGeometry(0.95, 4.2, 5), new THREE.MeshStandardMaterial({ color: '#64748b', flatShading: true })); sailRock.position.set(-0.95, 2.1, -0.35);
+    const p1 = palmTree(0.95); p1.position.set(0.95, 0, -0.4);
+    const umb = new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.5, 6), new THREE.MeshStandardMaterial({ color: '#ef4444' })); umb.position.set(0.25, 1.2, 0.8);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 6), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); pole.position.set(0.25, 0.6, 0.8);
     g.add(sailRock, p1, umb, pole);
-  } else if (nm === '恆春') {
-    // 恆春古城紅磚城門（拱形通道＋閩南馬背門樓）
-    const brick = new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.85 });
-    for (const dx of [-0.95, 0.95]) {
-      const pier = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.45, 1.4), brick); pier.position.set(dx, 0.72, 0); g.add(pier);
-    }
-    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.55, 1.4), brick); lintel.position.y = 1.68;
-    const gateRoof = new THREE.Mesh(new THREE.ConeGeometry(1.7, 0.85, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
-    gateRoof.rotation.y = Math.PI / 4; gateRoof.scale.set(1.3, 1, 0.8); gateRoof.position.y = 2.38;
-    g.add(lintel, gateRoof);
-  } else if (nm === '屏東') {
-    // 屏東大鵬灣跨海開合白塔＋躍水黑鮪魚銅雕
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 2.9, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
-    mast.position.set(-0.8, 1.45, 0); mast.rotation.z = -0.25;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.2, 0.7), new THREE.MeshStandardMaterial({ color: '#94a3b8' })); deck.position.y = 0.45;
-    const tuna = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.5, 8), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.6, roughness: 0.25 }));
-    tuna.rotation.z = -0.95; tuna.position.set(0.65, 1.45, 0.35);
-    g.add(mast, deck, tuna);
+    g.userData.baseScale = 0.94;
   } else if (nm === '淡水' || nm === '淡水老街') {
-    // 淡水紅毛城紅磚堡壘＋情人橋白色斜張塔
-    const fort = new THREE.Mesh(new THREE.BoxGeometry(1.55, 1.35, 1.35), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.8 }));
-    fort.position.set(-0.85, 0.68, -0.2);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.2, 1.5), new THREE.MeshStandardMaterial({ color: '#475569' }));
-    roof.position.set(-0.85, 1.42, -0.2);
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.24, 3.6, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
-    mast.position.set(0.65, 1.75, 0.2); mast.rotation.z = -0.35;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, 0.7), new THREE.MeshStandardMaterial({ color: '#94a3b8' }));
-    deck.position.set(0.45, 0.42, 0.55);
+    // 淡水紅毛城紅磚堡壘＋情人橋白色斜張巨塔（y ~ 5.0）
+    const fort = new THREE.Mesh(new THREE.BoxGeometry(1.65, 1.55, 1.45), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.8 })); fort.position.set(-0.9, 0.78, -0.2);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.24, 1.6), new THREE.MeshStandardMaterial({ color: '#475569' })); roof.position.set(-0.9, 1.62, -0.2);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.28, 4.9, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
+    mast.position.set(0.7, 2.4, 0.25); mast.rotation.z = -0.32;
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.24, 0.75), new THREE.MeshStandardMaterial({ color: '#94a3b8' })); deck.position.set(0.45, 0.45, 0.65);
     g.add(fort, roof, mast, deck);
-  } else if (nm === '嘉義') {
-    // 北回歸線太陽館（銀白雙柱＋金色日晷圓環）
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.35, 8), new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.7 }));
-    base.position.y = 0.18;
-    const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 2.7, 6), new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.45 }));
-    pylon.position.y = 1.65;
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.12, 8, 16), new THREE.MeshStandardMaterial({ color: '#eab308', metalness: 0.55, roughness: 0.3 }));
-    ring.position.y = 2.65; ring.rotation.x = Math.PI / 6;
-    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.35 }));
-    orb.position.y = 2.65;
-    g.add(base, pylon, ring, orb);
+    g.userData.baseScale = 0.94;
   } else if (nm === '莒光樓') {
-    // 莒光樓（白石台基＋朱紅宮殿重簷閣樓）
-    const base = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.55, 2.1), new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.78 }));
-    base.position.y = 0.28;
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(1.65, 1.45, 1.4), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.55 }));
-    wall.position.y = 1.25;
-    const roof1 = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.58, 4), new THREE.MeshStandardMaterial({ color: '#ca8a04', roughness: 0.45 }));
-    roof1.position.y = 2.12; roof1.rotation.y = Math.PI / 4;
-    const roof2 = new THREE.Mesh(new THREE.ConeGeometry(0.95, 0.58, 4), new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.45 }));
-    roof2.position.y = 2.65; roof2.rotation.y = Math.PI / 4;
-    g.add(base, wall, roof1, roof2);
+    // 莒光樓（白石台基＋三層朱紅宮殿重簷閣樓，y ~ 4.6）
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.75, 2.2), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); base.position.y = 0.38;
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.1, 1.5), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); wall.position.y = 1.8;
+    const roof1 = new THREE.Mesh(new THREE.ConeGeometry(1.7, 0.75, 4), new THREE.MeshStandardMaterial({ color: '#ca8a04' })); roof1.position.y = 3.1; roof1.rotation.y = Math.PI / 4;
+    const roof2 = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.78, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' })); roof2.position.y = 3.95; roof2.rotation.y = Math.PI / 4;
+    const finial = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15' })); finial.position.y = 4.48;
+    g.add(base, wall, roof1, roof2, finial);
+    g.userData.baseScale = 0.92;
   } else if (nm === '古寧頭戰史館') {
-    // 古寧頭戰史館（花崗岩城垛門樓＋「金門之熊」戰車紀念碑）
-    const fort = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.35, 1.4), new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.85 }));
-    fort.position.set(0, 0.68, -0.35);
+    // 古寧頭戰史館（花崗岩城垛門樓＋戰車紀念碑＋旗桿，y ~ 3.9）
+    const fort = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.85, 1.45), new THREE.MeshStandardMaterial({ color: '#64748b' })); fort.position.set(0, 0.92, -0.35);
     for (let bx = -1.0; bx <= 1.0; bx += 0.5) {
-      const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.35, 0.35), new THREE.MeshStandardMaterial({ color: '#475569' }));
-      merlon.position.set(bx, 1.52, -0.85); g.add(merlon);
+      const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.42, 0.35), new THREE.MeshStandardMaterial({ color: '#475569' })); merlon.position.set(bx, 2.05, -0.85); g.add(merlon);
     }
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.52, 0.9), new THREE.MeshStandardMaterial({ color: '#3f6212' })); hull.position.set(0, 0.38, 0.72);
-    const turret = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.38, 0.62), new THREE.MeshStandardMaterial({ color: '#365314' })); turret.position.set(0, 0.78, 0.72);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.85, 6), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
-    barrel.rotation.z = Math.PI / 2; barrel.position.set(0.68, 0.78, 0.72);
-    g.add(fort, hull, turret, barrel);
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.55, 0.95), new THREE.MeshStandardMaterial({ color: '#3f6212' })); hull.position.set(0, 0.38, 0.75);
+    const turret = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.42, 0.65), new THREE.MeshStandardMaterial({ color: '#365314' })); turret.position.set(0, 0.82, 0.75);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.1, 6), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); pole.position.set(0.9, 2.85, -0.35);
+    g.add(fort, hull, turret, pole);
+    g.userData.baseScale = 0.92;
   } else if (nm === '山后民俗村') {
-    // 金門山后民俗村（閩南雙進燕尾脊紅磚古厝群）
-    const wallM = new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.78 });
-    const roofM = new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.55 });
+    // 金門山后民俗村（閩南燕尾古厝群＋風獅爺石座，y ~ 3.8）
+    const wallM = new THREE.MeshStandardMaterial({ color: '#b91c1c' });
+    const roofM = new THREE.MeshStandardMaterial({ color: '#dc2626' });
     for (const bz of [-0.55, 0.55]) {
-      const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 0.85), wallM); body.position.set(0, 0.45, bz);
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.55, 4), roofM);
-      roof.rotation.y = Math.PI / 4; roof.scale.set(1.3, 1, 0.65); roof.position.set(0, 1.12, bz);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.1, 0.9), wallM); body.position.set(0, 0.55, bz);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, 0.65, 4), roofM);
+      roof.rotation.y = Math.PI / 4; roof.scale.set(1.3, 1, 0.65); roof.position.set(0, 1.38, bz);
       g.add(body, roof);
     }
+    const lionPed = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 2.4, 8), new THREE.MeshStandardMaterial({ color: '#d6d3d1' })); lionPed.position.set(1.25, 1.2, 0);
+    const lion = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshStandardMaterial({ color: '#f59e0b' })); lion.position.set(1.25, 2.75, 0);
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.42, 0.35), roofM); arch.position.set(-0.2, 3.4, -0.55);
+    g.add(lionPed, lion, arch);
+    g.userData.baseScale = 0.92;
   } else if (nm === '太武山') {
-    // 太武山花崗岩巨峰＋朱紅「毋忘在莒」勒石巨碑
-    const peak = new THREE.Mesh(new THREE.ConeGeometry(1.55, 2.6, 6), new THREE.MeshStandardMaterial({ color: '#78716c', flatShading: true }));
-    peak.position.set(-0.35, 1.3, -0.2);
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.7, 0.45), new THREE.MeshStandardMaterial({ color: '#dc2626', emissive: '#7f1d1d', emissiveIntensity: 0.25 }));
-    slab.position.set(0.7, 0.85, 0.45);
-    g.add(peak, slab);
+    // 太武山花崗岩巨峰（y ~ 4.4）＋朱紅「毋忘在莒」勒石巨碑（y ~ 3.6）
+    const peak = new THREE.Mesh(new THREE.ConeGeometry(1.65, 4.4, 6), new THREE.MeshStandardMaterial({ color: '#78716c', flatShading: true })); peak.position.set(-0.35, 2.2, -0.2);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.15, 3.2, 0.52), new THREE.MeshStandardMaterial({ color: '#dc2626', emissive: '#7f1d1d', emissiveIntensity: 0.3 })); slab.position.set(0.85, 1.6, 0.45);
+    const tr = tree(1.15, '#15803d'); tr.position.set(-1.1, 0, 0.85);
+    g.add(peak, slab, tr);
+    g.userData.baseScale = 0.92;
   } else if (nm === '大膽島前線') {
-    // 大膽島前線（花崗岩海防堡壘＋旗桿＋戰地標語牆）
-    const bunker = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.35, 1.25, 8), new THREE.MeshStandardMaterial({ color: '#57534e', roughness: 0.9 }));
-    bunker.position.y = 0.62;
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.95, 0.25), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
-    wall.position.set(0, 0.48, 1.15);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 2.2, 6), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
-    pole.position.set(0, 2.2, 0);
-    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.45, 0.05), new THREE.MeshStandardMaterial({ color: '#ef4444' }));
-    flag.position.set(0.38, 3.0, 0);
+    // 大膽島前線（花崗岩堡壘＋標語牆 y ~ 3.8＋旗桿 y ~ 4.8）
+    const bunker = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.4, 1.5, 8), new THREE.MeshStandardMaterial({ color: '#57534e' })); bunker.position.y = 0.75;
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.2, 0.28), new THREE.MeshStandardMaterial({ color: '#dc2626' })); wall.position.set(0, 1.1, 1.18);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 3.4, 6), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); pole.position.set(0, 3.1, 0);
+    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.55, 0.06), new THREE.MeshStandardMaterial({ color: '#ef4444' })); flag.position.set(0.48, 4.4, 0);
     g.add(bunker, wall, pole, flag);
+    g.userData.baseScale = 0.92;
   } else if (nm === '澎湖天后宮') {
-    // 澎湖天后宮（四百年古廟黃金琉璃重簷＋石鼓香爐）
-    const base = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.4, 2.0), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); base.position.y = 0.7;
-    const r1 = new THREE.Mesh(new THREE.ConeGeometry(2.3, 0.85, 4), new THREE.MeshStandardMaterial({ color: '#eab308', metalness: 0.35 }));
-    r1.rotation.y = Math.PI / 4; r1.scale.set(1.25, 1, 0.85); r1.position.y = 1.82;
-    const r2 = new THREE.Mesh(new THREE.ConeGeometry(1.45, 0.72, 4), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.4 }));
-    r2.rotation.y = Math.PI / 4; r2.scale.set(1.2, 1, 0.8); r2.position.y = 2.42;
-    const censer = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.48, 8), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.7 }));
-    censer.position.set(0, 0.35, 1.25);
-    g.add(base, r1, r2, censer);
+    // 澎湖天后宮（四百年古廟黃金琉璃重簷 y ~ 4.4＋雙龍柱＋香爐）
+    const base = new THREE.Mesh(new THREE.BoxGeometry(3.1, 1.85, 2.1), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); base.position.y = 0.92;
+    const r1 = new THREE.Mesh(new THREE.ConeGeometry(2.4, 1.05, 4), new THREE.MeshStandardMaterial({ color: '#eab308', metalness: 0.35 }));
+    r1.rotation.y = Math.PI / 4; r1.scale.set(1.25, 1, 0.85); r1.position.y = 2.35;
+    const r2 = new THREE.Mesh(new THREE.ConeGeometry(1.55, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.45 }));
+    r2.rotation.y = Math.PI / 4; r2.scale.set(1.2, 1, 0.8); r2.position.y = 3.25;
+    const censer = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.22, 0.55, 8), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.7 })); censer.position.set(0, 0.4, 1.3);
+    const finial = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#fde047' })); finial.position.y = 4.25;
+    g.add(base, r1, r2, censer, finial);
+    g.userData.baseScale = 0.92;
   } else if (nm === '跨海大橋') {
-    // 澎湖跨海大橋（藍海面＋純白雙拱鋼桁橋身＋橋頭拱門）
-    const sea = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.16, 1.5), new THREE.MeshStandardMaterial({ color: '#0284c7', roughness: 0.25 })); sea.position.y = 0.08;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.22, 0.75), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); deck.position.y = 0.78;
+    // 澎湖跨海大橋（雙拱橋＋高拱橋頭門樓＋燈塔信標，y ~ 3.9）
+    const sea = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.18, 1.6), new THREE.MeshStandardMaterial({ color: '#0284c7' })); sea.position.y = 0.09;
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.26, 0.8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); deck.position.y = 0.95;
     for (const ax of [-0.75, 0.75]) {
-      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.09, 6, 14, Math.PI), new THREE.MeshStandardMaterial({ color: '#38bdf8' }));
-      arch.position.set(ax, 0.85, 0); g.add(arch);
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.11, 6, 14, Math.PI), new THREE.MeshStandardMaterial({ color: '#38bdf8' }));
+      arch.position.set(ax, 1.05, 0); g.add(arch);
     }
-    const gate = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.09, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
-    gate.rotation.y = Math.PI / 2; gate.position.set(-1.45, 0.85, 0);
-    g.add(sea, deck, gate);
+    const gatePillar = new THREE.Mesh(new THREE.BoxGeometry(0.45, 3.6, 0.85), new THREE.MeshStandardMaterial({ color: '#ffffff' })); gatePillar.position.set(-1.45, 1.8, 0);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04' })); beacon.position.set(-1.45, 3.72, 0);
+    g.add(sea, deck, gatePillar, beacon);
+    g.userData.baseScale = 0.92;
   } else if (nm === '望安綠蠵龜') {
-    // 望安綠蠵龜保育沙灘＋巨大綠蠵龜雕像
-    const sand = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.55, 0.2, 14), new THREE.MeshStandardMaterial({ color: '#fde68a', roughness: 0.9 })); sand.position.y = 0.1;
-    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.92, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#15803d', roughness: 0.55 }));
-    shell.scale.set(1.0, 0.85, 1.3); shell.position.y = 0.25;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#22c55e' })); head.position.set(0, 0.45, 1.2);
-    for (const fx of [-0.85, 0.85]) {
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.14, 0.42), new THREE.MeshStandardMaterial({ color: '#16a34a' }));
-      fin.position.set(fx, 0.25, 0.45); fin.rotation.y = fx < 0 ? 0.5 : -0.5; g.add(fin);
-    }
-    g.add(sand, shell, head);
+    // 望安綠蠵龜沙灘＋巨大綠蠵龜＋保育觀景燈塔（y ~ 4.0）
+    const sand = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.22, 14), new THREE.MeshStandardMaterial({ color: '#fde68a' })); sand.position.y = 0.11;
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.95, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#15803d' }));
+    shell.scale.set(1.0, 0.85, 1.3); shell.position.set(-0.25, 0.26, 0.2);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 8, 8), new THREE.MeshStandardMaterial({ color: '#22c55e' })); head.position.set(-0.25, 0.48, 1.35);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 3.4, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); tower.position.set(1.05, 1.7, -0.65);
+    const topL = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b' })); topL.position.set(1.05, 3.65, -0.65);
+    g.add(sand, shell, head, tower, topL);
+    g.userData.baseScale = 0.92;
   } else if (nm === '北港廟宇') {
-    // 北港朝天宮（三川重簷黃金琉璃頂＋雙龍柱＋天公爐）
-    const base = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.55, 2.1), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); base.position.y = 0.78;
-    const r1 = new THREE.Mesh(new THREE.ConeGeometry(2.4, 0.85, 4), new THREE.MeshStandardMaterial({ color: '#d97706' }));
-    r1.rotation.y = Math.PI / 4; r1.scale.set(1.25, 1, 0.85); r1.position.y = 1.95;
-    const r2 = new THREE.Mesh(new THREE.ConeGeometry(1.55, 0.75, 4), new THREE.MeshStandardMaterial({ color: '#f59e0b' }));
-    r2.rotation.y = Math.PI / 4; r2.scale.set(1.2, 1, 0.8); r2.position.y = 2.55;
-    const censer = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.45, 8), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.7 }));
-    censer.position.set(0, 0.4, 1.2);
-    g.add(base, r1, r2, censer);
+    // 北港朝天宮（三川重簷＋鐘鼓雙樓 y ~ 4.8＋香爐）
+    const base = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.0, 2.1), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); base.position.y = 1.0;
+    const r1 = new THREE.Mesh(new THREE.ConeGeometry(2.5, 1.05, 4), new THREE.MeshStandardMaterial({ color: '#d97706' }));
+    r1.rotation.y = Math.PI / 4; r1.scale.set(1.25, 1, 0.85); r1.position.y = 2.52;
+    const r2 = new THREE.Mesh(new THREE.ConeGeometry(1.65, 1.0, 4), new THREE.MeshStandardMaterial({ color: '#f59e0b' }));
+    r2.rotation.y = Math.PI / 4; r2.scale.set(1.2, 1, 0.8); r2.position.y = 3.45;
+    const finial = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#ca8a04' })); finial.position.y = 4.55;
+    const censer = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.22, 0.55, 8), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.7 })); censer.position.set(0, 0.45, 1.35);
+    g.add(base, r1, r2, finial, censer);
+    g.userData.baseScale = 0.94;
   } else if (nm === '行天宮') {
-    // 台北行天宮（沉穩青瓦屋頂＋朱紅三開間殿堂）
-    const base = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.4, 1.9), new THREE.MeshStandardMaterial({ color: '#991b1b' })); base.position.y = 0.7;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.3, 1.1, 4), new THREE.MeshStandardMaterial({ color: '#334155' }));
-    roof.rotation.y = Math.PI / 4; roof.scale.set(1.25, 0.85, 0.85); roof.position.y = 1.95;
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, 0.22), new THREE.MeshStandardMaterial({ color: '#fbbf24' })); ridge.position.y = 2.5;
-    g.add(base, roof, ridge);
+    // 台北行天宮（沉穩青瓦重簷 y ~ 4.4＋雙香亭＋山門）
+    const base = new THREE.Mesh(new THREE.BoxGeometry(3.1, 2.0, 2.0), new THREE.MeshStandardMaterial({ color: '#991b1b' })); base.position.y = 1.0;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.4, 1.5, 4), new THREE.MeshStandardMaterial({ color: '#334155' }));
+    roof.rotation.y = Math.PI / 4; roof.scale.set(1.25, 0.9, 0.85); roof.position.y = 2.75;
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.35, 0.35), new THREE.MeshStandardMaterial({ color: '#fbbf24' })); ridge.position.y = 3.85;
+    const finial = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15' })); finial.position.y = 4.25;
+    g.add(base, roof, ridge, finial);
+    g.userData.baseScale = 0.94;
   } else if (nm === '迎神殿') {
-    // 花東迎神殿（朱紅八卦神龕＋旋轉金神明光輪）
-    const shrine = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.45, 1.4, 8), new THREE.MeshStandardMaterial({ color: '#dc2626' })); shrine.position.y = 0.7;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.75, 1.15, 8), new THREE.MeshStandardMaterial({ color: '#f59e0b' })); roof.position.y = 1.95;
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.1, 6, 16), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#ca8a04' }));
-    halo.position.set(0, 2.8, 0);
+    // 花東迎神殿（朱紅八卦神龕＋高聳重頂＋旋轉金神明光輪，y ~ 4.8）
+    const shrine = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 2.0, 8), new THREE.MeshStandardMaterial({ color: '#dc2626' })); shrine.position.y = 1.0;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.85, 1.45, 8), new THREE.MeshStandardMaterial({ color: '#f59e0b' })); roof.position.y = 2.72;
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.2, 0.9, 8), new THREE.MeshStandardMaterial({ color: '#fde047' })); spire.position.y = 3.8;
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.11, 6, 16), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#ca8a04' }));
+    halo.position.set(0, 4.05, 0);
     animProps.push(now => { halo.rotation.y = now * 0.0028; });
-    g.add(shrine, roof, halo);
+    g.add(shrine, roof, spire, halo);
+    g.userData.baseScale = 0.94;
   } else if (t.type === 'hospital') {
     g.userData.baseScale = 1.45;
-    const b = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.0, 2.3), makeWinMat('#f1f5f9', '#38bdf8'));
-    b.position.y = 1.5;
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 2.0), makeWinMat('#e2e8f0', '#7dd3fc'));
-    wing.position.set(1.85, 1.05, 0);
-    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.12, 16), new THREE.MeshStandardMaterial({ color: '#334155' }));
-    pad.position.set(0, 3.06, 0);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.8, 2.3), makeWinMat('#f1f5f9', '#38bdf8')); b.position.y = 1.9;
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.6, 2.0), makeWinMat('#e2e8f0', '#7dd3fc')); wing.position.set(1.85, 1.3, 0);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.14, 16), new THREE.MeshStandardMaterial({ color: '#334155' })); pad.position.set(0, 3.86, 0);
     const red = new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#991b1b' });
-    const c1 = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.38, 0.18), red); c1.position.set(0, 2.15, 1.18);
-    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.25, 0.18), red); c2.position.set(0, 2.15, 1.18);
-    const h1 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.28), red); h1.position.set(0, 3.14, 0);
-    const h2 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 1.0), red); h2.position.set(0, 3.14, 0);
-    g.add(b, wing, pad, c1, c2, h1, h2);
+    const c1 = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.38, 0.18), red); c1.position.set(0, 2.6, 1.18);
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.25, 0.18), red); c2.position.set(0, 2.6, 1.18);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), red); beacon.position.set(0, 4.5, 0);
+    g.add(b, wing, pad, c1, c2, beacon);
   } else if (t.type === 'casino') {
-    // 去金門途中的海峽豪華郵輪賭場（雙層霓虹甲板＋金幣輪盤塔＋旋轉幸運骰）
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.85, 1.7), new THREE.MeshStandardMaterial({ color: '#1e1b4b', metalness: 0.35, roughness: 0.35 }));
-    hull.position.y = 0.45;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.9, 1.3), makeWinMat('#312e81', '#fde047'));
-    deck.position.y = 1.3;
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.28, 12), new THREE.MeshStandardMaterial({ color: '#f59e0b', emissive: '#92400e', metalness: 0.65, roughness: 0.25 }));
-    crown.position.y = 2.05;
-    const neonRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.1, 6, 16), new THREE.MeshStandardMaterial({ color: '#ec4899', emissive: '#be185d' }));
-    neonRing.rotation.x = Math.PI / 2; neonRing.position.y = 2.35;
-    const die = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.68, 0.68), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#ca8a04', roughness: 0.25 }));
-    die.position.y = 2.85;
+    // 海峽豪華郵輪賭場（雙層霓虹甲板＋金幣輪盤塔＋旋轉幸運骰＋霓虹招牌，y ~ 5.0）
+    const sign = makeNeonSign('豪華賭場', '#1e1b4b', '#ec4899'); sign.position.set(0, 1.0, -0.95);
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.95, 1.7), new THREE.MeshStandardMaterial({ color: '#1e1b4b', metalness: 0.35 })); hull.position.y = 0.48;
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.15, 1.3), makeWinMat('#312e81', '#fde047')); deck.position.y = 1.5;
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.32, 12), new THREE.MeshStandardMaterial({ color: '#f59e0b', emissive: '#92400e', metalness: 0.65 })); crown.position.y = 2.4;
+    const die = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#ca8a04' })); die.position.y = 3.55;
     animProps.push(now => { crown.rotation.y = now * 0.002; die.rotation.y = -now * 0.003; die.rotation.x = now * 0.002; });
-    g.add(hull, deck, crown, neonRing, die);
+    g.add(sign, hull, deck, crown, die);
+    g.userData.baseScale = 0.94;
   } else if (nm === '七美' || nm === '七美雙心') {
-    // 七美雙心石滬（淺藍碧海珊瑚石堤雙心環）
-    const seaPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.55, 0.18, 16), new THREE.MeshStandardMaterial({ color: '#06b6d4', roughness: 0.25 })); seaPlate.position.y = 0.09;
+    // 七美雙心石滬＋懸崖海景燈塔（y ~ 3.9）
+    const seaPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.2, 16), new THREE.MeshStandardMaterial({ color: '#06b6d4' })); seaPlate.position.y = 0.1;
     const stoneM = new THREE.MeshStandardMaterial({ color: '#44403c', roughness: 0.92 });
-    const h1 = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.15, 6, 14), stoneM); h1.rotation.x = Math.PI / 2; h1.position.set(-0.32, 0.28, -0.05);
-    const h2 = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.12, 6, 12), stoneM); h2.rotation.x = Math.PI / 2; h2.position.set(0.45, 0.28, 0.25);
-    g.add(seaPlate, h1, h2);
+    const h1 = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.15, 6, 14), stoneM); h1.rotation.x = Math.PI / 2; h1.position.set(-0.32, 0.3, 0.15);
+    const h2 = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.12, 6, 12), stoneM); h2.rotation.x = Math.PI / 2; h2.position.set(0.45, 0.3, 0.4);
+    const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.36, 3.2, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); beacon.position.set(0.95, 1.6, -0.75);
+    const topL = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04' })); topL.position.set(0.95, 3.48, -0.75);
+    g.add(seaPlate, h1, h2, beacon, topL);
+    g.userData.baseScale = 0.92;
   } else if (nm === '烈嶼' || nm === '烈嶼小金門') {
-    // 烈嶼風雞守護神像（紅冠白羽風雞）
-    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.85, 0.65, 8), new THREE.MeshStandardMaterial({ color: '#78716c' })); ped.position.y = 0.33;
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.65, 10, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); body.scale.set(0.95, 1.15, 1.25); body.position.y = 1.25;
-    const comb = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.42, 0.55), new THREE.MeshStandardMaterial({ color: '#dc2626' })); comb.position.set(0, 1.98, 0.2);
-    g.add(ped, body, comb);
-  } else if (nm === '甲仙芋頭街') {
-    // 甲仙芋頭街：巨大紫色芋頭地標＋芋冰招牌
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.25, 0.42, 12), new THREE.MeshStandardMaterial({ color: '#581c87' })); base.position.y = 0.21;
-    const taro = new THREE.Mesh(new THREE.SphereGeometry(0.92, 14, 12), new THREE.MeshStandardMaterial({ color: '#a855f7', roughness: 0.55 }));
-    taro.scale.set(0.9, 1.35, 0.9); taro.position.y = 1.45;
-    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.65, 6), new THREE.MeshStandardMaterial({ color: '#22c55e' })); leaf.position.y = 2.75;
-    g.add(base, taro, leaf);
-  } else if (nm === '拉拉山' || nm === '向陽') {
-    // 千年紅檜巨木林群
-    for (const [tx, tz, h] of [[-0.55, 0.1, 2.6], [0.55, -0.25, 2.05], [0.05, 0.45, 1.7]]) {
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, h * 0.48, 7), new THREE.MeshStandardMaterial({ color: '#7c2d12' })); trunk.position.set(tx, h * 0.24, tz);
-      const crown = new THREE.Mesh(new THREE.ConeGeometry(0.82, h * 0.68, 7), new THREE.MeshStandardMaterial({ color: '#15803d', flatShading: true })); crown.position.set(tx, h * 0.72, tz);
-      g.add(trunk, crown);
-    }
-  } else if (nm === '明池' || nm === '梅山') {
-    // 高山迷霧池畔＋景觀涼亭
-    const pond = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.5, 0.22, 14), new THREE.MeshStandardMaterial({ color: '#0ea5e9', roughness: 0.2 })); pond.position.y = 0.11;
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 1.0, 6), new THREE.MeshStandardMaterial({ color: '#fef3c7' })); col.position.y = 0.75;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.78, 6), new THREE.MeshStandardMaterial({ color: nm === '梅山' ? '#f43f5e' : '#d97706' })); roof.position.y = 1.62;
-    g.add(pond, col, roof);
-  } else if (nm === '谷關溫泉' || nm === '谷關') {
-    // 谷關溫泉：冒蒸氣溫泉湯池＋朱紅木拱橋
-    const poolRim = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.45, 0.45, 12), new THREE.MeshStandardMaterial({ color: '#57534e' })); poolRim.position.y = 0.22;
-    const water = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.48, 12), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.35 })); water.position.y = 0.24;
-    const bridge = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.14, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#b45309' }));
-    bridge.position.set(0, 0.45, 0.2);
-    const steam = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc', transparent: true, opacity: 0.65 }));
-    steam.position.set(-0.35, 0.95, -0.2);
-    animProps.push(now => { steam.position.y = 0.95 + Math.sin(now * 0.003) * 0.25; });
-    g.add(poolRim, water, bridge, steam);
-  } else if (nm === '梨山') {
-    // 梨山賓館朱紅宮殿亭閣
-    const base = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.15, 1.4), new THREE.MeshStandardMaterial({ color: '#dc2626' })); base.position.y = 0.58;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.85, 0.85, 4), new THREE.MeshStandardMaterial({ color: '#eab308' }));
-    roof.rotation.y = Math.PI / 4; roof.scale.set(1.25, 1, 0.85); roof.position.y = 1.55;
-    g.add(base, roof);
-  } else if (nm === '合歡山' || nm === '埡口') {
-    // 武嶺／南橫埡口高山雪峰亭
-    const peak = new THREE.Mesh(new THREE.ConeGeometry(1.55, 2.3, 6), new THREE.MeshStandardMaterial({ color: '#475569', flatShading: true })); peak.position.y = 1.15;
-    const snow = new THREE.Mesh(new THREE.ConeGeometry(0.68, 0.95, 6), new THREE.MeshStandardMaterial({ color: '#f8fafc', flatShading: true })); snow.position.y = 1.92;
-    const pav = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.55, 6), new THREE.MeshStandardMaterial({ color: '#dc2626' })); pav.position.set(0.88, 0.92, 0.68);
-    g.add(peak, snow, pav);
-  } else if (nm === '小琉球') {
-    // 小琉球花瓶岩（珊瑚礁海蝕柱＋綠意頂冠）
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.65, 1.1, 8), new THREE.MeshStandardMaterial({ color: '#a8a29e', flatShading: true })); stem.position.y = 0.55;
-    const top = new THREE.Mesh(new THREE.DodecahedronGeometry(0.92, 0), new THREE.MeshStandardMaterial({ color: '#78716c', flatShading: true })); top.position.y = 1.45;
-    const bush = new THREE.Mesh(new THREE.SphereGeometry(0.65, 7, 6), new THREE.MeshStandardMaterial({ color: '#16a34a', flatShading: true })); bush.position.y = 2.1;
-    g.add(stem, top, bush);
-  } else if (nm === '馬祖') {
-    // 馬祖東湧白色燈塔＋八八坑道酒甕
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.54, 2.3, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); tower.position.set(-0.45, 1.15, 0);
-    const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b' })); lantern.position.set(-0.45, 2.45, 0);
-    const jar = new THREE.Mesh(new THREE.SphereGeometry(0.58, 8, 8), new THREE.MeshStandardMaterial({ color: '#92400e', roughness: 0.5 })); jar.scale.set(1, 1.25, 1); jar.position.set(0.8, 0.68, 0.2);
-    g.add(tower, lantern, jar);
-  } else if (nm === '龜山島') {
-    // 龜山島雙峰火山頭
-    const shell = new THREE.Mesh(new THREE.ConeGeometry(1.55, 1.85, 7), new THREE.MeshStandardMaterial({ color: '#15803d', flatShading: true })); shell.position.set(-0.2, 0.92, 0);
-    const head = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.15, 6), new THREE.MeshStandardMaterial({ color: '#166534', flatShading: true })); head.position.set(1.05, 0.58, 0.15);
-    g.add(shell, head);
-  } else if (nm === '平溪' || nm === '平溪天燈') {
-    // 平溪祈福天燈（3 盞暖光天燈懸浮在鐵軌上方）
-    const track = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.18, 0.8), new THREE.MeshStandardMaterial({ color: '#57534e' })); track.position.y = 0.09; g.add(track);
-    const defs = [[0, 2.15, 0, 1.0], [-0.85, 1.65, 0.35, 0.72], [0.85, 1.82, -0.25, 0.78]];
-    defs.forEach(([lx, ly, lz, sc], k) => {
-      const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.58 * sc, 0.34 * sc, 1.05 * sc, 4), new THREE.MeshStandardMaterial({ color: k === 1 ? '#facc15' : '#fb923c', emissive: '#ea580c', emissiveIntensity: 0.75, roughness: 0.35 }));
-      lan.rotation.y = Math.PI / 4; lan.position.set(lx, ly, lz);
-      animProps.push(now => { lan.position.y = ly + Math.sin(now * 0.003 + k * 1.4) * 0.28; lan.rotation.y = Math.PI / 4 + Math.sin(now * 0.0015 + k) * 0.25; });
-      g.add(lan);
-    });
-  } else if (nm === '三義' || nm === '三義木雕村') {
-    // 三義木雕村：原木鳥居式牌坊＋木雕貓頭鷹像
-    const woodM = new THREE.MeshStandardMaterial({ color: '#78350f', roughness: 0.75 });
-    for (const px of [-0.95, 0.95]) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 2.1, 8), woodM); post.position.set(px, 1.05, -0.25); g.add(post);
-    }
-    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.28, 0.36), new THREE.MeshStandardMaterial({ color: '#92400e' })); lintel.position.set(0, 2.1, -0.25);
-    const owl = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 10), new THREE.MeshStandardMaterial({ color: '#a16207' })); owl.scale.set(0.95, 1.25, 0.85); owl.position.set(0, 0.72, 0.55);
-    for (const ex of [-0.2, 0.2]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15' })); eye.position.set(ex, 0.95, 0.95); g.add(eye);
-    }
-    g.add(lintel, owl);
-  } else if (nm === '玉里' || nm === '知本' || nm === '知本溫泉飯店') {
-    // 客城紅橋／知本溫泉湯屋
-    const col = nm === '玉里' ? '#dc2626' : '#0ea5e9';
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 1.0), new THREE.MeshStandardMaterial({ color: col })); deck.position.y = 1.05;
-    const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.05, 0.8), new THREE.MeshStandardMaterial({ color: '#78350f' })); p1.position.set(-0.9, 0.52, 0);
-    const p2 = p1.clone(); p2.position.x = 0.9;
-    g.add(deck, p1, p2);
-  } else if (nm === '台北西門町') {
-    // 台北西門町：八角紅磚西門紅樓＋彩虹廣場條帶
-    const hall = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.35, 1.65, 8), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.75 }));
-    hall.position.set(0, 0.82, -0.25);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.85, 8), new THREE.MeshStandardMaterial({ color: '#334155' }));
-    roof.position.set(0, 2.05, -0.25);
-    const cols = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#a855f7'];
-    cols.forEach((c, idx) => {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.2 }));
-      strip.position.set(0, 0.05, 0.7 + idx * 0.2); g.add(strip);
-    });
-    g.add(hall, roof);
-  } else if (nm === '池上米鄉') {
-    // 池上米鄉：金黃稻田地毯＋伯朗大道黃色相框地標
-    const rice = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.2, 2.0), new THREE.MeshStandardMaterial({ color: '#eab308', roughness: 0.85 })); rice.position.y = 0.1;
-    const frameM = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.25 });
-    const fL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.65, 0.22), frameM); fL.position.set(-0.75, 1.0, 0.35);
-    const fR = fL.clone(); fR.position.x = 0.75;
-    const fT = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.22, 0.22), frameM); fT.position.set(0, 1.78, 0.35);
-    const fB = fT.clone(); fB.position.y = 0.28;
-    const tr = tree(0.68, '#16a34a'); tr.position.set(0.95, 0.15, -0.45);
-    g.add(rice, fL, fR, fT, fB, tr);
-  } else if (t.type === 'shop') {
-    const shopOrder = R.BOARD.slice(0, idx).filter(x => x.type === 'shop').length;
-    if (shopOrder === 0) {
-      // 關子嶺道具屋：紫頂道具屋＋冒蒸氣泥漿溫泉湯池
-      const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: '#fde68a' })); body.position.set(-0.4, 0.8, -0.2);
-      const awn = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.3, 0.9), new THREE.MeshStandardMaterial({ color: '#9333ea' })); awn.position.set(-0.4, 1.6, 0.55); awn.rotation.x = 0.25;
-      const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#78716c' })); pool.position.set(0.95, 0.24, 0.4);
-      const water = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.48, 10), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7' })); water.position.set(0.95, 0.25, 0.4);
-      g.add(body, awn, pool, water);
-    } else if (shopOrder === 1) {
-      // 八里左岸道具屋：水岸斜頂文創屋＋藍白條紋遮陽棚
-      const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.75, 1.7), makeWinMat('#f8fafc', '#fde047')); body.position.y = 0.88;
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#7c3aed' })); roof.rotation.y = Math.PI / 4; roof.position.y = 2.2;
-      const gift = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#713f12' })); gift.position.set(0.9, 0.38, 1.0);
-      g.add(body, roof, gift);
-    } else {
-      // 瑞穗牧場道具屋：紅白農舍穀倉＋黑白乳牛斑紋鮮奶筒倉
-      const barn = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: '#dc2626' })); barn.position.set(-0.45, 0.8, 0);
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.75, 0.9, 4), new THREE.MeshStandardMaterial({ color: '#78350f' })); roof.rotation.y = Math.PI / 4; roof.position.set(-0.45, 2.05, 0);
-      const silo = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 2.1, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); silo.position.set(1.0, 1.05, -0.2);
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.53, 0.53, 0.45, 10), new THREE.MeshStandardMaterial({ color: '#1e293b' })); band.position.set(1.0, 1.25, -0.2);
-      g.add(barn, roof, silo, band);
-    }
-  } else if (t.type === 'jail') {
-    g.userData.baseScale = 1.45;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.4, 2.4), new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.75 }));
-    body.position.set(0, 1.2, -0.2); g.add(body);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.35, 2.6), new THREE.MeshStandardMaterial({ color: '#334155' }));
-    roof.position.set(0, 2.55, -0.2); g.add(roof);
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 3.4, 8), new THREE.MeshStandardMaterial({ color: '#475569' }));
-    tower.position.set(1.55, 1.7, 0.85); g.add(tower);
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.34, 8, 8), new THREE.MeshStandardMaterial({ color: '#f97316', emissive: '#ea580c' }));
-    beacon.position.set(1.55, 3.55, 0.85); g.add(beacon);
-    for (let k = -2; k <= 2; k++) {
-      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.7, 6), new THREE.MeshStandardMaterial({ color: '#0f172a', metalness: 0.8 }));
-      bar.position.set(k * 0.58, 1.35, 1.05); g.add(bar);
-    }
-  } else if (t.type === 'gojail') {
-    const booth = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.0, 1.8), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
-    booth.position.y = 1.0;
-    const l1 = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 8), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#b91c1c' }));
-    l1.position.set(-0.48, 2.2, 0);
-    const l2 = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 8), new THREE.MeshStandardMaterial({ color: '#3b82f6', emissive: '#1d4ed8' }));
-    l2.position.set(0.48, 2.2, 0);
-    g.add(booth, l1, l2);
-  } else if (t.type === 'park' || nm === '陽明山公園') {
-    // 陽明山公園：繽紛花鐘圓丘＋小油坑冒煙火山硫磺岩丘
-    const mound = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.55, 16), new THREE.MeshStandardMaterial({ color: '#16a34a' }));
-    mound.position.set(0.75, 0.28, 0.35);
-    const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.82, 0.14, 16), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
-    dial.position.set(0.75, 0.58, 0.35); dial.rotation.x = 0.2;
-    const flowerCols = ['#ef4444', '#facc15', '#ec4899', '#38bdf8', '#fb923c', '#a855f7'];
-    flowerCols.forEach((c, idx) => {
-      const a = (idx / flowerCols.length) * Math.PI * 2;
-      const fl = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), new THREE.MeshStandardMaterial({ color: c }));
-      fl.position.set(0.75 + Math.cos(a) * 0.95, 0.52, 0.35 + Math.sin(a) * 0.95); g.add(fl);
-    });
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.6), new THREE.MeshStandardMaterial({ color: '#b91c1c' }));
-    hand.position.set(0.75, 0.68, 0.35);
-    animProps.push(now => { hand.rotation.y = now * 0.0012; });
-    const volcano = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 1.35, 1.5, 8), new THREE.MeshStandardMaterial({ color: '#6b7280', flatShading: true })); volcano.position.set(-0.95, 0.75, -0.35);
-    const sulfur = new THREE.Mesh(new THREE.ConeGeometry(0.48, 0.42, 6), new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#713f12' })); sulfur.position.set(-0.95, 1.52, -0.35);
-    const steam = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc', transparent: true, opacity: 0.6 }));
-    steam.position.set(-0.95, 2.0, -0.35);
-    animProps.push(now => { steam.position.y = 2.0 + Math.sin(now * 0.003) * 0.28; });
-    g.add(mound, dial, hand, volcano, sulfur, steam);
-  } else if (t.type === 'tax') {
-    // 國稅局金幣銀庫大樓
-    const b = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.9, 1.8), makeWinMat('#64748b', '#fde047'));
-    b.position.y = 0.95;
-    const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.25, 14), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.7 }));
-    coin.rotation.x = Math.PI / 2; coin.position.y = 2.45;
-    g.add(b, coin);
-  } else if (nm === '桃園機場') {
-    const twr = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 3.0, 8), new THREE.MeshStandardMaterial({ color: '#cbd5e1' }));
-    twr.position.set(-1.0, 1.5, -0.3);
-    const radar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.22, 0.14), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7' }));
-    radar.position.set(-1.0, 3.2, -0.3);
-    animProps.push(now => { radar.rotation.y = now * 0.004; });
-    const plane = new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4, 8), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
-    plane.rotation.z = -Math.PI / 2; plane.position.set(0.7, 1.8, 0.4);
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.1, 2.4), new THREE.MeshStandardMaterial({ color: '#0ea5e9' }));
-    wing.position.set(0.7, 1.8, 0.4);
-    g.add(twr, radar, plane, wing);
-  } else if (nm === '基隆港') {
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.85, 1.3), new THREE.MeshStandardMaterial({ color: '#1e3a5f' }));
-    hull.position.set(-0.2, 0.45, 0.2);
-    const cargo = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.8), new THREE.MeshStandardMaterial({ color: '#f97316' }));
-    cargo.position.set(0.2, 1.15, 0.2);
-    const crane = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.7, 0.35), new THREE.MeshStandardMaterial({ color: '#ef4444' }));
-    crane.position.set(1.2, 1.35, -0.2);
-    g.add(hull, cargo, crane);
-  } else if (nm === '高鐵左營') {
-    // 高鐵左營站：半屏山波浪雙飛翼頂棚＋700T列車
-    const hall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.3, 1.8), makeWinMat('#475569', '#bae6fd')); hall.position.y = 0.65;
-    const canopy = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 3.6, 8, 1, false, 0, Math.PI), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
-    canopy.rotation.z = Math.PI / 2; canopy.scale.set(0.55, 1, 0.75); canopy.position.y = 1.45;
-    const train = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.55, 0.8), new THREE.MeshStandardMaterial({ color: '#ffffff' })); train.position.set(0, 0.5, 1.0);
-    const org = new THREE.Mesh(new THREE.BoxGeometry(3.45, 0.16, 0.84), new THREE.MeshStandardMaterial({ color: '#f97316' })); org.position.set(0, 0.48, 1.0);
-    g.add(hall, canopy, train, org);
-  } else if (nm === '台中高鐵') {
-    // 台中烏日高鐵站：雙跨距流線鋼拱帷幕＋橘帶高鐵列車
-    const st = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.4, 1.9), makeWinMat('#334155', '#fde68a')); st.position.y = 0.7;
-    for (const ax of [-0.9, 0.9]) {
-      const arch = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.12, 6, 14, Math.PI), new THREE.MeshStandardMaterial({ color: '#f97316' }));
-      arch.rotation.y = Math.PI / 2; arch.position.set(ax, 1.0, 0); g.add(arch);
-    }
-    g.add(st);
-  } else if (t.type === 'chance' || t.type === 'fate') {
-    // 8 處機會／命運結合在地真實風景微縮造型＋頂部旋轉機率結晶
-    const gem = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.54, 0),
-      new THREE.MeshStandardMaterial({ color: t.type === 'chance' ? '#f59e0b' : '#3b82f6', emissive: t.type === 'chance' ? '#92400e' : '#1e3a8a', roughness: 0.25 })
-    );
-    gem.position.y = 2.45; g.add(gem);
-    animProps.push(now => { gem.rotation.y = now * 0.0025; gem.position.y = 2.35 + Math.sin(now * 0.004) * 0.22; });
-    const cfOrder = R.BOARD.slice(0, idx).filter(x => x.type === 'chance' || x.type === 'fate').length;
-    if (cfOrder === 0) {
-      // 枋山海景夕陽愛情拱框
-      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.12, 6, 16), new THREE.MeshStandardMaterial({ color: '#fb7185' }));
-      arch.position.y = 0.88; g.add(arch);
-    } else if (cfOrder === 1) {
-      // 七股白色鹽山雙金字塔
-      const salt = new THREE.Mesh(new THREE.ConeGeometry(1.25, 1.45, 4), new THREE.MeshStandardMaterial({ color: '#f8fafc', flatShading: true }));
-      salt.rotation.y = Math.PI / 4; salt.position.set(0, 0.72, 0); g.add(salt);
-    } else if (cfOrder === 2) {
-      // 大甲高美濕地紅白條紋燈塔＋木棧道
-      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.48, 1.75, 8), new THREE.MeshStandardMaterial({ color: '#ef4444' }));
-      tower.position.set(-0.5, 0.88, 0);
-      const boardWalk = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.14, 0.65), new THREE.MeshStandardMaterial({ color: '#92400e' }));
-      boardWalk.position.set(0.4, 0.2, 0.2);
-      g.add(tower, boardWalk);
-    } else if (cfOrder === 3) {
-      // 湖口老街紅磚巴洛克牌樓
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.35, 0.7), new THREE.MeshStandardMaterial({ color: '#b45309' }));
-      wall.position.y = 0.68;
-      const crest = new THREE.Mesh(new THREE.ConeGeometry(0.8, 0.65, 4), new THREE.MeshStandardMaterial({ color: '#d97706' }));
-      crest.rotation.y = Math.PI / 4; crest.position.y = 1.6;
-      g.add(wall, crest);
-    } else if (cfOrder === 4) {
-      // 汐止山谷雲海六角涼亭
-      const pav = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.75, 6), new THREE.MeshStandardMaterial({ color: '#059669' })); pav.position.y = 1.35;
-      const baseP = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.75, 0.9, 6), new THREE.MeshStandardMaterial({ color: '#78350f' })); baseP.position.y = 0.45;
-      g.add(pav, baseP);
-    } else if (cfOrder === 5) {
-      // 蘇花清水斷崖青灰山海石壁
-      const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.15, 2.0, 5), new THREE.MeshStandardMaterial({ color: '#64748b', flatShading: true }));
-      c1.position.set(-0.3, 1.0, -0.2); g.add(c1);
-    } else if (cfOrder === 6) {
-      // 池上伯朗大道金城武樹＋金色稻田
-      const pad = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 1.8), new THREE.MeshStandardMaterial({ color: '#eab308' })); pad.position.y = 0.1;
-      const tr = tree(0.85, '#16a34a'); tr.position.set(0, 0.15, 0);
-      g.add(pad, tr);
-    } else {
-      // 旭海太平洋海岸碑
-      const stele = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 1.65, 6), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
-      stele.position.y = 0.82; g.add(stele);
-    }
-  } else if (nm === '雲林' || nm === '雲林斗六') {
-    // 西螺大橋（鮮紅三連鋼拱桁架橋）
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.24, 0.95), new THREE.MeshStandardMaterial({ color: '#94a3b8' })); deck.position.y = 0.5; g.add(deck);
-    for (const ax of [-0.95, 0, 0.95]) {
-      const span = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.08, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
-      span.position.set(ax, 0.62, 0); g.add(span);
-    }
-  } else if (nm === '南投') {
-    // 南投清境合歡歐式木屋塔＋綠丘綿羊
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.25, 1.4), new THREE.MeshStandardMaterial({ color: '#fef3c7' })); cabin.position.set(-0.35, 0.62, 0);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.4, 1.1, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' })); roof.rotation.y = Math.PI / 4; roof.position.set(-0.35, 1.75, 0);
-    const sheep = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#ffffff' })); sheep.scale.set(1.3, 0.9, 0.9); sheep.position.set(0.95, 0.32, 0.4);
-    g.add(cabin, roof, sheep);
-  } else if (nm === '台中') {
-    // 台中公園湖心亭雙連尖塔涼亭＋碧湖基座
-    const water = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, 0.2, 16), new THREE.MeshStandardMaterial({ color: '#38bdf8' })); water.position.y = 0.1;
-    const base = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.65, 1.15), new THREE.MeshStandardMaterial({ color: '#ffffff' })); base.position.y = 0.52;
-    for (const dx of [-0.52, 0.52]) {
-      const top = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.9, 8), new THREE.MeshStandardMaterial({ color: '#dc2626' })); top.position.set(dx, 1.28, 0); g.add(top);
-    }
-    g.add(water, base);
+    // 烈嶼風雞守護神像＋八達樓子瞭望樓（y ~ 3.8）
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.92, 0.85, 8), new THREE.MeshStandardMaterial({ color: '#78716c' })); ped.position.set(-0.45, 0.42, 0.25);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.72, 10, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); body.scale.set(0.95, 1.15, 1.25); body.position.set(-0.45, 1.55, 0.25);
+    const comb = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.5, 0.6), new THREE.MeshStandardMaterial({ color: '#dc2626' })); comb.position.set(-0.45, 2.45, 0.45);
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(0.95, 3.6, 0.95), new THREE.MeshStandardMaterial({ color: '#64748b' })); tower.position.set(0.95, 1.8, -0.45);
+    g.add(ped, body, comb, tower);
+    g.userData.baseScale = 0.92;
   } else if (nm === '苗栗' || nm === '苗栗大湖') {
-    // 苗栗大湖：巨型亮面紅草莓雕像＋翠綠蒂葉
-    const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.15, 0.38, 12), new THREE.MeshStandardMaterial({ color: '#f1f5f9' })); ped.position.y = 0.19;
-    const berry = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1.85, 14), new THREE.MeshStandardMaterial({ color: '#e11d48', roughness: 0.18, metalness: 0.15 }));
-    berry.rotation.x = Math.PI; berry.position.y = 1.45;
-    const topCap = new THREE.Mesh(new THREE.SphereGeometry(1.02, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#e11d48', roughness: 0.18, metalness: 0.15 }));
-    topCap.position.y = 2.25;
+    // 苗栗大湖：巨型亮面紅草莓雕像＋果園招牌拱門（y ~ 4.6，置於 food 之前）
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.25, 0.5, 12), new THREE.MeshStandardMaterial({ color: '#f1f5f9' })); ped.position.y = 0.25;
+    const berry = new THREE.Mesh(new THREE.ConeGeometry(1.22, 2.4, 14), new THREE.MeshStandardMaterial({ color: '#e11d48', roughness: 0.18, metalness: 0.15 }));
+    berry.rotation.x = Math.PI; berry.position.y = 1.95;
+    const topCap = new THREE.Mesh(new THREE.SphereGeometry(1.18, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#e11d48', roughness: 0.18 }));
+    topCap.position.y = 3.05;
     for (let k = 0; k < 5; k++) {
       const a = (k / 5) * Math.PI * 2;
-      const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.32), new THREE.MeshStandardMaterial({ color: '#16a34a' }));
-      leaf.position.set(Math.cos(a) * 0.45, 2.85, Math.sin(a) * 0.45);
-      leaf.rotation.y = -a; leaf.rotation.z = -0.25; g.add(leaf);
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 0.36), new THREE.MeshStandardMaterial({ color: '#16a34a' }));
+      leaf.position.set(Math.cos(a) * 0.52, 4.1, Math.sin(a) * 0.52); leaf.rotation.y = -a; leaf.rotation.z = -0.25; g.add(leaf);
     }
-    g.add(ped, berry, topCap);
-  } else if (nm === '新竹') {
-    // 新竹東門城迎曦門（石砌拱座＋重簷紅門樓）
-    const stone = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.0, 1.5), new THREE.MeshStandardMaterial({ color: '#94a3b8' })); stone.position.y = 0.5;
-    const pav = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.85, 1.1), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); pav.position.y = 1.42;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.75, 0.9, 4), new THREE.MeshStandardMaterial({ color: '#b45309' })); roof.rotation.y = Math.PI / 4; roof.position.y = 2.25;
-    g.add(stone, pav, roof);
-  } else if (nm === '桃園') {
-    // 桃園航空都會牌樓＋高塔
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.5, 1.2), new THREE.MeshStandardMaterial({ color: '#b45309' })); body.position.y = 0.75;
-    const gable = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.15, 0.75, 6), new THREE.MeshStandardMaterial({ color: '#fef3c7' })); gable.position.y = 1.85;
-    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' })); spire.rotation.y = Math.PI / 4; spire.position.y = 2.6;
-    g.add(body, gable, spire);
-  } else if (nm === '新北' || nm === '新北板橋') {
-    // 新北板橋都會雙塔商辦＋發光竹筍錐塔
-    const tw1 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.7, 1.0), makeWinMat('#1e3a5f', '#fef08a')); tw1.position.set(-0.8, 1.35, -0.2);
-    const tw2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.1, 0.9), makeWinMat('#334155', '#38bdf8')); tw2.position.set(0.8, 1.05, -0.2);
-    const shoot = new THREE.Mesh(new THREE.ConeGeometry(0.42, 2.1, 8), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7' })); shoot.position.set(0, 1.05, 0.65);
-    g.add(tw1, tw2, shoot);
-  } else if (nm === '宜蘭') {
-    // 宜蘭蘭陽博物館（斜角單面山幾何岩石館體）
-    const museum = new THREE.Mesh(new THREE.ConeGeometry(1.75, 2.35, 4), makeWinMat('#475569', '#bae6fd'));
-    museum.rotation.y = Math.PI / 4; museum.rotation.z = -0.32; museum.position.set(0.15, 0.95, 0);
-    g.add(museum);
-  } else if (nm === '羅東') {
-    // 羅東林業園區蓄木池＋檜木原木堆＋木構站房
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.1, 1.4), new THREE.MeshStandardMaterial({ color: '#92400e' })); cabin.position.set(-0.5, 0.55, -0.2);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.7, 4), new THREE.MeshStandardMaterial({ color: '#475569' })); roof.rotation.y = Math.PI / 4; roof.position.set(-0.5, 1.45, -0.2);
-    const logM = new THREE.MeshStandardMaterial({ color: '#78350f' });
-    for (let k = 0; k < 3; k++) {
-      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.4, 6), logM);
-      log.rotation.x = Math.PI / 2; log.position.set(0.9 + (k % 2) * 0.25, 0.2 + Math.floor(k / 2) * 0.3, 0.25);
-      g.add(log);
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.65, 6), new THREE.MeshStandardMaterial({ color: '#15803d' })); stem.position.y = 4.35;
+    g.add(ped, berry, topCap, stem);
+    g.userData.baseScale = 0.94;
+  } else if (nm === '池上米鄉') {
+    // 池上米鄉：金黃稻田＋伯朗大道巨型黃相框＋奉茶樹（y ~ 4.2，置於 food 之前）
+    const rice = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.24, 2.1), new THREE.MeshStandardMaterial({ color: '#eab308', roughness: 0.85 })); rice.position.y = 0.12;
+    const frameM = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.3 });
+    const fL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.6, 0.28), frameM); fL.position.set(-0.9, 1.95, 0.45);
+    const fR = fL.clone(); fR.position.x = 0.9;
+    const fT = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.28, 0.28), frameM); fT.position.set(0, 3.65, 0.45);
+    const fB = fT.clone(); fB.position.y = 0.35;
+    const tr = tree(1.3, '#16a34a'); tr.position.set(1.0, 0.2, -0.55);
+    g.add(rice, fL, fR, fT, fB, tr);
+    g.userData.baseScale = 0.94;
+  } else if (nm === '甲仙芋頭街') {
+    // 甲仙芋頭街：巨大紫色芋頭地標＋芋冰高牌樓（y ~ 4.5，置於 food 之前）
+    const sign = makeNeonSign('甲仙芋頭', '#3b0764', '#c084fc'); sign.position.set(0, 0.7, -0.8);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.3, 0.48, 12), new THREE.MeshStandardMaterial({ color: '#581c87' })); base.position.y = 0.24;
+    const taro = new THREE.Mesh(new THREE.SphereGeometry(1.05, 14, 12), new THREE.MeshStandardMaterial({ color: '#a855f7', roughness: 0.5 }));
+    taro.scale.set(0.92, 1.45, 0.92); taro.position.set(0.25, 1.85, 0.35);
+    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.85, 6), new THREE.MeshStandardMaterial({ color: '#22c55e' })); leaf.position.set(0.25, 3.55, 0.35);
+    g.add(sign, base, taro, leaf);
+    g.userData.baseScale = 0.94;
+  } else if (nm === '拉拉山' || nm === '向陽') {
+    // 千年紅檜巨木林群＋木造高架觀景台（y ~ 4.8）
+    for (const [tx, tz, h] of [[-0.65, 0.1, 4.8], [0.65, -0.25, 3.6], [0.1, 0.6, 2.8]]) {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.42, h * 0.48, 7), new THREE.MeshStandardMaterial({ color: '#7c2d12' })); trunk.position.set(tx, h * 0.24, tz);
+      const crown = new THREE.Mesh(new THREE.ConeGeometry(0.98, h * 0.65, 7), new THREE.MeshStandardMaterial({ color: '#15803d', flatShading: true })); crown.position.set(tx, h * 0.72, tz);
+      g.add(trunk, crown);
     }
-    g.add(cabin, roof);
-  } else if (t.type === 'shop') {
-    // 造型服飾店：發光 3D 霓虹招牌＋玻璃櫥窗＋展示假人台
-    const sign = makeNeonSign('造型服飾', '#1e1b4b', '#f472b6');
-    sign.position.set(0, 0.9, -0.6);
-    const shop = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.6, 1.8), makeWinMat('#312e81', '#fbcfe8'));
-    shop.position.y = 0.8;
-    const awning = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.22, 0.8), new THREE.MeshStandardMaterial({ color: '#ec4899', emissive: '#9d174d', emissiveIntensity: 0.35 }));
-    awning.position.set(0, 1.45, 1.15); awning.rotation.x = 0.3;
-    const hat = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.65, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207' }));
-    hat.position.set(0, 2.0, 0);
-    g.add(sign, shop, awning, hat);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.22, 1.1), new THREE.MeshStandardMaterial({ color: '#92400e' })); deck.position.set(0.55, 1.25, 0.55);
+    g.add(deck);
     g.userData.baseScale = 0.92;
+  } else if (nm === '明池' || nm === '梅山') {
+    // 高山迷霧池畔＋二層六角景觀涼亭（y ~ 4.2）
+    const pond = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.24, 14), new THREE.MeshStandardMaterial({ color: '#0ea5e9', roughness: 0.2 })); pond.position.y = 0.12;
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.75, 1.85, 6), new THREE.MeshStandardMaterial({ color: '#fef3c7' })); col.position.y = 1.1;
+    const r1 = new THREE.Mesh(new THREE.ConeGeometry(1.3, 0.85, 6), new THREE.MeshStandardMaterial({ color: nm === '梅山' ? '#f43f5e' : '#d97706' })); r1.position.y = 2.4;
+    const r2 = new THREE.Mesh(new THREE.ConeGeometry(0.88, 0.95, 6), new THREE.MeshStandardMaterial({ color: nm === '梅山' ? '#e11d48' : '#b45309' })); r2.position.y = 3.45;
+    const tr = tree(1.0, nm === '梅山' ? '#f472b6' : '#15803d'); tr.position.set(1.05, 0, -0.5);
+    g.add(pond, col, r1, r2, tr);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '梨山') {
+    // 梨山賓館朱紅雙層宮殿閣樓＋高山松樹（y ~ 4.4）
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.65, 1.5), new THREE.MeshStandardMaterial({ color: '#dc2626' })); base.position.y = 0.82;
+    const roof1 = new THREE.Mesh(new THREE.ConeGeometry(2.05, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#eab308' }));
+    roof1.rotation.y = Math.PI / 4; roof1.scale.set(1.25, 1, 0.85); roof1.position.y = 2.1;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.9, 1.0), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); upper.position.y = 2.85;
+    const roof2 = new THREE.Mesh(new THREE.ConeGeometry(1.3, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#facc15' }));
+    roof2.rotation.y = Math.PI / 4; roof2.scale.set(1.2, 1, 0.8); roof2.position.y = 3.75;
+    g.add(base, roof1, upper, roof2);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '合歡山' || nm === '埡口') {
+    // 武嶺／南橫埡口高山雪峰亭（y ~ 4.6）
+    const peak = new THREE.Mesh(new THREE.ConeGeometry(1.7, 4.4, 6), new THREE.MeshStandardMaterial({ color: '#475569', flatShading: true })); peak.position.y = 2.2;
+    const snow = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.65, 6), new THREE.MeshStandardMaterial({ color: '#f8fafc', flatShading: true })); snow.position.y = 3.65;
+    const pav = new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.65, 6), new THREE.MeshStandardMaterial({ color: '#dc2626' })); pav.position.set(1.0, 1.35, 0.72);
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.3, 0.38), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); pillar.position.set(-1.05, 0.65, 0.75);
+    g.add(peak, snow, pav, pillar);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '小琉球') {
+    // 小琉球花瓶岩高聳海蝕柱（y ~ 4.0）
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.85, 1.9, 8), new THREE.MeshStandardMaterial({ color: '#a8a29e', flatShading: true })); stem.position.y = 0.95;
+    const top = new THREE.Mesh(new THREE.DodecahedronGeometry(1.15, 0), new THREE.MeshStandardMaterial({ color: '#78716c', flatShading: true })); top.position.y = 2.45;
+    const bush = new THREE.Mesh(new THREE.SphereGeometry(0.85, 7, 6), new THREE.MeshStandardMaterial({ color: '#16a34a', flatShading: true })); bush.position.y = 3.35;
+    g.add(stem, top, bush);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '馬祖') {
+    // 馬祖東湧白色燈塔（y ~ 4.6）＋八八坑道酒甕＋石頭屋
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.65, 3.8, 10), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); tower.position.set(-0.55, 1.9, 0);
+    const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b' })); lantern.position.set(-0.55, 4.15, 0);
+    const jar = new THREE.Mesh(new THREE.SphereGeometry(0.68, 8, 8), new THREE.MeshStandardMaterial({ color: '#92400e', roughness: 0.5 })); jar.scale.set(1, 1.3, 1); jar.position.set(0.85, 0.85, 0.25);
+    g.add(tower, lantern, jar);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '龜山島') {
+    // 龜山島雙峰火山頭（y ~ 4.2）＋賞鯨船
+    const shell = new THREE.Mesh(new THREE.ConeGeometry(1.75, 4.2, 7), new THREE.MeshStandardMaterial({ color: '#15803d', flatShading: true })); shell.position.set(-0.2, 2.1, 0);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.85, 6), new THREE.MeshStandardMaterial({ color: '#166534', flatShading: true })); head.position.set(1.15, 0.92, 0.15);
+    const boat = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.52), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); boat.position.set(-1.1, 0.2, 1.0);
+    g.add(shell, head, boat);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '平溪' || nm === '平溪天燈') {
+    // 平溪祈福天燈（4 盞暖光天燈懸浮在鐵軌上方，y ~ 4.5）
+    const track = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.22, 0.85), new THREE.MeshStandardMaterial({ color: '#57534e' })); track.position.y = 0.11;
+    const stall = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.2, 0.95), new THREE.MeshStandardMaterial({ color: '#92400e' })); stall.position.set(-0.8, 0.6, -0.75);
+    g.add(track, stall);
+    const defs = [[0.2, 3.6, 0, 1.15], [-0.9, 2.65, 0.4, 0.82], [0.95, 2.95, -0.25, 0.9], [0, 2.0, 0.55, 0.72]];
+    defs.forEach(([lx, ly, lz, sc], k) => {
+      const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.62 * sc, 0.36 * sc, 1.15 * sc, 4), new THREE.MeshStandardMaterial({ color: k % 2 ? '#facc15' : '#fb923c', emissive: '#ea580c', emissiveIntensity: 0.78, roughness: 0.35 }));
+      lan.rotation.y = Math.PI / 4; lan.position.set(lx, ly, lz);
+      animProps.push(now => { lan.position.y = ly + Math.sin(now * 0.003 + k * 1.4) * 0.3; lan.rotation.y = Math.PI / 4 + Math.sin(now * 0.0015 + k) * 0.25; });
+      g.add(lan);
+    });
+    g.userData.baseScale = 0.94;
+  } else if (nm === '三義' || nm === '三義木雕村') {
+    // 三義木雕村：高聳原木鳥居式牌坊（y ~ 4.0）＋木雕貓頭鷹像
+    const woodM = new THREE.MeshStandardMaterial({ color: '#78350f', roughness: 0.75 });
+    for (const px of [-1.05, 1.05]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 3.6, 8), woodM); post.position.set(px, 1.8, -0.25); g.add(post);
+    }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.38, 0.42), new THREE.MeshStandardMaterial({ color: '#92400e' })); lintel.position.set(0, 3.65, -0.25);
+    const owl = new THREE.Mesh(new THREE.SphereGeometry(0.75, 10, 10), new THREE.MeshStandardMaterial({ color: '#a16207' })); owl.scale.set(0.95, 1.35, 0.85); owl.position.set(0, 1.05, 0.6);
+    for (const ex of [-0.26, 0.26]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15' })); eye.position.set(ex, 1.38, 1.15); g.add(eye);
+    }
+    g.add(lintel, owl);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '玉里') {
+    // 玉里客城紅拱橋（雙連大紅拱橋＋稻田＋火車，y ~ 3.9）
+    const rice = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.22, 1.8), new THREE.MeshStandardMaterial({ color: '#eab308' })); rice.position.y = 0.11;
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.32, 0.95), new THREE.MeshStandardMaterial({ color: '#dc2626' })); deck.position.y = 1.35;
+    for (const ax of [-0.75, 0.75]) {
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.14, 6, 14, Math.PI), new THREE.MeshStandardMaterial({ color: '#ef4444' }));
+      arch.position.set(ax, 1.45, 0); g.add(arch);
+    }
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(0.55, 3.6, 0.55), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); tower.position.set(-1.25, 1.8, -0.45);
+    g.add(rice, deck, tower);
+    g.userData.baseScale = 0.92;
+  } else if (t.type === 'shop') {
+    // 3 層旗艦級造型服飾精品百貨（h = 4.8，霓虹招牌 y = 4.6＋粉金雨遮＋旋轉金皇冠 y ~ 5.6）
+    const sign = makeNeonSign('造型服飾', '#1e1b4b', '#f472b6');
+    sign.position.set(0, 1.4, -0.8);
+    const shop = new THREE.Mesh(new THREE.BoxGeometry(2.8, 4.8, 1.9), makeWinMat('#312e81', '#fbcfe8'));
+    shop.position.y = 2.4;
+    const awning = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.28, 0.9), new THREE.MeshStandardMaterial({ color: '#ec4899', emissive: '#9d174d', emissiveIntensity: 0.45 }));
+    awning.position.set(0, 1.65, 1.25); awning.rotation.x = 0.3;
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.85, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.4, metalness: 0.65 }));
+    crown.position.set(0, 5.25, 0);
+    animProps.push(now => { crown.rotation.y = now * 0.0022; });
+    g.add(sign, shop, awning, crown);
+    g.userData.baseScale = 0.94;
   } else if (t.type === 'cardshop') {
-    // 卡片商店：霓虹招牌＋旋轉黃金道具卡
+    // 卡片商店：高聳霓虹招牌＋玻璃卡店＋旋轉巨型黃金道具卡（y ~ 4.8）
     const sign = makeNeonSign('卡片商店', '#0f172a', '#38bdf8');
-    sign.position.set(0, 0.8, -0.7);
-    const kiosk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.3, 1.6), new THREE.MeshStandardMaterial({ color: '#0369a1', roughness: 0.4 }));
-    kiosk.position.y = 0.65;
-    const card = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.4, 0.14), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.55, metalness: 0.6 }));
-    card.position.set(0, 2.25, 0.5);
+    sign.position.set(0, 1.0, -0.8);
+    const kiosk = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.3, 1.7), makeWinMat('#0369a1', '#bae6fd'));
+    kiosk.position.y = 1.15;
+    const card = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.75, 0.16), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.6, metalness: 0.65 }));
+    card.position.set(0, 3.8, 0.45);
     animProps.push(now => { card.rotation.y = now * 0.0024; });
     g.add(sign, kiosk, card);
-    g.userData.baseScale = 0.92;
+    g.userData.baseScale = 0.94;
   } else if (t.type === 'autoshow') {
-    // 汽車展示中心：3D 霓虹招牌＋旋轉展車轉盤＋跑車模型
+    // 汽車展示中心：高架霓虹招牌＋玻璃展廳拱門＋旋轉雙層展車轉盤（y ~ 4.8）
     const sign = makeNeonSign('汽車中心', '#18181b', '#ef4444');
-    sign.position.set(0, 1.0, -0.9);
-    const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.9, 0.32, 20), new THREE.MeshStandardMaterial({ color: '#e2e8f0', metalness: 0.5, roughness: 0.25 }));
-    pad.position.y = 0.16;
+    sign.position.set(0, 1.15, -0.95);
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(1.65, 0.18, 8, 16, Math.PI), new THREE.MeshStandardMaterial({ color: '#e2e8f0', metalness: 0.6 }));
+    arch.position.set(0, 1.8, 0.25);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.85, 2.0, 0.42, 20), new THREE.MeshStandardMaterial({ color: '#e2e8f0', metalness: 0.5, roughness: 0.25 }));
+    pad.position.y = 0.21;
     const carG = new THREE.Group();
-    const cBody = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.48, 2.3), new THREE.MeshStandardMaterial({ color: '#ef4444', metalness: 0.65, roughness: 0.2 }));
-    cBody.position.y = 0.42;
-    const cCabin = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.42, 1.15), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.5, roughness: 0.15 }));
-    cCabin.position.set(0, 0.82, -0.1);
-    carG.add(cBody, cCabin);
-    carG.position.y = 0.25;
+    const cBody = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.54, 2.45), new THREE.MeshStandardMaterial({ color: '#ef4444', metalness: 0.65, roughness: 0.2 }));
+    cBody.position.y = 0.46;
+    const cCabin = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.48, 1.2), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.5 }));
+    cCabin.position.set(0, 0.92, -0.1);
+    carG.add(cBody, cCabin); carG.position.y = 0.35;
     animProps.push(now => { carG.rotation.y = now * 0.0018; });
-    g.add(sign, pad, carG);
+    g.add(sign, arch, pad, carG);
     g.userData.baseScale = 0.95;
   } else if (t.type === 'stock') {
-    // 台灣股市：霓虹大看板＋紅漲柱狀圖
+    // 台灣股市：高聳行情看板＋交易大樓＋紅漲K線柱群（y ~ 4.8）
     const sign = makeNeonSign('台灣股市', '#052e16', '#22c55e');
-    sign.position.set(0, 1.1, -0.7);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.4, 1.8), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
-    base.position.y = 0.2;
+    sign.position.set(0, 1.2, -0.8);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.55, 1.9), new THREE.MeshStandardMaterial({ color: '#1e293b' }));
+    base.position.y = 0.28;
     g.add(sign, base);
     for (let k = 0; k < 4; k++) {
-      const h = 0.7 + k * 0.55;
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.42, h, 0.42), new THREE.MeshStandardMaterial({ color: k % 2 ? '#ef4444' : '#22c55e', emissive: k % 2 ? '#991b1b' : '#166534', emissiveIntensity: 0.4 }));
-      bar.position.set(-0.78 + k * 0.52, 0.4 + h / 2, 0.35);
+      const h = 1.2 + k * 0.82;
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.46, h, 0.46), new THREE.MeshStandardMaterial({ color: k % 2 ? '#ef4444' : '#22c55e', emissive: k % 2 ? '#991b1b' : '#166534', emissiveIntensity: 0.45 }));
+      bar.position.set(-0.82 + k * 0.55, 0.55 + h / 2, 0.35);
       g.add(bar);
     }
-    g.userData.baseScale = 0.92;
+    g.userData.baseScale = 0.94;
   } else if (t.type === 'minigame') {
-    // 夜市小遊戲：霓虹招牌＋旋轉彩球遊戲攤
+    // 夜市小遊戲：雙層嘉年華遊戲帳篷＋高聳幸運轉盤柱＋霓虹招牌（y ~ 4.6）
     const sign = makeNeonSign('夜市遊戲', '#2e1065', '#a855f7');
-    sign.position.set(0, 0.9, -0.7);
-    const booth = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.4, 1.5), new THREE.MeshStandardMaterial({ color: '#7c3aed' }));
-    booth.position.y = 0.7;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.9, 0.85, 4), new THREE.MeshStandardMaterial({ color: '#facc15' }));
-    roof.rotation.y = Math.PI / 4; roof.position.y = 1.82;
-    g.add(sign, booth, roof);
-    g.userData.baseScale = 0.9;
+    sign.position.set(0, 1.0, -0.8);
+    const booth = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.0, 1.6), new THREE.MeshStandardMaterial({ color: '#7c3aed' })); booth.position.y = 1.0;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.05, 1.25, 4), new THREE.MeshStandardMaterial({ color: '#facc15' }));
+    roof.rotation.y = Math.PI / 4; roof.position.y = 2.62;
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 0), new THREE.MeshStandardMaterial({ color: '#f43f5e', emissive: '#be123c' }));
+    star.position.y = 3.7;
+    animProps.push(now => { star.rotation.y = now * 0.003; });
+    g.add(sign, booth, roof, star);
+    g.userData.baseScale = 0.92;
   } else if (t.subkind === 'mall') {
-    // 百貨公司：霓虹商場招牌＋挑高玻璃百貨大樓
-    const sign = makeNeonSign('百貨公司', '#1e293b', '#f59e0b');
-    sign.position.set(0, 1.6, -0.8);
-    const mall = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.6, 2.2), makeWinMat('#334155', '#fde68a'));
-    mall.position.y = 1.3;
-    g.add(sign, mall);
-    g.userData.baseScale = 0.88;
+    // 百貨公司（6層奢華旗艦百貨 h = 5.8..6.4＋屋頂霓虹招牌 y = 6.8＋在地地標造型）
+    const sign = makeNeonSign(nm.slice(0, 4), '#1e293b', '#f59e0b');
+    sign.position.set(0, 3.6, -0.8);
+    if (nm.includes('高雄巨蛋')) {
+      const podium = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.8, 2.4), makeWinMat('#334155', '#fde68a')); podium.position.y = 1.4;
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#cbd5e1', metalness: 0.75, roughness: 0.22, flatShading: true }));
+      dome.position.set(0, 2.8, 0.15);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.12, 6, 20), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7' }));
+      ring.rotation.x = Math.PI / 2; ring.position.set(0, 2.85, 0.15);
+      g.add(sign, podium, dome, ring);
+    } else if (nm.includes('台中七期')) {
+      const podium = new THREE.Mesh(new THREE.BoxGeometry(3.3, 1.8, 2.4), makeWinMat('#1e293b', '#fde047')); podium.position.y = 0.9;
+      const tL = new THREE.Mesh(new THREE.BoxGeometry(1.25, 6.4, 1.5), makeWinMat('#334155', '#facc15')); tL.position.set(-0.9, 3.2, 0);
+      const tR = new THREE.Mesh(new THREE.BoxGeometry(1.25, 5.6, 1.5), makeWinMat('#475569', '#fde68a')); tR.position.set(0.9, 2.8, 0);
+      const sky = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.55, 0.8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04' })); sky.position.set(0, 4.4, 0);
+      g.add(sign, podium, tL, tR, sky);
+    } else {
+      const mall = new THREE.Mesh(new THREE.BoxGeometry(3.1, 5.8, 2.2), makeWinMat('#0f172a', '#fde68a')); mall.position.y = 2.9;
+      const prow = new THREE.Mesh(new THREE.ConeGeometry(1.4, 3.4, 4), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0369a1', metalness: 0.5 }));
+      prow.rotation.y = Math.PI / 4; prow.position.set(0, 3.2, 0.85);
+      const anchor = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.11, 6, 14), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.7 }));
+      anchor.position.set(0, 4.6, 1.25);
+      g.add(sign, mall, prow, anchor);
+    }
+    g.userData.baseScale = 0.96;
   } else if (t.subkind === 'arcade') {
-    // 遊樂場：霓虹招牌＋旋轉摩天輪
+    // 遊樂場：巨型動畫摩天輪（r=2.1 at y=3.5＋8節彩色車廂）＋G5自由落體高塔（h=5.6）＋過山車環＋霓虹招牌
     const sign = makeNeonSign('歡樂遊樂', '#172554', '#06b6d4');
-    sign.position.set(0, 0.9, -0.8);
-    const wheel = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.14, 8, 18), new THREE.MeshStandardMaterial({ color: '#f43f5e', emissive: '#be123c', emissiveIntensity: 0.45 }));
-    wheel.position.set(0, 2.1, 0.45);
-    animProps.push(now => { wheel.rotation.z = now * 0.0012; });
-    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.9, 2.1, 4), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
-    stand.position.set(0, 1.05, 0.45);
-    g.add(sign, wheel, stand);
-    g.userData.baseScale = 0.9;
+    sign.position.set(0, 1.2, -1.0);
+    const wheelG = new THREE.Group();
+    wheelG.position.set(-0.4, 3.5, 0.35);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.14, 8, 20), new THREE.MeshStandardMaterial({ color: '#f43f5e', emissive: '#be123c', emissiveIntensity: 0.45 }));
+    wheelG.add(rim);
+    const carCols = ['#facc15', '#38bdf8', '#22c55e', '#f472b6', '#fb923c', '#a855f7', '#ef4444', '#2dd4bf'];
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      const pod = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.42, 0.38), new THREE.MeshStandardMaterial({ color: carCols[k], emissive: carCols[k], emissiveIntensity: 0.25 }));
+      pod.position.set(Math.cos(a) * 2.1, Math.sin(a) * 2.1, 0);
+      wheelG.add(pod);
+    }
+    animProps.push(now => { wheelG.rotation.z = now * 0.0012; });
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 1.05, 3.5, 4), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
+    stand.position.set(-0.4, 1.75, 0.35);
+    const dropTower = new THREE.Mesh(new THREE.BoxGeometry(0.55, 5.6, 0.55), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207' }));
+    dropTower.position.set(1.35, 2.8, -0.2);
+    const loop = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.1, 6, 14), new THREE.MeshStandardMaterial({ color: '#38bdf8' }));
+    loop.position.set(0.95, 1.15, 0.85);
+    g.add(sign, wheelG, stand, dropTower, loop);
+    g.userData.baseScale = 0.95;
   } else if (t.subkind === 'hotel') {
-    // 連鎖飯店：霓虹飯店招牌＋雙翼度假建築
-    const sign = makeNeonSign('連鎖飯店', '#0c4a6e', '#38bdf8');
-    sign.position.set(0, 1.4, -0.8);
-    const hotel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.4, 1.8), makeWinMat('#0284c7', '#fef08a'));
-    hotel.position.y = 1.2;
-    g.add(sign, hotel);
-    g.userData.baseScale = 0.88;
+    // 連鎖度假／溫泉飯店（h = 5.4..5.8＋發光窗帶＋冠頂＋藍寶石泳池或冒煙石湯池＋拱橋）
+    const sign = makeNeonSign(nm.includes('溫泉') ? '溫泉飯店' : '連鎖飯店', '#0c4a6e', '#38bdf8');
+    sign.position.set(0, 2.8, -0.85);
+    const isOnsen = nm.includes('溫泉');
+    const hotel = new THREE.Mesh(new THREE.BoxGeometry(2.8, isOnsen ? 5.4 : 5.8, 1.85), makeWinMat(isOnsen ? '#78350f' : '#0284c7', '#fef08a'));
+    hotel.position.set(0, isOnsen ? 2.7 : 2.9, -0.2);
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(1.7, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.45 }));
+    crown.rotation.y = Math.PI / 4; crown.position.set(0, isOnsen ? 5.85 : 6.25, -0.2);
+    if (isOnsen || nm.includes('礁溪')) {
+      const poolRim = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.25, 0.45, 12), new THREE.MeshStandardMaterial({ color: '#57534e' })); poolRim.position.set(0, 0.22, 1.15);
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.48, 12), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.4 })); water.position.set(0, 0.24, 1.15);
+      const bridge = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.11, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#b45309' })); bridge.position.set(0, 0.45, 1.15);
+      const steam = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc', transparent: true, opacity: 0.65 })); steam.position.set(-0.35, 1.05, 1.15);
+      animProps.push(now => { steam.position.y = 1.05 + Math.sin(now * 0.003) * 0.25; });
+      g.add(poolRim, water, bridge, steam);
+    } else {
+      const pool = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, 0.95), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.35 }));
+      pool.position.set(0, 0.11, 1.18); g.add(pool);
+    }
+    g.add(sign, hotel, crown);
+    g.userData.baseScale = 0.95;
   } else if (t.subkind === 'food') {
-    // 美食夜市：霓虹招牌＋紅燈籠攤位
-    const sign = makeNeonSign('美食夜市', '#450a0a', '#fb923c');
-    sign.position.set(0, 0.7, -0.7);
-    const stall = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.1, 1.4), new THREE.MeshStandardMaterial({ color: '#b91c1c' }));
-    stall.position.y = 0.55;
-    for (const lx of [-0.8, 0, 0.8]) {
-      const lan = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ea580c', emissiveIntensity: 0.7 }));
-      lan.position.set(lx, 1.35, 0.75);
-      g.add(lan);
+    // 美食夜市：高聳夜市大牌樓（h=4.2）＋雙層美食館（h=3.2）＋紅燈籠＋在地特色美食巨雕
+    const sign = makeNeonSign(nm.slice(0, 4), '#450a0a', '#fb923c');
+    sign.position.set(0, 0.7, -0.85);
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.2, 1.45), makeWinMat('#991b1b', '#fde047')); hall.position.set(-0.2, 1.6, -0.2);
+    const gateRoof = new THREE.Mesh(new THREE.ConeGeometry(1.9, 0.95, 4), new THREE.MeshStandardMaterial({ color: '#d97706' }));
+    gateRoof.rotation.y = Math.PI / 4; gateRoof.scale.set(1.3, 1, 0.8); gateRoof.position.set(-0.2, 3.68, -0.2);
+    for (const lx of [-0.9, 0, 0.9]) {
+      const lan = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#ea580c', emissiveIntensity: 0.75 }));
+      lan.position.set(lx, 2.25, 0.65); g.add(lan);
     }
-    g.add(sign, stall);
-    g.userData.baseScale = 0.88;
+    if (nm.includes('東港')) {
+      const tuna = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.75, 8), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.65 }));
+      tuna.rotation.z = -0.95; tuna.position.set(1.15, 1.45, 0.85); g.add(tuna);
+    } else if (nm.includes('台南')) {
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.45, 0.75, 10), new THREE.MeshStandardMaterial({ color: '#ca8a04', metalness: 0.6 }));
+      pot.position.set(1.05, 0.4, 0.9); g.add(pot);
+    } else if (nm.includes('新竹')) {
+      const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.62, 10, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#f8fafc' }));
+      bowl.position.set(1.05, 0.72, 0.85); g.add(bowl);
+    } else if (nm.includes('羅東')) {
+      const steamer = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.5, 1.35, 10), new THREE.MeshStandardMaterial({ color: '#d97706' }));
+      steamer.position.set(1.05, 0.68, 0.85); g.add(steamer);
+    } else if (nm.includes('花蓮')) {
+      const bamboo = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 2.1, 8), new THREE.MeshStandardMaterial({ color: '#16a34a' }));
+      bamboo.position.set(1.05, 1.05, 0.85); g.add(bamboo);
+    } else if (nm.includes('墾丁')) {
+      const cup = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.25, 8), new THREE.MeshStandardMaterial({ color: '#ec4899' }));
+      cup.rotation.x = Math.PI; cup.position.set(1.05, 1.0, 0.85); g.add(cup);
+    } else if (nm.includes('中央')) {
+      const ice = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.3, 8), new THREE.MeshStandardMaterial({ color: '#f43f5e' }));
+      ice.position.set(1.05, 0.85, 0.85); g.add(ice);
+    } else {
+      const jar = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), new THREE.MeshStandardMaterial({ color: '#facc15', metalness: 0.5 }));
+      jar.scale.set(1, 1.25, 1); jar.position.set(1.05, 0.68, 0.85); g.add(jar);
+    }
+    g.add(sign, hall, gateRoof);
+    g.userData.baseScale = 0.94;
+  } else if (t.type === 'jail') {
+    g.userData.baseScale = 1.45;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.8, 2.4), new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.75 })); body.position.set(0, 1.4, -0.2);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.35, 2.6), new THREE.MeshStandardMaterial({ color: '#334155' })); roof.position.set(0, 2.95, -0.2);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.7, 4.6, 8), new THREE.MeshStandardMaterial({ color: '#475569' })); tower.position.set(1.55, 2.3, 0.85);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 8), new THREE.MeshStandardMaterial({ color: '#f97316', emissive: '#ea580c' })); beacon.position.set(1.55, 4.85, 0.85);
+    g.add(body, roof, tower, beacon);
+    for (let k = -2; k <= 2; k++) {
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 3.0, 6), new THREE.MeshStandardMaterial({ color: '#0f172a', metalness: 0.8 }));
+      bar.position.set(k * 0.58, 1.5, 1.05); g.add(bar);
+    }
+  } else if (t.type === 'gojail') {
+    const sign = makeNeonSign('警察局', '#0f172a', '#3b82f6'); sign.position.set(0, 1.1, -0.75);
+    const booth = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 1.9), makeWinMat('#1e293b', '#93c5fd')); booth.position.y = 1.4;
+    const l1 = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 8), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#b91c1c' })); l1.position.set(-0.55, 3.1, 0);
+    const l2 = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 8), new THREE.MeshStandardMaterial({ color: '#3b82f6', emissive: '#1d4ed8' })); l2.position.set(0.55, 3.1, 0);
+    g.add(sign, booth, l1, l2);
+    g.userData.baseScale = 0.94;
+  } else if (t.type === 'park' || nm === '陽明山公園') {
+    // 陽明山公園：繽紛花鐘圓丘＋小油坑冒煙火山硫磺岩＋木造涼亭（y ~ 4.2）
+    const mound = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.65, 16), new THREE.MeshStandardMaterial({ color: '#16a34a' })); mound.position.set(0.75, 0.32, 0.35);
+    const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.16, 16), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); dial.position.set(0.75, 0.68, 0.35); dial.rotation.x = 0.2;
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.65), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); hand.position.set(0.75, 0.78, 0.35);
+    animProps.push(now => { hand.rotation.y = now * 0.0012; });
+    const volcano = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 1.5, 2.6, 8), new THREE.MeshStandardMaterial({ color: '#6b7280', flatShading: true })); volcano.position.set(-0.95, 1.3, -0.35);
+    const sulfur = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.55, 6), new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#713f12' })); sulfur.position.set(-0.95, 2.75, -0.35);
+    const steam = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc', transparent: true, opacity: 0.65 })); steam.position.set(-0.95, 3.55, -0.35);
+    animProps.push(now => { steam.position.y = 3.55 + Math.sin(now * 0.003) * 0.32; });
+    g.add(mound, dial, hand, volcano, sulfur, steam);
+    g.userData.baseScale = 0.94;
+  } else if (t.type === 'tax') {
+    // 國稅局金幣銀庫大樓（y ~ 4.6）
+    const sign = makeNeonSign('國稅局', '#1e293b', '#facc15'); sign.position.set(0, 1.0, -0.8);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.9, 1.9), makeWinMat('#475569', '#fde047')); b.position.y = 1.45;
+    const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.82, 0.3, 14), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207', metalness: 0.75 }));
+    coin.rotation.x = Math.PI / 2; coin.position.y = 3.75;
+    animProps.push(now => { coin.rotation.z = now * 0.002; });
+    g.add(sign, b, coin);
+    g.userData.baseScale = 0.94;
+  } else if (nm === '桃園機場') {
+    const twr = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.65, 4.6, 8), new THREE.MeshStandardMaterial({ color: '#cbd5e1' })); twr.position.set(-1.0, 2.3, -0.35);
+    const radar = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.28, 0.16), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7' })); radar.position.set(-1.0, 4.85, -0.35);
+    animProps.push(now => { radar.rotation.y = now * 0.004; });
+    const plane = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.6, 8), new THREE.MeshStandardMaterial({ color: '#ffffff' })); plane.rotation.z = -Math.PI / 2; plane.position.set(0.7, 2.2, 0.45);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.12, 2.6), new THREE.MeshStandardMaterial({ color: '#0ea5e9' })); wing.position.set(0.7, 2.2, 0.45);
+    g.add(twr, radar, plane, wing);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '基隆港') {
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.0, 1.4), new THREE.MeshStandardMaterial({ color: '#1e3a5f' })); hull.position.set(-0.2, 0.5, 0.2);
+    const cargo = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.85, 0.9), new THREE.MeshStandardMaterial({ color: '#f97316' })); cargo.position.set(0.2, 1.38, 0.2);
+    const crane = new THREE.Mesh(new THREE.BoxGeometry(0.42, 4.8, 0.42), new THREE.MeshStandardMaterial({ color: '#ef4444' })); crane.position.set(1.25, 2.4, -0.25);
+    const boom = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.28, 0.28), new THREE.MeshStandardMaterial({ color: '#f97316' })); boom.position.set(0.4, 4.65, -0.25);
+    g.add(hull, cargo, crane, boom);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '高鐵左營') {
+    const sign = makeNeonSign('高鐵左營', '#1e293b', '#f97316'); sign.position.set(0, 1.1, -0.85);
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(3.3, 2.0, 1.85), makeWinMat('#475569', '#bae6fd')); hall.position.y = 1.0;
+    const canopy = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 3.7, 8, 1, false, 0, Math.PI), new THREE.MeshStandardMaterial({ color: '#e2e8f0' }));
+    canopy.rotation.z = Math.PI / 2; canopy.scale.set(0.55, 1, 0.75); canopy.position.y = 2.15;
+    const train = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.6, 0.82), new THREE.MeshStandardMaterial({ color: '#ffffff' })); train.position.set(0, 0.55, 1.05);
+    g.add(sign, hall, canopy, train);
+    g.userData.baseScale = 0.95;
+  } else if (nm === '台中高鐵') {
+    const sign = makeNeonSign('台中高鐵', '#1e293b', '#f97316'); sign.position.set(0, 1.1, -0.85);
+    const st = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.1, 1.95), makeWinMat('#334155', '#fde68a')); st.position.y = 1.05;
+    for (const ax of [-0.9, 0.9]) {
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.14, 6, 14, Math.PI), new THREE.MeshStandardMaterial({ color: '#f97316' }));
+      arch.rotation.y = Math.PI / 2; arch.position.set(ax, 1.45, 0); g.add(arch);
+    }
+    g.add(sign, st);
+    g.userData.baseScale = 0.95;
   } else if (nm === '頭城烏石港' || nm === '馬公港' || nm === '水頭碼頭' || nm === '料羅灣碼頭') {
-    // 漁港／離島碼頭：純白渡輪＋海港紅白燈柱
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.68, 1.05), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); hull.position.set(-0.2, 0.36, 0.35);
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.65, 0.8), makeWinMat('#0284c7', '#fef08a')); cabin.position.set(-0.2, 0.95, 0.35);
-    const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.32, 1.85, 8), new THREE.MeshStandardMaterial({ color: nm === '馬公港' ? '#dc2626' : '#0ea5e9' }));
-    beacon.position.set(1.25, 0.92, -0.5);
-    const topL = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b' }));
-    topL.position.set(1.25, 1.95, -0.5);
+    // 漁港／離島碼頭：純白雙層渡輪＋高聳海港燈塔（y ~ 4.5）
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.78, 1.15), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); hull.position.set(-0.25, 0.4, 0.35);
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.85, 0.9), makeWinMat('#0284c7', '#fef08a')); cabin.position.set(-0.25, 1.15, 0.35);
+    const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 3.8, 8), new THREE.MeshStandardMaterial({ color: nm === '馬公港' ? '#dc2626' : '#0ea5e9' }));
+    beacon.position.set(1.25, 1.9, -0.5);
+    const topL = new THREE.Mesh(new THREE.SphereGeometry(0.34, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b' }));
+    topL.position.set(1.25, 4.1, -0.5);
     g.add(hull, cabin, beacon, topL);
-  } else if (nm === '吉貝沙尾') {
-    // 吉貝沙尾：金黃弧形沙洲＋彩色風帆
-    const sand = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.2, 14), new THREE.MeshStandardMaterial({ color: '#fde68a' })); sand.scale.set(1.3, 1, 0.75); sand.position.y = 0.1;
-    const sail = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.2, 4), new THREE.MeshStandardMaterial({ color: '#ec4899' })); sail.scale.set(0.25, 1, 0.8); sail.position.set(0, 1.25, 0);
-    g.add(sand, sail);
-  } else if (nm === '太麻里') {
-    // 太麻里曙光千禧鳥居＋金黃日出太陽球
-    const redM = new THREE.MeshStandardMaterial({ color: '#dc2626' });
-    for (const px of [-0.85, 0.85]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.9, 8), redM); p.position.set(px, 0.95, 0); g.add(p); }
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.24, 0.26), redM); beam.position.y = 1.85;
-    const sunOrb = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ea580c', emissiveIntensity: 0.7 }));
-    sunOrb.position.set(0, 1.15, -0.55);
-    g.add(beam, sunOrb);
-  } else if (nm === '佳樂水') {
-    // 佳樂水奇岩海岸海蝕石柱群
-    const rockM = new THREE.MeshStandardMaterial({ color: '#a8a29e', flatShading: true });
-    for (const [rx, ry, rz, s] of [[-0.8, 0.75, 0, 1], [0.25, 1.05, -0.3, 1.2], [1.0, 0.6, 0.3, 0.8]]) {
-      const r = new THREE.Mesh(new THREE.CylinderGeometry(0.32 * s, 0.55 * s, 1.4 * s, 6), rockM);
-      r.position.set(rx, ry, rz); g.add(r);
+    g.userData.baseScale = 0.94;
+  } else if (t.type === 'chance' || t.type === 'fate') {
+    // 8 處機會／命運結合在地風景微縮＋頂部高懸旋轉機率結晶（y ~ 4.3）
+    const gem = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.68, 0),
+      new THREE.MeshStandardMaterial({ color: t.type === 'chance' ? '#f59e0b' : '#3b82f6', emissive: t.type === 'chance' ? '#92400e' : '#1e3a8a', roughness: 0.25 })
+    );
+    gem.position.y = 3.65; g.add(gem);
+    animProps.push(now => { gem.rotation.y = now * 0.0025; gem.position.y = 3.55 + Math.sin(now * 0.004) * 0.25; });
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.48, 2.2, 8), new THREE.MeshStandardMaterial({ color: '#334155' }));
+    ped.position.set(0, 1.1, -0.75); g.add(ped);
+    const cfOrder = R.BOARD.slice(0, idx).filter(x => x.type === 'chance' || x.type === 'fate').length;
+    if (cfOrder === 0) {
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.14, 6, 16), new THREE.MeshStandardMaterial({ color: '#fb7185' })); arch.position.y = 1.1; g.add(arch);
+    } else if (cfOrder === 1) {
+      const salt = new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.2, 4), new THREE.MeshStandardMaterial({ color: '#f8fafc', flatShading: true })); salt.rotation.y = Math.PI / 4; salt.position.y = 1.1; g.add(salt);
+    } else if (cfOrder === 2) {
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.52, 2.5, 8), new THREE.MeshStandardMaterial({ color: '#ef4444' })); tower.position.set(-0.55, 1.25, 0.35); g.add(tower);
+    } else if (cfOrder === 3) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.8, 0.75), new THREE.MeshStandardMaterial({ color: '#b45309' })); wall.position.y = 0.9; g.add(wall);
+    } else if (cfOrder === 4) {
+      const pav = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.0, 6), new THREE.MeshStandardMaterial({ color: '#059669' })); pav.position.y = 1.9; g.add(pav);
+    } else if (cfOrder === 5) {
+      const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.25, 2.8, 5), new THREE.MeshStandardMaterial({ color: '#64748b', flatShading: true })); c1.position.set(-0.3, 1.4, -0.1); g.add(c1);
+    } else if (cfOrder === 6) {
+      const tr = tree(1.15, '#16a34a'); tr.position.set(0.35, 0.1, 0.35); g.add(tr);
+    } else {
+      const stele = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.48, 2.6, 6), new THREE.MeshStandardMaterial({ color: '#e2e8f0' })); stele.position.y = 1.3; g.add(stele);
     }
+    g.userData.baseScale = 0.92;
+  } else if (nm === '雲林' || nm === '雲林斗六') {
+    // 西螺紅橋＋斗六水果鐘塔（y ~ 4.2）
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.28, 0.95), new THREE.MeshStandardMaterial({ color: '#94a3b8' })); deck.position.set(0, 0.65, 0.45); g.add(deck);
+    for (const ax of [-0.95, 0, 0.95]) {
+      const span = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.1, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#dc2626' }));
+      span.position.set(ax, 0.8, 0.45); g.add(span);
+    }
+    const clockT = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.56, 3.6, 8), new THREE.MeshStandardMaterial({ color: '#facc15' })); clockT.position.set(0, 1.8, -0.65);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.48, 10, 8), new THREE.MeshStandardMaterial({ color: '#fb923c' })); orb.position.set(0, 3.85, -0.65);
+    g.add(clockT, orb);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '南投') {
+    // 南投清境歐式鐘樓城堡（y ~ 4.6）＋綠丘綿羊
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.2, 1.5), new THREE.MeshStandardMaterial({ color: '#fef3c7' })); cabin.position.set(-0.35, 1.1, 0);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.55, 1.6, 4), new THREE.MeshStandardMaterial({ color: '#dc2626' })); roof.rotation.y = Math.PI / 4; roof.position.set(-0.35, 3.0, 0);
+    const steeple = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 2.0, 8), new THREE.MeshStandardMaterial({ color: '#f8fafc' })); steeple.position.set(0.95, 2.5, -0.35);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.05, 8), new THREE.MeshStandardMaterial({ color: '#b91c1c' })); cap.position.set(0.95, 4.0, -0.35);
+    const sheep = new THREE.Mesh(new THREE.SphereGeometry(0.36, 8, 8), new THREE.MeshStandardMaterial({ color: '#ffffff' })); sheep.scale.set(1.3, 0.9, 0.9); sheep.position.set(1.0, 0.36, 0.6);
+    g.add(cabin, roof, steeple, cap, sheep);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '吉貝沙尾') {
+    const sand = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.65, 0.22, 14), new THREE.MeshStandardMaterial({ color: '#fde68a' })); sand.scale.set(1.3, 1, 0.75); sand.position.y = 0.11;
+    const sail1 = new THREE.Mesh(new THREE.ConeGeometry(0.95, 3.9, 4), new THREE.MeshStandardMaterial({ color: '#ec4899' })); sail1.scale.set(0.25, 1, 0.85); sail1.position.set(-0.35, 2.1, 0);
+    const sail2 = new THREE.Mesh(new THREE.ConeGeometry(0.75, 2.8, 4), new THREE.MeshStandardMaterial({ color: '#38bdf8' })); sail2.scale.set(0.25, 1, 0.85); sail2.position.set(0.65, 1.5, 0.35);
+    const palm = palmTree(0.75); palm.position.set(-1.1, 0, -0.3);
+    g.add(sand, sail1, sail2, palm);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '太麻里') {
+    const redM = new THREE.MeshStandardMaterial({ color: '#dc2626' });
+    for (const px of [-0.95, 0.95]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 3.6, 8), redM); p.position.set(px, 1.8, 0); g.add(p); }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.38, 0.34), redM); beam.position.y = 3.75;
+    const sunOrb = new THREE.Mesh(new THREE.SphereGeometry(0.72, 12, 10), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ea580c', emissiveIntensity: 0.75 })); sunOrb.position.set(0, 2.2, -0.55);
+    g.add(beam, sunOrb);
+    g.userData.baseScale = 0.92;
+  } else if (nm === '佳樂水') {
+    const rockM = new THREE.MeshStandardMaterial({ color: '#a8a29e', flatShading: true });
+    for (const [rx, h, rz, s] of [[-0.85, 2.6, 0, 1], [0.25, 4.1, -0.3, 1.25], [1.05, 2.1, 0.3, 0.85]]) {
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(0.36 * s, 0.62 * s, h, 6), rockM);
+      r.position.set(rx, h / 2, rz); g.add(r);
+    }
+    g.userData.baseScale = 0.92;
   } else {
-    // 其他特色景點／城鎮（簡約地標塔＋海浪）
-    const wave = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.22, 16), new THREE.MeshStandardMaterial({ color: '#0284c7' })); wave.position.y = 0.11;
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.4, 1.5, 8), new THREE.MeshStandardMaterial({ color: '#1e3a8a' })); stem.position.set(0, 0.85, 0); stem.rotation.x = -0.2;
-    const fluke = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.25, 0.58), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.35 })); fluke.position.set(0, 1.55, -0.15);
-    g.add(wave, stem, fluke);
+    // 其他特色景點／城鎮（高聳海景觀測燈塔＋波浪基座）
+    const wave = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.5, 0.24, 16), new THREE.MeshStandardMaterial({ color: '#0284c7' })); wave.position.y = 0.12;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.55, 3.5, 8), new THREE.MeshStandardMaterial({ color: '#1e3a8a' })); stem.position.set(0, 1.85, 0);
+    const fluke = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.34, 0.68), new THREE.MeshStandardMaterial({ color: '#38bdf8', metalness: 0.35 })); fluke.position.set(0, 3.25, 0);
+    const topL = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 8), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b' })); topL.position.set(0, 3.9, 0);
+    g.add(wave, stem, fluke, topL);
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   return g;
@@ -2304,22 +2450,9 @@ board.add(labelGroup);
 const tileProps = new Array(R.BOARD.length).fill(null);
 const tileLabels = new Array(R.BOARD.length).fill(null);
 
-// 棋格立體造景：4 倍佔地（半徑加倍 11.2）＋組別色環＋主題地面＋誇張 3D 特色建物與霓虹看板
-const TILE_R = 11.2;
+// 棋格立體造景：4 倍佔地（半徑 11.2）＋組別色環＋主題地面＋誇張 3D 特色建物與霓虹看板
 const LM_OFF = new THREE.Vector3(-3.6, 0, -4.6);   // 地標位置（棋格後方偏左）
 const HOUSE_OFF = new THREE.Vector3(4.8, 0, -4.4); // 地產建築（後方偏右）
-const COAST_TILES = new Set(['墾丁', '安平古堡', '馬公港', '淡水老街', '基隆港', '綠島', '蘭嶼', '水頭碼頭', '料羅灣碼頭', '鹿港老街', '小琉球', '七美雙心', '望安綠蠵龜', '吉貝沙尾', '西嶼燈塔', '馬祖', '東引', '烈嶼小金門', '大膽島前線', '海峽賭場', '龜山島', '頭城烏石港', '佳樂水', '鵝鑾鼻燈塔']);
-const URBAN_TILES = new Set(['台北', '台北西門町', '信義101百貨', '高雄港灣', '高雄巨蛋百貨', '台中', '台中七期百貨', '新北板橋', '台南府城', '竹科園區', '桃園', '新竹城隍美食', '桃園機場', '屏東', '彰化', '嘉義', '宜蘭', '花蓮', '台東']);
-function tileScale(t, i) {
-  if (!t) return 1;
-  const nm = t.name;
-  if (['信義101百貨', '台北', '台北西門町', '高雄港灣', '台中', '新北板橋'].includes(nm)) return 1.65;
-  if (['桃園機場', '高鐵左營', '台中高鐵', '基隆港', '海峽賭場', '起點', '醫院', '監獄'].includes(nm) || t.type === 'autoshow' || t.type === 'stock') return 1.32;
-  if (['阿里山', '太魯閣', '合歡山', '日月潭', '台南府城', '竹科園區', '桃園', '花蓮', '台東', '宜蘭'].includes(nm) || t.subkind === 'mall' || t.subkind === 'hotel' || t.subkind === 'arcade') return 1.18;
-  if (['小琉球', '七美雙心', '望安綠蠵龜', '吉貝沙尾', '東引', '烈嶼小金門', '大膽島前線', '龜山島', '拉拉山', '明池', '谷關溫泉', '梨山', '天祥', '甲仙芋頭街', '梅山', '埡口', '向陽'].includes(nm)) return 0.72;
-  if (t.type === 'chance' || t.type === 'fate' || t.type === 'tax') return 0.85;
-  return 1.0;
-}
 function tileTheme(t, i) {
   if (t.type === 'temple') return 'temple';
   if (t.type === 'shop' || t.type === 'cardshop' || t.type === 'minigame' || t.subkind === 'food' || t.subkind === 'arcade') return 'market';
@@ -2335,71 +2468,71 @@ function decorateTile(g, theme, i) {
   const at = (x, z) => new THREE.Vector3(x, 0.32, z);
   if (theme === 'urban') {
     // 都會人行道花台樹＋斑馬線＋路燈＋外圍小樓群
-    const zebra = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.6 });
-    for (let k = 0; k < 5; k++) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 1.6), zebra); s.position.set(-1.6 + k * 0.8, 0.38, 0.1); g.add(s); }
+    const zebra = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    for (let k = 0; k < 5; k++) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 1.6), zebra); s.position.set(-1.6 + k * 0.8, 0.46, 0.1); g.add(s); }
     const glass = makeWinMat(rnd() > 0.5 ? '#334155' : '#1e3a5f', '#fde68a');
     for (let k = 0; k < 3; k++) {
       const hh = 1.6 + rnd() * 2.8, b = new THREE.Mesh(new THREE.BoxGeometry(1.1, hh, 1.1), glass);
-      b.position.set(-4.3 + k * 0.4, 0.3 + hh / 2, -0.9 - k * 1.25); b.castShadow = true; g.add(b);
+      b.position.set(-4.3 + k * 0.4, 0.39 + hh / 2, -0.9 - k * 1.25); b.castShadow = true; g.add(b);
     }
     const planterM = new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.8 });
     for (const [px, pz] of [[7.6, -6.2], [-7.6, 6.2]]) {
-      const box = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.42, 1.3), planterM); box.position.set(px, 0.5, pz);
-      const tr = tree(0.42, '#2f855a'); tr.position.set(px, 0.7, pz); g.add(box, tr);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.42, 1.3), planterM); box.position.set(px, 0.58, pz);
+      const tr = tree(0.42, '#2f855a'); tr.position.set(px, 0.78, pz); g.add(box, tr);
     }
     for (const [x, z] of [[4.3, 1.4], [-4.3, 2.6]]) {
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.2, 6), new THREE.MeshStandardMaterial({ color: '#475569' }));
-      pole.position.copy(at(x, z)).setY(1.4); const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshStandardMaterial({ color: '#fff7c2', emissive: '#facc15', emissiveIntensity: 0.8 }));
-      lamp.position.copy(pole.position).setY(2.55); g.add(pole, lamp);
+      pole.position.copy(at(x, z)).setY(1.48); const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshStandardMaterial({ color: '#fff7c2', emissive: '#facc15', emissiveIntensity: 0.8 }));
+      lamp.position.copy(pole.position).setY(2.62); g.add(pole, lamp);
     }
   } else if (theme === 'market') {
     // 夜市節慶廣場：發光霓虹鑲邊條＋紅燈籠柱
     const neonCol = i % 2 ? '#fb7185' : '#f59e0b';
-    const stripM = new THREE.MeshStandardMaterial({ color: neonCol, emissive: neonCol, emissiveIntensity: 0.85 });
+    const stripM = new THREE.MeshStandardMaterial({ color: neonCol, emissive: neonCol, emissiveIntensity: 0.85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     for (const sz of [-TILE_R * 0.68, TILE_R * 0.68]) {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(TILE_R * 1.15, 0.14, 0.2), stripM); strip.position.set(0, 0.38, sz); g.add(strip);
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(TILE_R * 1.15, 0.14, 0.2), stripM); strip.position.set(0, 0.44, sz); g.add(strip);
     }
     for (const [lx, lz] of [[-5.6, 4.2], [5.6, 4.2], [-5.6, -4.2], [5.6, -4.2]]) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.1, 6), new THREE.MeshStandardMaterial({ color: '#78350f' }));
-      post.position.set(lx, 1.25, lz);
+      post.position.set(lx, 1.32, lz);
       const lan = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#dc2626', emissiveIntensity: 0.8 }));
-      lan.scale.y = 1.25; lan.position.set(lx, 2.38, lz); g.add(post, lan);
+      lan.scale.y = 1.25; lan.position.set(lx, 2.45, lz); g.add(post, lan);
     }
   } else if (theme === 'coast') {
     // 珊瑚礁淺海灣＋木棧碼頭＋纜樁＋椰樹＋礁岩
-    const bay = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.72, TILE_R * 0.75, 0.09, 20), new THREE.MeshStandardMaterial({ color: '#14b8a6', roughness: 0.18, metalness: 0.18 }));
-    bay.scale.set(1.05, 1, 0.65); bay.position.set(-2.4, 0.25, 3.1); g.add(bay);
+    const bay = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.72, TILE_R * 0.75, 0.06, 20), new THREE.MeshStandardMaterial({ color: '#14b8a6', roughness: 0.18, metalness: 0.18, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
+    bay.scale.set(1.05, 1, 0.65); bay.position.set(-2.4, 0.42, 3.1); g.add(bay);
     const woodM = new THREE.MeshStandardMaterial({ color: '#92400e', roughness: 0.85 });
     const pier = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.22, 6.4), woodM);
-    pier.position.set(-2.6, 0.48, 5.2); pier.castShadow = true; g.add(pier);
+    pier.position.set(-2.6, 0.54, 5.2); pier.castShadow = true; g.add(pier);
     for (const pz of [3.2, 5.4, 7.6]) {
       for (const px of [-3.45, -1.75]) {
         const pile = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.95, 6), woodM);
-        pile.position.set(px, 0.62, pz); g.add(pile);
+        pile.position.set(px, 0.68, pz); g.add(pile);
       }
     }
-    const p1 = palmTree(0.95); p1.position.set(5.2, 0.3, -1.8); g.add(p1);
+    const p1 = palmTree(0.95); p1.position.set(5.2, 0.36, -1.8); g.add(p1);
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 0), new THREE.MeshStandardMaterial({ color: '#6b7280', flatShading: true }));
-    rock.position.set(-5.6, 0.55, -1.4); rock.scale.set(1.25, 0.8, 1); g.add(rock);
+    rock.position.set(-5.6, 0.62, -1.4); rock.scale.set(1.25, 0.8, 1); g.add(rock);
   } else if (theme === 'mountain') {
     // 山岳岩棚＋木欄杆＋針葉松林
-    for (let k = 0; k < 4; k++) { const tr = tree(0.5 + rnd() * 0.22, k % 2 ? '#1f5c33' : '#2b7040'); tr.position.set(4.8 - k * 0.7, 0.3, -2.5 + k * 1.45); g.add(tr); }
+    for (let k = 0; k < 4; k++) { const tr = tree(0.5 + rnd() * 0.22, k % 2 ? '#1f5c33' : '#2b7040'); tr.position.set(4.8 - k * 0.7, 0.38, -2.5 + k * 1.45); g.add(tr); }
     const crag = new THREE.Mesh(new THREE.ConeGeometry(1.45, 2.7, 5), new THREE.MeshStandardMaterial({ color: '#6b6f66', flatShading: true }));
-    crag.position.set(-5.2, 1.45, 1.5); crag.castShadow = true; g.add(crag);
+    crag.position.set(-5.2, 1.52, 1.5); crag.castShadow = true; g.add(crag);
     const railM = new THREE.MeshStandardMaterial({ color: '#78350f', roughness: 0.9 });
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.14, 0.14), railM); rail.position.set(0, 0.72, 6.8); g.add(rail);
-    for (const rx of [-3.0, 0, 3.0]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.18), railM); p.position.set(rx, 0.48, 6.8); g.add(p); }
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.14, 0.14), railM); rail.position.set(0, 0.78, 6.8); g.add(rail);
+    for (const rx of [-3.0, 0, 3.0]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.18), railM); p.position.set(rx, 0.54, 6.8); g.add(p); }
   } else if (theme === 'rural') {
     // 藍色彎曲水圳＋小木拱橋＋層層稻田＋遮蔭大樹
-    const canalM = new THREE.MeshStandardMaterial({ color: '#38bdf8', roughness: 0.2, metalness: 0.15 });
-    const c1 = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.08, 1.35), canalM); c1.position.set(-1.5, 0.34, 4.2); c1.rotation.y = 0.18;
-    const c2 = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.08, 1.25), canalM); c2.position.set(4.8, 0.34, 2.4); c2.rotation.y = -0.28;
+    const canalM = new THREE.MeshStandardMaterial({ color: '#38bdf8', roughness: 0.2, metalness: 0.15, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+    const c1 = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.06, 1.35), canalM); c1.position.set(-1.5, 0.42, 4.2); c1.rotation.y = 0.18;
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.06, 1.25), canalM); c2.position.set(4.8, 0.435, 2.4); c2.rotation.y = -0.28;
     const bridge = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.16, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: '#92400e' }));
-    bridge.rotation.y = Math.PI / 2; bridge.position.set(0.2, 0.36, 4.0);
+    bridge.rotation.y = Math.PI / 2; bridge.position.set(0.2, 0.44, 4.0);
     g.add(c1, c2, bridge);
-    const rice = new THREE.MeshStandardMaterial({ color: '#a7cf61', roughness: 0.9 });
-    for (let k = 0; k < 4; k++) { const r = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.14, 0.52), rice); r.position.set(-4.2, 0.38, -0.4 + k * 0.78); g.add(r); }
-    const tr = tree(0.75, '#3f8a3a'); tr.position.set(5.2, 0.3, -1.6); g.add(tr);
+    const rice = new THREE.MeshStandardMaterial({ color: '#a7cf61', roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+    for (let k = 0; k < 4; k++) { const r = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.1, 0.52), rice); r.position.set(-4.2, 0.43, -0.4 + k * 0.78); g.add(r); }
+    const tr = tree(0.75, '#3f8a3a'); tr.position.set(5.2, 0.38, -1.6); g.add(tr);
   } else if (theme === 'temple') {
     // 廟埕階梯＋雙龍燈柱＋中央青銅天公香爐
     const stepM = new THREE.MeshStandardMaterial({ color: '#cbd5e1', roughness: 0.85 });
@@ -2409,12 +2542,12 @@ function decorateTile(g, theme, i) {
     }
     for (const x of [-4.6, 4.6]) {
       const col = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 2.4, 8), new THREE.MeshStandardMaterial({ color: '#b91c1c' }));
-      col.position.set(x, 1.5, 3.6);
+      col.position.set(x, 1.56, 3.6);
       const lan = new THREE.Mesh(new THREE.SphereGeometry(0.36, 10, 8), new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#991b1b', emissiveIntensity: 0.7 }));
-      lan.position.set(x, 2.85, 3.6); lan.scale.y = 1.25; g.add(col, lan);
+      lan.position.set(x, 2.91, 3.6); lan.scale.y = 1.25; g.add(col, lan);
     }
     const censer = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.45, 0.82, 10), new THREE.MeshStandardMaterial({ color: '#b45309', metalness: 0.65, roughness: 0.35 }));
-    censer.position.set(0, 0.76, 4.6); g.add(censer);
+    censer.position.set(0, 0.88, 4.6); g.add(censer);
   }
 }
 function makeTileBase(t, i) {
@@ -2422,97 +2555,100 @@ function makeTileBase(t, i) {
   const gc = t.group ? R.GROUPS[t.group].color : (TYPE_STYLE[t.type]?.[1] || '#94a3b8');
   const theme = tileTheme(t, i);
   const ts = tileScale(t, i);
+  const rimPo = { polygonOffset: true, polygonOffsetFactor: -1 - (i % 5), polygonOffsetUnits: -2 - (i % 5) * 2 };
+  const topPo = { polygonOffset: true, polygonOffsetFactor: -(i % 4), polygonOffsetUnits: -(i % 4) * 2 };
+  const roadPo = { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 };
   let stone, top;
   if (theme === 'urban') {
     // 都會／交通樞紐：多層階梯矩形街區＋人行道鑲邊＋十字馬路＋外圍街廓
     const w = TILE_R * 2.08, d = TILE_R * 1.84;
-    stone = new THREE.Mesh(new THREE.BoxGeometry(w + 0.8, 3.2, d + 0.8), new THREE.MeshStandardMaterial({ color: '#cbd5e1', roughness: 0.85 }));
-    stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
-    const curb = new THREE.Mesh(new THREE.BoxGeometry(w + 0.35, 0.28, d + 0.35), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.22, roughness: 0.45 }));
-    curb.position.y = 0.08;
-    top = new THREE.Mesh(new THREE.BoxGeometry(w - 0.3, 0.16, d - 0.3), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88 }));
-    top.position.y = 0.28; top.receiveShadow = true;
-    const roadM = new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.9 });
-    const rx = new THREE.Mesh(new THREE.BoxGeometry(w - 0.4, 0.06, 1.35), roadM); rx.position.y = 0.36;
-    const rz = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.06, d - 0.4), roadM); rz.position.y = 0.36;
+    stone = new THREE.Mesh(new THREE.BoxGeometry(w + 0.8, 3.0, d + 0.8), new THREE.MeshStandardMaterial({ color: '#cbd5e1', roughness: 0.85 }));
+    stone.position.y = -1.55; stone.castShadow = true; stone.receiveShadow = true;
+    const curb = new THREE.Mesh(new THREE.BoxGeometry(w + 0.35, 0.24, d + 0.35), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.22, roughness: 0.45, ...rimPo }));
+    curb.position.y = 0.09;
+    top = new THREE.Mesh(new THREE.BoxGeometry(w - 0.3, 0.16, d - 0.3), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88, ...topPo }));
+    top.position.y = 0.31; top.receiveShadow = true;
+    const roadM = new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.9, ...roadPo });
+    const rx = new THREE.Mesh(new THREE.BoxGeometry(w - 0.4, 0.05, 1.35), roadM); rx.position.y = 0.42;
+    const rz = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.05, d - 0.4), roadM); rz.position.y = 0.435;
     g.add(rx, rz);
     if (ts >= 1.15) {
       const bMat = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.65 });
       const winMat = new THREE.MeshStandardMaterial({ color: '#e2e8f0', emissive: '#fde047', emissiveIntensity: 0.18 });
       for (const [bx, bz, bw, bh, bd] of [[-w * 0.41, d * 0.35, 1.3, 1.9, 1.1], [w * 0.41, d * 0.35, 1.4, 2.3, 1.2], [-w * 0.41, -d * 0.35, 1.2, 1.6, 1.1]]) {
-        const blk = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bMat); blk.position.set(bx, 0.36 + bh * 0.5, bz); blk.castShadow = true;
-        const cap = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.82, 0.22, bd * 0.82), winMat); cap.position.set(bx, 0.38 + bh, bz);
+        const blk = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bMat); blk.position.set(bx, 0.4 + bh * 0.5, bz); blk.castShadow = true;
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.82, 0.22, bd * 0.82), winMat); cap.position.set(bx, 0.42 + bh, bz);
         g.add(blk, cap);
       }
     }
     for (const [cx, cz] of [[-w * 0.47, -d * 0.47], [w * 0.47, -d * 0.47], [-w * 0.47, d * 0.47], [w * 0.47, d * 0.47]]) {
-      const post = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.95, 0.45), new THREE.MeshStandardMaterial({ color: gc, roughness: 0.5 }));
-      post.position.set(cx, 0.64, cz); post.castShadow = true; g.add(post);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.72, 0.45), new THREE.MeshStandardMaterial({ color: gc, roughness: 0.5 }));
+      post.position.set(cx, 0.56, cz); post.castShadow = true; g.add(post);
     }
     g.add(stone, curb, top);
   } else if (theme === 'market') {
     // 夜市／節慶商街：十字交錯階梯紅磚廣場＋中央圓形舞台鑲嵌
     const w = TILE_R * 1.95, d = TILE_R * 1.42;
-    stone = new THREE.Mesh(new THREE.BoxGeometry(w, 3.2, d), new THREE.MeshStandardMaterial({ color: '#9a3412', roughness: 0.85 }));
-    stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
-    const crossStone = new THREE.Mesh(new THREE.BoxGeometry(d, 3.2, w), new THREE.MeshStandardMaterial({ color: '#9a3412', roughness: 0.85 }));
-    crossStone.position.y = -1.42; crossStone.castShadow = true; crossStone.receiveShadow = true;
-    const rim1 = new THREE.Mesh(new THREE.BoxGeometry(w + 0.2, 0.24, d + 0.2), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.25 })); rim1.position.y = 0.08;
-    const rim2 = new THREE.Mesh(new THREE.BoxGeometry(d + 0.2, 0.24, w + 0.2), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.25 })); rim2.position.y = 0.08;
-    top = new THREE.Mesh(new THREE.BoxGeometry(w - 0.35, 0.16, d - 0.35), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88 }));
-    top.position.y = 0.26; top.receiveShadow = true;
-    const top2 = new THREE.Mesh(new THREE.BoxGeometry(d - 0.35, 0.16, w - 0.35), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88 }));
-    top2.position.y = 0.26; top2.receiveShadow = true;
-    const inset = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.56, TILE_R * 0.6, 0.12, 20), new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.78 }));
-    inset.position.y = 0.32;
+    stone = new THREE.Mesh(new THREE.BoxGeometry(w, 3.0, d), new THREE.MeshStandardMaterial({ color: '#9a3412', roughness: 0.85 }));
+    stone.position.y = -1.55; stone.castShadow = true; stone.receiveShadow = true;
+    const crossStone = new THREE.Mesh(new THREE.BoxGeometry(d, 3.0, w), new THREE.MeshStandardMaterial({ color: '#9a3412', roughness: 0.85 }));
+    crossStone.position.y = -1.58; crossStone.castShadow = true; crossStone.receiveShadow = true;
+    const rim1 = new THREE.Mesh(new THREE.BoxGeometry(w + 0.2, 0.24, d + 0.2), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.25, ...rimPo })); rim1.position.y = 0.09;
+    const rim2 = new THREE.Mesh(new THREE.BoxGeometry(d + 0.2, 0.24, w + 0.2), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.25, ...rimPo })); rim2.position.y = 0.11;
+    top = new THREE.Mesh(new THREE.BoxGeometry(w - 0.35, 0.16, d - 0.35), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88, ...topPo }));
+    top.position.y = 0.31; top.receiveShadow = true;
+    const top2 = new THREE.Mesh(new THREE.BoxGeometry(d - 0.35, 0.16, w - 0.35), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88, ...topPo }));
+    top2.position.y = 0.33; top2.receiveShadow = true;
+    const inset = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.56, TILE_R * 0.6, 0.10, 20), new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.78 }));
+    inset.position.y = 0.42;
     g.add(stone, crossStone, rim1, rim2, top, top2, inset);
   } else if (theme === 'coast') {
     // 海濱沙洲／離島環礁：雙重錯位有機橢圓沙洲平台
-    stone = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.92, TILE_R * 1.05, 3.2, 18), new THREE.MeshStandardMaterial({ color: '#c2a773', roughness: 0.88 }));
-    stone.scale.set(1.25, 1, 0.88); stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
+    stone = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.92, TILE_R * 1.05, 3.0, 18), new THREE.MeshStandardMaterial({ color: '#c2a773', roughness: 0.88 }));
+    stone.scale.set(1.25, 1, 0.88); stone.position.y = -1.55; stone.castShadow = true; stone.receiveShadow = true;
     const shoal2 = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.85, TILE_R * 0.95, 3.0, 16), new THREE.MeshStandardMaterial({ color: '#b59760', roughness: 0.9 }));
-    shoal2.scale.set(0.85, 1, 0.75); shoal2.position.set(2.4, -1.5, -1.8); shoal2.castShadow = true; shoal2.receiveShadow = true;
-    top = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.88, TILE_R * 0.9, 0.16, 18), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.92 }));
-    top.scale.set(1.25, 1, 0.88); top.position.y = 0.24; top.receiveShadow = true;
-    const top2 = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.82, TILE_R * 0.84, 0.16, 16), new THREE.MeshStandardMaterial({ color: '#ebd9a2', roughness: 0.92 }));
-    top2.scale.set(0.85, 1, 0.75); top2.position.set(2.4, 0.22, -1.8); top2.receiveShadow = true;
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(TILE_R * 0.9, 0.14, 6, 24), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.22 }));
+    shoal2.scale.set(0.85, 1, 0.75); shoal2.position.set(2.4, -1.62, -1.8); shoal2.castShadow = true; shoal2.receiveShadow = true;
+    top = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.88, TILE_R * 0.9, 0.16, 18), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.92, ...topPo }));
+    top.scale.set(1.25, 1, 0.88); top.position.y = 0.31; top.receiveShadow = true;
+    const top2 = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.82, TILE_R * 0.84, 0.16, 16), new THREE.MeshStandardMaterial({ color: '#ebd9a2', roughness: 0.92, ...topPo }));
+    top2.scale.set(0.85, 1, 0.75); top2.position.set(2.4, 0.25, -1.8); top2.receiveShadow = true;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(TILE_R * 0.9, 0.14, 6, 24), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.22, ...rimPo }));
     ring.rotation.x = Math.PI / 2; ring.scale.set(1.25, 0.88, 1); ring.position.y = 0.16;
     g.add(stone, shoal2, top, top2, ring);
   } else if (theme === 'mountain') {
     // 高山岩盤：非對稱岩塊底座＋錯位山岩階台
-    stone = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.96, TILE_R * 1.15, 3.2, 7), new THREE.MeshStandardMaterial({ color: '#6b7280', flatShading: true, roughness: 0.92 }));
-    stone.scale.set(1.12, 1, 0.94); stone.rotation.y = 0.3; stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
+    stone = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.96, TILE_R * 1.15, 3.0, 7), new THREE.MeshStandardMaterial({ color: '#6b7280', flatShading: true, roughness: 0.92 }));
+    stone.scale.set(1.12, 1, 0.94); stone.rotation.y = 0.3; stone.position.y = -1.55; stone.castShadow = true; stone.receiveShadow = true;
     const shelf = new THREE.Mesh(new THREE.DodecahedronGeometry(TILE_R * 0.65, 0), new THREE.MeshStandardMaterial({ color: '#57534e', flatShading: true, roughness: 0.95 }));
     shelf.scale.set(1.25, 0.45, 0.95); shelf.position.set(-2.8, -0.55, -2.0); shelf.castShadow = true;
-    const rim = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.98, TILE_R * 0.98, 0.28, 7, 1, true), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.2, side: THREE.DoubleSide }));
-    rim.scale.set(1.12, 1, 0.94); rim.rotation.y = 0.3; rim.position.y = 0.08;
-    top = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.92, TILE_R * 0.94, 0.16, 7), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.92 }));
-    top.scale.set(1.12, 1, 0.94); top.rotation.y = 0.3; top.position.y = 0.26; top.receiveShadow = true;
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.98, TILE_R * 0.98, 0.24, 7, 1, true), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.2, ...rimPo }));
+    rim.scale.set(1.12, 1, 0.94); rim.rotation.y = 0.3; rim.position.y = 0.09;
+    top = new THREE.Mesh(new THREE.CylinderGeometry(TILE_R * 0.92, TILE_R * 0.94, 0.16, 7), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.92, ...topPo }));
+    top.scale.set(1.12, 1, 0.94); top.rotation.y = 0.3; top.position.y = 0.31; top.receiveShadow = true;
     g.add(stone, shelf, rim, top);
   } else if (theme === 'temple') {
     // 傳統廟宇雙層石台基座
     const w = TILE_R * 1.98, d = TILE_R * 1.72;
-    stone = new THREE.Mesh(new THREE.BoxGeometry(w, 3.2, d), new THREE.MeshStandardMaterial({ color: '#d6d3d1', roughness: 0.85 }));
-    stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
-    const tier2 = new THREE.Mesh(new THREE.BoxGeometry(w * 0.86, 0.36, d * 0.84), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.65 }));
-    tier2.position.y = 0.16; tier2.castShadow = true;
-    top = new THREE.Mesh(new THREE.BoxGeometry(w * 0.82, 0.14, d * 0.8), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88 }));
-    top.position.y = 0.38; top.receiveShadow = true;
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.15, 0.18, d + 0.15), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.22 }));
-    rim.position.y = 0.02;
+    stone = new THREE.Mesh(new THREE.BoxGeometry(w, 3.0, d), new THREE.MeshStandardMaterial({ color: '#d6d3d1', roughness: 0.85 }));
+    stone.position.y = -1.55; stone.castShadow = true; stone.receiveShadow = true;
+    const tier2 = new THREE.Mesh(new THREE.BoxGeometry(w * 0.86, 0.22, d * 0.84), new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.65 }));
+    tier2.position.y = 0.30; tier2.castShadow = true;
+    top = new THREE.Mesh(new THREE.BoxGeometry(w * 0.82, 0.12, d * 0.8), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.88, ...topPo }));
+    top.position.y = 0.46; top.receiveShadow = true;
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.15, 0.24, d + 0.15), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.22, ...rimPo }));
+    rim.position.y = 0.09;
     g.add(stone, rim, tier2, top);
   } else {
     // 鄉鎮農田階梯綠地台座
     const w = TILE_R * 1.88, d = TILE_R * 1.68;
-    stone = new THREE.Mesh(new THREE.BoxGeometry(w, 3.2, d), new THREE.MeshStandardMaterial({ color: '#a89f81', roughness: 0.88 }));
-    stone.position.y = -1.42; stone.castShadow = true; stone.receiveShadow = true;
+    stone = new THREE.Mesh(new THREE.BoxGeometry(w, 3.0, d), new THREE.MeshStandardMaterial({ color: '#a89f81', roughness: 0.88 }));
+    stone.position.y = -1.55; stone.castShadow = true; stone.receiveShadow = true;
     const subTerrace = new THREE.Mesh(new THREE.BoxGeometry(w * 0.65, 2.8, d * 0.55), new THREE.MeshStandardMaterial({ color: '#8f9e66', roughness: 0.9 }));
-    subTerrace.position.set(2.8, -1.45, 2.6);
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.16, 0.24, d + 0.16), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.18 }));
-    rim.position.y = 0.06;
-    top = new THREE.Mesh(new THREE.BoxGeometry(w - 0.25, 0.16, d - 0.25), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.92 }));
-    top.position.y = 0.26; top.receiveShadow = true;
+    subTerrace.position.set(2.8, -1.60, 2.6);
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.16, 0.24, d + 0.16), new THREE.MeshStandardMaterial({ color: gc, emissive: gc, emissiveIntensity: 0.18, ...rimPo }));
+    rim.position.y = 0.09;
+    top = new THREE.Mesh(new THREE.BoxGeometry(w - 0.25, 0.16, d - 0.25), new THREE.MeshStandardMaterial({ color: THEME_TOP[theme], roughness: 0.92, ...topPo }));
+    top.position.y = 0.31; top.receiveShadow = true;
     g.add(stone, subTerrace, rim, top);
   }
   decorateTile(g, theme, i);
@@ -2558,15 +2694,16 @@ function makeLabelSprite(t, idx) {
   R.BOARD.forEach((t, i) => {
     const p = tilePos(i);
     const ts = tileScale(t, i);
+    const bts = tileBaseScale(t, i);
     const base = makeTileBase(t, i);
     base.position.copy(p);
-    base.scale.set(ts, 1, ts);
+    base.scale.set(bts, 1, bts);
     board.add(base);
 
     const prop = makeTileProp(t, i);
     if (prop.children.length) {
-      prop.position.set(p.x + LM_OFF.x * ts, p.y + 0.32, p.z + LM_OFF.z * ts);
-      const bs = (prop.userData.baseScale || 0.78) * 1.75 * (0.52 + ts * 0.48);
+      prop.position.set(p.x + LM_OFF.x * bts, p.y + 0.32, p.z + LM_OFF.z * bts);
+      const bs = (prop.userData.baseScale || 0.92) * 2.25 * (0.55 + bts * 0.45);
       prop.userData.baseScale = bs;
       prop.scale.setScalar(bs);
       board.add(prop);
@@ -2574,7 +2711,7 @@ function makeLabelSprite(t, idx) {
     }
 
     const sp = makeLabelSprite(t, i);
-    sp.position.set(p.x, p.y + 11, p.z);
+    sp.position.set(p.x, p.y + 16, p.z);
     labelGroup.add(sp);
     tileLabels[i] = sp;
   });
@@ -2613,13 +2750,13 @@ function syncBranchMarkers() {
   G.ask.options.forEach((opt, idx) => {
     const col = cols[idx % cols.length];
     const p = tilePos(opt.to);
-    const ts = tileScale(R.BOARD[opt.to], opt.to);
+    const ts = tileBaseScale(R.BOARD[opt.to], opt.to);
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(TILE_R * ts + 0.55, TILE_R * ts + 1.65, 24),
-      new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: 0.92 })
+      new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: 0.92, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })
     );
     ring.rotation.x = -Math.PI / 2;
-    ring.position.set(p.x, p.y + 0.45, p.z);
+    ring.position.set(p.x, p.y + 0.52, p.z);
     branchGroup.add(ring);
 
     const arrowGrp = new THREE.Group();
@@ -2678,89 +2815,119 @@ function houseMesh(level, color) {
   const roof = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
   const win = new THREE.MeshStandardMaterial({ color: '#7dd3fc', emissive: '#0c4a6e', roughness: 0.22 });
   if (level === 0) {
-    // 0級已購空地：整地石基＋建地木牌
-    const pad = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.24, 3.2), new THREE.MeshStandardMaterial({ color: '#d6ccb5', roughness: 0.9 }));
-    pad.position.y = 0.12;
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.35, 6), new THREE.MeshStandardMaterial({ color: '#78350f' }));
-    post.position.set(0, 0.7, 0);
-    const boardSign = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.82, 0.14), roof);
-    boardSign.position.set(0, 1.35, 0);
-    g.add(pad, post, boardSign);
+    // 0級已購空地：整地石基＋四角護柱＋高立建地告示牌
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.3, 3.8), new THREE.MeshStandardMaterial({ color: '#d6ccb5', roughness: 0.9 }));
+    pad.position.y = 0.15;
+    g.add(pad);
+    const bollardMat = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.6 });
+    for (const [bx, bz] of [[-1.65, -1.65], [1.65, -1.65], [-1.65, 1.65], [1.65, 1.65]]) {
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.55, 8), bollardMat);
+      b.position.set(bx, 0.42, bz); g.add(b);
+    }
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 2.2, 8), new THREE.MeshStandardMaterial({ color: '#78350f' }));
+    post.position.set(0, 1.1, 0);
+    const boardSign = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.98, 0.18), roof);
+    boardSign.position.set(0, 1.9, 0);
+    g.add(post, boardSign);
   } else if (level === 1) {
-    // 1級一樓平房：台灣紅磚三合院（正身＋左右護龍）
-    const main = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.5, 1.4), brick); main.position.set(0, 0.75, -0.35);
-    const rMain = new THREE.Mesh(new THREE.ConeGeometry(2.1, 1.1, 4), roof); rMain.position.set(0, 2.0, -0.35); rMain.rotation.y = Math.PI / 4;
-    for (const dx of [-1.05, 1.05]) {
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.1, 1.3), brick); wing.position.set(dx, 0.55, 0.65);
-      const rW = new THREE.Mesh(new THREE.ConeGeometry(0.8, 0.7, 4), roof); rW.position.set(dx, 1.4, 0.65); rW.rotation.y = Math.PI / 4;
+    // 1級一樓平房：台灣紅磚三合院（正身＋左右護龍＋前庭矮牆與紅磚院門）
+    const main = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.1, 1.65), brick); main.position.set(0, 1.05, -0.45);
+    const rMain = new THREE.Mesh(new THREE.ConeGeometry(2.45, 1.2, 4), roof); rMain.position.set(0, 2.5, -0.45); rMain.rotation.y = Math.PI / 4;
+    for (const dx of [-1.25, 1.25]) {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.6, 1.65), brick); wing.position.set(dx, 0.8, 0.65);
+      const rW = new THREE.Mesh(new THREE.ConeGeometry(1.05, 0.85, 4), roof); rW.position.set(dx, 2.0, 0.65); rW.rotation.y = Math.PI / 4;
       g.add(wing, rW);
     }
-    g.add(main, rMain);
+    const wallL = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.62, 0.2), brick); wallL.position.set(-1.1, 0.31, 1.65);
+    const wallR = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.62, 0.2), brick); wallR.position.set(1.1, 0.31, 1.65);
+    const gateL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 1.45, 0.26), brick); gateL.position.set(-0.55, 0.725, 1.65);
+    const gateR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 1.45, 0.26), brick); gateR.position.set(0.55, 0.725, 1.65);
+    const gateArch = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.32, 0.36), roof); gateArch.position.set(0, 1.55, 1.65);
+    g.add(main, rMain, wallL, wallR, gateL, gateR, gateArch);
   } else if (level === 2) {
-    // 2級二樓透天：台灣騎樓雙併透天＋垂直招牌
-    for (const [x, h] of [[-1.0, 3.2], [1.05, 2.7]]) {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(1.7, h, 2.0), wall); b.position.set(x, h / 2, 0);
-      const r = new THREE.Mesh(new THREE.ConeGeometry(1.4, 1.0, 4), roof); r.position.set(x, h + 0.5, 0); r.rotation.y = Math.PI / 4;
-      const bal = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.25, 0.4), roof); bal.position.set(x, h * 0.55, 1.05);
-      g.add(b, r, bal);
+    // 2級透天別墅：3-4樓雙併騎樓透天＋露台花架＋垂直霓虹招牌
+    const woodMat = new THREE.MeshStandardMaterial({ color: '#92400e', roughness: 0.75 });
+    for (const [x, h] of [[-1.08, 4.4], [1.08, 3.8]]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(1.85, h, 2.2), wall); b.position.set(x, h / 2, -0.1);
+      const r = new THREE.Mesh(new THREE.ConeGeometry(1.58, 0.8, 4), roof); r.position.set(x, h + 0.4, -0.1); r.rotation.y = Math.PI / 4;
+      const bal1 = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.26, 0.46), roof); bal1.position.set(x, h * 0.42, 1.12);
+      const bal2 = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.26, 0.46), roof); bal2.position.set(x, h * 0.72, 1.12);
+      const pilL = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 1.3, 8), wall); pilL.position.set(x - 0.72, 0.65, 1.25);
+      const pilR = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 1.3, 8), wall); pilR.position.set(x + 0.72, 0.65, 1.25);
+      g.add(b, r, bal1, bal2, pilL, pilR);
     }
-    const sign = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.4, 0.45), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#785000' }));
-    sign.position.set(-2.05, 2.0, 0.85); g.add(sign);
+    const perg = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.14, 1.3), woodMat); perg.position.set(1.08, 4.45, -0.1);
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(0.36, 2.2, 0.5), new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207', emissiveIntensity: 0.65 }));
+    sign.position.set(-2.22, 2.6, 0.95);
+    g.add(perg, sign);
   } else if (level === 3) {
-    // 3級摩天大樓：三段退縮式玻璃帷幕地標摩天大樓＋發光霓虹條＋停機坪＋黃金尖塔
+    // 3級摩天大樓：三段退縮式玻璃帷幕地標摩天大樓＋發光霓虹條＋停機坪＋黃金尖塔（最高 y = 20.2）
     const glass = new THREE.MeshStandardMaterial({ color: '#dbeafe', metalness: 0.55, roughness: 0.2 });
-    const neon = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.3 });
+    const neon = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, roughness: 0.3 });
     const goldMat = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#a16207', metalness: 0.7, roughness: 0.2 });
-    const podium = new THREE.Mesh(new THREE.BoxGeometry(3.8, 2.2, 3.8), glass); podium.position.y = 1.1;
-    const canopy = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.25, 1.0), goldMat); canopy.position.set(0, 1.15, 2.1);
-    const mid = new THREE.Mesh(new THREE.BoxGeometry(3.0, 6.2, 3.0), glass); mid.position.y = 5.3;
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(2.2, 4.2, 2.2), glass); upper.position.y = 10.5;
+    const podium = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.6, 4.2), glass); podium.position.y = 1.3;
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.28, 1.1), goldMat); canopy.position.set(0, 1.4, 2.3);
+    const mid = new THREE.Mesh(new THREE.BoxGeometry(3.3, 7.6, 3.3), glass); mid.position.y = 6.4;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(2.4, 5.2, 2.4), glass); upper.position.y = 12.8;
     g.add(podium, canopy, mid, upper);
-    for (let y = 2.6; y < 8.1; y += 0.95) {
-      const w = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.42, 3.1), win); w.position.y = y; g.add(w);
+    for (let y = 3.1; y < 9.9; y += 1.05) {
+      const w = new THREE.Mesh(new THREE.BoxGeometry(3.42, 0.44, 3.42), win); w.position.y = y; g.add(w);
     }
-    for (let y = 8.9; y < 12.4; y += 0.9) {
-      const w = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.38, 2.3), win); w.position.y = y; g.add(w);
+    for (let y = 10.8; y < 15.1; y += 0.98) {
+      const w = new THREE.Mesh(new THREE.BoxGeometry(2.52, 0.4, 2.52), win); w.position.y = y; g.add(w);
     }
-    for (const [cx, cz] of [[-1.52, -1.52], [1.52, -1.52], [-1.52, 1.52], [1.52, 1.52]]) {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 6.3, 0.18), neon);
-      strip.position.set(cx, 5.35, cz); g.add(strip);
+    for (const [cx, cz] of [[-1.68, -1.68], [1.68, -1.68], [-1.68, 1.68], [1.68, 1.68]]) {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.2, 7.7, 0.2), neon);
+      strip.position.set(cx, 6.4, cz); g.add(strip);
     }
-    const helipad = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.78, 16), goldMat);
-    helipad.rotation.x = -Math.PI / 2; helipad.position.y = 12.64; g.add(helipad);
-    const crown = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.15, 1.7), roof); crown.position.y = 13.15; g.add(crown);
-    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.2, 2.6, 8), goldMat); spire.position.y = 14.9; g.add(spire);
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.9 }));
-    beacon.position.y = 16.25; g.add(beacon);
+    const helipad = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.88, 16), goldMat);
+    helipad.rotation.x = -Math.PI / 2; helipad.position.y = 15.44; g.add(helipad);
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.3, 1.9), roof); crown.position.y = 16.05; g.add(crown);
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.22, 2.9, 8), goldMat); spire.position.y = 18.15; g.add(spire);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.36, 10, 10), new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 0.95 }));
+    beacon.position.y = 19.84; g.add(beacon);
     g.userData.beacon = beacon;
   } else if (level === 4) {
-    // 4級五星飯店：奢華雙翼度假飯店＋藍寶石泳池＋金冠屋頂
+    // 4級五星飯店：奢華雙翼度假飯店＋藍寶石泳池＋金冠屋頂＋旋轉金星（最高 y = 17.2）
     const marble = new THREE.MeshStandardMaterial({ color: '#fef3c7', roughness: 0.35 });
     const goldMat = new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#b45309', metalness: 0.7, roughness: 0.2 });
-    const pool = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.24, 1.6), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.35 }));
-    pool.position.set(0, 0.14, 1.85);
-    const main = new THREE.Mesh(new THREE.BoxGeometry(4.4, 10.5, 2.6), marble); main.position.y = 5.25;
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.2, 1.6, 8), roof); crown.position.y = 11.3;
-    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), goldMat); star.position.y = 12.8;
-    g.add(pool, main, crown, star);
-    for (let y = 1.6; y < 9.8; y += 1.2) {
-      const band = new THREE.Mesh(new THREE.BoxGeometry(4.55, 0.45, 2.75), win); band.position.y = y; g.add(band);
+    const pool = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.26, 1.75), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.4 }));
+    pool.position.set(0, 0.15, 2.1);
+    const main = new THREE.Mesh(new THREE.BoxGeometry(4.8, 13.0, 2.9), marble); main.position.y = 6.5;
+    const wingL = new THREE.Mesh(new THREE.BoxGeometry(1.5, 9.2, 2.5), marble); wingL.position.set(-2.95, 4.6, 0.15);
+    const wingR = new THREE.Mesh(new THREE.BoxGeometry(1.5, 9.2, 2.5), marble); wingR.position.set(2.95, 4.6, 0.15);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 2.45, 1.8, 8), roof); crown.position.y = 13.9;
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.75, 0), goldMat); star.position.y = 16.45;
+    g.add(pool, main, wingL, wingR, crown, star);
+    for (let y = 1.6; y < 12.2; y += 1.3) {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(4.95, 0.48, 3.05), win); band.position.y = y; g.add(band);
+    }
+    for (let y = 1.6; y < 8.6; y += 1.4) {
+      const wL = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.42, 2.62), win); wL.position.set(-2.95, y, 0.15);
+      const wR = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.42, 2.62), win); wR.position.set(2.95, y, 0.15);
+      g.add(wL, wR);
     }
     g.userData.beacon = star;
   } else if (level >= 5) {
-    // 5級連鎖旗艦店：雙子星玻璃巨塔＋高空連通天橋＋頂端皇冠霓虹塔
+    // 5級連鎖旗艦店：雙子星玻璃巨塔＋雙層高空連通天橋＋頂端皇冠霓虹塔（最高 y = 23.2）
     const glass = new THREE.MeshStandardMaterial({ color: '#e0f2fe', metalness: 0.65, roughness: 0.18 });
     const goldMat = new THREE.MeshStandardMaterial({ color: '#fde047', emissive: '#ca8a04', metalness: 0.75, roughness: 0.2 });
-    const neon = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.75 });
-    const podium = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.4, 4.2), neon); podium.position.y = 1.2;
-    const tL = new THREE.Mesh(new THREE.BoxGeometry(1.85, 13.5, 2.6), glass); tL.position.set(-1.35, 7.95, 0);
-    const tR = new THREE.Mesh(new THREE.BoxGeometry(1.85, 13.5, 2.6), glass); tR.position.set(1.35, 7.95, 0);
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.35, 1.6), goldMat); bridge.position.set(0, 10.5, 0);
-    const topArch = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.1, 2.0), roof); topArch.position.y = 15.2;
-    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.35, 3.2, 8), goldMat); spire.position.y = 17.3;
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 10), new THREE.MeshStandardMaterial({ color: '#fff', emissive: '#f43f5e', emissiveIntensity: 1.0 }));
-    beacon.position.y = 19.1;
-    g.add(podium, tL, tR, bridge, topArch, spire, beacon);
+    const neon = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.78 });
+    const podium = new THREE.Mesh(new THREE.BoxGeometry(5.6, 2.6, 4.4), neon); podium.position.y = 1.3;
+    const tL = new THREE.Mesh(new THREE.BoxGeometry(2.1, 16.5, 2.8), glass); tL.position.set(-1.55, 10.85, 0);
+    const tR = new THREE.Mesh(new THREE.BoxGeometry(2.1, 16.5, 2.8), glass); tR.position.set(1.55, 10.85, 0);
+    const bridge1 = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.2, 1.7), goldMat); bridge1.position.set(0, 8.8, 0);
+    const bridge2 = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.25, 1.7), goldMat); bridge2.position.set(0, 13.6, 0);
+    const topArch = new THREE.Mesh(new THREE.BoxGeometry(5.2, 1.2, 2.2), roof); topArch.position.y = 19.7;
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.36, 2.2, 8), goldMat); spire.position.y = 21.4;
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 10), new THREE.MeshStandardMaterial({ color: '#fff', emissive: '#f43f5e', emissiveIntensity: 1.0 }));
+    beacon.position.y = 22.75;
+    g.add(podium, tL, tR, bridge1, bridge2, topArch, spire, beacon);
+    for (let y = 3.8; y < 18.6; y += 1.45) {
+      const bL = new THREE.Mesh(new THREE.BoxGeometry(2.22, 0.44, 2.92), win); bL.position.set(-1.55, y, 0);
+      const bR = new THREE.Mesh(new THREE.BoxGeometry(2.22, 0.44, 2.92), win); bR.position.set(1.55, y, 0);
+      g.add(bL, bR);
+    }
     g.userData.beacon = beacon;
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
@@ -2781,23 +2948,23 @@ function syncBuildings() {
     }
     prevTileLevels[i] = s.level || 0;
     if (tileProps[i]) {
-      const bs = tileProps[i].userData.baseScale || 0.78;
-      tileProps[i].scale.setScalar(s.owner != null && s.level > 0 ? bs * 0.8 : bs);
+      const bs = tileProps[i].userData.baseScale || 0.92;
+      tileProps[i].scale.setScalar(s.owner != null && s.level > 0 ? bs * 0.9 : bs);
     }
     const p = tilePos(i);
     if (tileLabels[i]) {
-      const hOff = s.owner != null && s.level > 0 ? ([14, 14, 15, 22, 25, 28][s.level] || 28) : 14;
+      const hOff = s.owner != null && s.level > 0 ? ([17, 17, 19, 27, 30, 35][s.level] || 35) : 17;
       tileLabels[i].position.y = p.y + hOff;
     }
     if (s.owner != null) {
       const col = G.players[s.owner].color;
-      const ts = tileScale(R.BOARD[i], i);
+      const ts = tileBaseScale(R.BOARD[i], i);
       const halo = new THREE.Mesh(
         new THREE.RingGeometry(TILE_R * ts - 0.15, TILE_R * ts + 0.6, 8),
-        new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 })
       );
       halo.rotation.x = -Math.PI / 2; halo.rotation.z = Math.PI / 8;
-      halo.position.set(p.x, p.y + 0.36, p.z); buildG.add(halo);
+      halo.position.set(p.x, p.y + 0.48, p.z); buildG.add(halo);
 
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.8), new THREE.MeshStandardMaterial({ color: '#eee' }));
       const flag = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.85, 0.1), new THREE.MeshStandardMaterial({ color: col }));
@@ -2806,7 +2973,7 @@ function syncBuildings() {
       buildG.add(pole, flag);
       const h = houseMesh(s.level || 0, col);
       h.position.set(p.x + HOUSE_OFF.x * ts, p.y + 0.32, p.z + HOUSE_OFF.z * ts);
-      const baseScale = (s.level === 4 ? 0.95 : 0.92) * (0.58 + ts * 0.42);
+      const baseScale = (s.level >= 3 ? 1.12 : 1.08) * (0.62 + ts * 0.42);
       h.scale.setScalar(baseScale);
       buildG.add(h);
       activeHouses.push({ group: h, baseScale, tileIdx: i });
@@ -3436,14 +3603,89 @@ const pipTex = n => canvasTex(128, 128, (c, w) => {
 });
 const FACE = [3, 4, 1, 6, 2, 5];
 const diceMats = FACE.map(n => new THREE.MeshStandardMaterial({ map: pipTex(n), roughness: 0.35 }));
-const dice = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 3.4), diceMats); m.castShadow = true; m.position.set(-105 + k * 5.2, 2.2, 120); scene.add(m); return m; });
-dice[1].visible = false;
+const dice = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.BoxGeometry(2.75, 2.75, 2.75), diceMats); m.castShadow = true; m.visible = false; m.position.set(-105 + k * 4.1, 2.2, 120); scene.add(m); return m; });
+const dicePad = new THREE.Group();
+const dicePadDisc = new THREE.Mesh(
+  new THREE.CylinderGeometry(4.4, 4.8, 0.28, 24),
+  new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.45, metalness: 0.35, transparent: true, opacity: 0.82, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 })
+);
+dicePadDisc.receiveShadow = true;
+const dicePadRing = new THREE.Mesh(
+  new THREE.TorusGeometry(4.55, 0.22, 8, 28),
+  new THREE.MeshStandardMaterial({ color: '#facc15', emissive: '#ca8a04', emissiveIntensity: 0.55, roughness: 0.3, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })
+);
+dicePadRing.rotation.x = Math.PI / 2;
+dicePadRing.position.y = 0.14;
+dicePad.add(dicePadDisc, dicePadRing);
+dicePad.visible = false;
+scene.add(dicePad);
 function syncDiceVisible(count = (G ? (R.cur(G).dice || 1) : 1)) {
-  dice[0].visible = true;
-  dice[1].visible = count > 1;
+  const active = Boolean(diceAnim);
+  dice[0].visible = active;
+  dice[1].visible = active && count > 1;
+  dicePad.visible = active;
 }
 const UP = { 1: [0, 0], 2: [-Math.PI / 2, 0], 3: [0, Math.PI / 2], 4: [0, -Math.PI / 2], 5: [Math.PI / 2, 0], 6: [Math.PI, 0] };
 let diceAnim = null;
+function computeDiceAnchor(tileIdx, pIdx) {
+  const a = tilePos(tileIdx);
+  const ts = tileBaseScale(R.BOARD[tileIdx], tileIdx);
+  const tk = tokens[pIdx];
+  const tkPos = tk ? tk.g.position : tokenWorld(tileIdx, pIdx);
+  const obs = [{ x: tkPos.x, z: tkPos.z, r: 6.4 }];
+  if (G) {
+    G.players.forEach((pl, j) => {
+      if (j === pIdx || pl.bankrupt) return;
+      const op = tokens[j] ? tokens[j].g.position : tokenWorld(pl.pos, j);
+      obs.push({ x: op.x, z: op.z, r: 3.8 });
+    });
+    for (const npc of (G.npcs || [])) {
+      if (npc.attachedTo != null || npc.respawnIn > 0 || npc.pos !== tileIdx) continue;
+      const nt = npcTokens.get(npc.id);
+      const np = nt ? nt.g.position : npcWorld(npc.pos);
+      obs.push({ x: np.x, z: np.z, r: 3.8 });
+    }
+    if (G.tiles[tileIdx] && G.tiles[tileIdx].owner != null) {
+      obs.push({ x: a.x + HOUSE_OFF.x * ts, z: a.z + HOUSE_OFF.z * ts, r: 4.2 * ts });
+    }
+  }
+  if (tileProps[tileIdx]) {
+    obs.push({ x: a.x + LM_OFF.x * ts, z: a.z + LM_OFF.z * ts, r: 4.6 * ts });
+  }
+  const Rx = Math.cos(camS.yaw), Rz = -Math.sin(camS.yaw);
+  const Fx = Math.sin(camS.yaw), Fz = Math.cos(camS.yaw);
+  const cands = [
+    [tkPos.x + Rx * 8.6 + Fx * 2.8, tkPos.z + Rz * 8.6 + Fz * 2.8],
+    [tkPos.x - Rx * 8.6 + Fx * 2.8, tkPos.z - Rz * 8.6 + Fz * 2.8],
+    [tkPos.x + Rx * 9.8 - Fx * 1.6, tkPos.z + Rz * 9.8 - Fz * 1.6],
+    [tkPos.x - Rx * 9.8 - Fx * 1.6, tkPos.z - Rz * 9.8 - Fz * 1.6],
+    [a.x + Rx * 9.5 + Fx * 5.2, a.z + Rz * 9.5 + Fz * 5.2],
+    [a.x - Rx * 9.5 + Fx * 5.2, a.z - Rz * 9.5 + Fz * 5.2],
+    [a.x + Rx * 8.2 + Fx * 8.0, a.z + Rz * 8.2 + Fz * 8.0],
+    [a.x - Rx * 8.2 + Fx * 8.0, a.z - Rz * 8.2 + Fz * 8.0],
+    [a.x + Fx * 10.2, a.z + Fz * 10.2],
+    [a.x - Fx * 10.0, a.z - Fz * 10.0],
+  ];
+  let best = cands[0], bestTier = -1, bestScore = -Infinity;
+  for (const [cx, cz] of cands) {
+    const dSelf = Math.hypot(cx - tkPos.x, cz - tkPos.z);
+    const latSelf = Math.abs((cx - tkPos.x) * Rx + (cz - tkPos.z) * Rz);
+    const tier = (dSelf >= 7.6 && latSelf >= 5.2) ? 1 : 0;
+    let minClear = Infinity;
+    for (const o of obs) {
+      const c = Math.hypot(cx - o.x, cz - o.z) - o.r;
+      if (c < minClear) minClear = c;
+    }
+    const dTile = Math.hypot(cx - a.x, cz - a.z);
+    const score = minClear - dTile * 0.08 + (tier === 0 ? dSelf * 0.15 : 0);
+    if (tier > bestTier || (tier === bestTier && score > bestScore)) {
+      bestTier = tier; bestScore = score; best = [cx, cz];
+    }
+  }
+  const [bx, bz] = best;
+  const cy = Math.max(a.y, onMainland(bx, bz) ? terrainHeight(bx, bz) : a.y);
+  return new THREE.Vector3(bx, cy, bz);
+}
 function rollDice(a, b, count = (b > 0 ? 2 : 1)) {
   // 骰子出現在出發點：擲骰時規則已把玩家移到終點，所以用棋子畫面上的位置（尚未開始走）
   let from = G ? R.cur(G).pos : 0;
@@ -3451,34 +3693,45 @@ function rollDice(a, b, count = (b > 0 ? 2 : 1)) {
     const tk = tokens[G.move.p];
     from = G.move.from != null ? G.move.from : tk && tk.moveN !== G.move.n ? tk.pos : from;
   }
-  const anchor = G ? tilePos(from) : new THREE.Vector3(-105, 1.5, 120);
-  syncDiceVisible(count);
+  const pIdx = (G && G.move) ? G.move.p : (G ? G.cur : 0);
+  const anchor = G ? computeDiceAnchor(from, pIdx) : new THREE.Vector3(-105, 1.5, 120);
+  dicePad.position.set(anchor.x, anchor.y + 0.52, anchor.z);
   diceAnim = {
     t0: performance.now(), dur: 850 / Math.sqrt(SPEED), hold: 680 / SPEED, end: [a, b], count, anchor,
     spin: [new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6), new THREE.Vector3(Math.random() * 9 + 6, Math.random() * 9 + 6, Math.random() * 9 + 6)]
   };
+  syncDiceVisible(count);
   snd('dice');
 }
 function stepDice(now) {
   if (!diceAnim) return;
   const t = Math.min(1, (now - diceAnim.t0) / diceAnim.dur);
   const a = diceAnim.anchor;
+  const Rx = Math.cos(camS.yaw), Rz = -Math.sin(camS.yaw);
+  dicePad.position.set(a.x, a.y + 0.52, a.z);
+  dicePad.visible = true;
   dice.forEach((d, k) => {
     if (k >= diceAnim.count) { d.visible = false; return; }
     d.visible = true;
     const [rx, rz] = UP[diceAnim.end[k] || 1];
-    const ox = diceAnim.count === 1 ? a.x : a.x + (k ? 2.6 : -2.6), oz = a.z + 5.8;
+    const sep = diceAnim.count === 1 ? 0 : (k ? 2.05 : -2.05);
+    const ox = a.x + Rx * sep, oz = a.z + Rz * sep;
     if (t < 1) {
       const s = (1 - t) * 1.2;
       d.rotation.set(rx + diceAnim.spin[k].x * s, d.rotation.y + 0.02, rz + diceAnim.spin[k].z * s);
-      d.position.set(ox, a.y + 4.2 + Math.abs(Math.sin(t * Math.PI * 3)) * 8.5 * (1 - t), oz);
+      d.position.set(ox, a.y + 3.2 + Math.abs(Math.sin(t * Math.PI * 3)) * 7.8 * (1 - t), oz);
     } else {
-      d.rotation.set(rx, k * 0.35, rz);
-      d.position.set(ox, a.y + 3.4, oz);
+      d.rotation.set(rx, camS.yaw + k * 0.25, rz);
+      d.position.set(ox, a.y + 2.05, oz);
     }
   });
-  // 骰子落定後停留一下讓玩家看清點數，棋子才開始走
-  if (now - diceAnim.t0 >= diceAnim.dur + diceAnim.hold) diceAnim = null;
+  // 骰子落定後停留一下讓玩家看清點數，棋子才開始走，結束後自動收起骰子與骰盤
+  if (now - diceAnim.t0 >= diceAnim.dur + diceAnim.hold) {
+    dice[0].visible = false;
+    dice[1].visible = false;
+    dicePad.visible = false;
+    diceAnim = null;
+  }
 }
 
 // ---------- 鏡頭：操作模式與大戰略 3D 一致（單指/左鍵平移、雙指鎖定縮放或旋轉傾斜、右鍵或 Shift+左鍵旋轉傾斜、Q/E/R/F 與右下角控制列） ----------
@@ -5807,6 +6060,7 @@ function startGame(seats, rounds) {
   npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
   buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
   lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; lastTransportN = 0; lastItemEventN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+  diceAnim = null;
   resetCamGoal(); syncDiceVisible(1);
   closeModal(); broadcast(); renderUI(); scheduleAuto(); snd('turn');
 }
@@ -5834,7 +6088,7 @@ function wireRoundsField(box) {
 }
 
 function openLobby() {
-  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v172</span></h2><div class="sub">原創 3D 台灣地產桌遊：125 格全台灣（含鄉鎮、美食、百貨、遊樂場、造型商店、汽車中心、股市與澎湖/金門離島不規則小地圖）、4 倍佔地 3D 霓虹造景、漸進 6 階地標建設、定點神明野狗與右上角 Breaking News！</div>
+  openModal(`<h2>環島富豪 3D <span style="font-size:.65em;opacity:.75">v173</span></h2><div class="sub">原創 3D 台灣地產桌遊：125 格全台灣（含鄉鎮、美食、百貨、遊樂場、造型商店、汽車中心、股市與澎湖/金門離島不規則小地圖）、4 倍佔地 3D 霓虹造景、漸進 6 階地標建設、定點神明野狗與右上角 Breaking News！</div>
     <div class="row" style="justify-content:stretch;flex-direction:column">
       <button class="primary" id="lLocal">單機遊戲（自訂名稱・對電腦或同機輪流）</button>
       <button id="lHost">建立線上房間</button>
@@ -5993,6 +6247,7 @@ function openJoin() {
               npcTokens.forEach(nt => scene.remove(nt.g)); npcTokens.clear();
               buildKey = ''; prevTileLevels = []; activeHouses = []; buildingRise.clear(); resetUiQueue();
               lastCard = 0; lastMoveN = 0; lastNewsId = 0; lastBiteN = 0; lastHospitalN = 0; lastBankruptN = 0; lastGodFxN = 0; lastTransportN = 0; lastItemEventN = 0; shownAsk = null; lastRankRound = 0; pendingRankModal = false;
+              diceAnim = null;
               resetCamGoal(); syncDiceVisible();
             }
             if (G.dice && G.dice.n !== prevDice) rollDice(G.dice.a, G.dice.b, G.dice.count);

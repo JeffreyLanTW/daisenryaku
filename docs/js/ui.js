@@ -1288,7 +1288,7 @@ function openNationDetail(sel, prevFn, rootBackFn, fromTitle) {
 }
 
 function openHelp() {
-  openModal(`<h2>作戰說明 <span class="ver-badge">v172</span></h2><div class="help">
+  openModal(`<h2>作戰說明 <span class="ver-badge">v173</span></h2><div class="help">
     <h4>勝利條件</h4><p>以步兵類部隊<b>佔領敵方首都</b>，或<b>殲滅全部敵軍</b>。劇情任務另有各自的目標。</p>
     <h4>基本操作</h4><ul>
       <li>右下 <b>⚙️</b> 戰場設定：隨時切換雙方「玩家／電腦」與 AI 風格（兩方都設電腦即可觀戰）、工兵規則與電腦速度。</li>
@@ -1320,8 +1320,9 @@ function openHelp() {
     <details class="changelog-box">
       <summary>📜 開發歷史與版本紀錄 (Changelog)</summary>
       <div class="changelog-list">
+        <div class="cl-item"><span class="cl-ver">v173</span><span class="cl-date">2026.11.15</span><p>【環島富豪 125 格 3D 地標與 0～5 級建築全面升級・消除底盤閃爍・骰子智慧避障】全面放大增高全台 125 格 3D 地標與 0～5 級地產建築模型並補齊在地特色細節（台北 101 八節竹身與商業裙樓、高雄 85 大樓與流行音樂中心、各地美食大牌樓與摩天輪遊樂場、花蓮／夜市／服飾店專屬地標與雙子星旗艦巨塔等，並修復服飾店重複分支覆寫）；優化高程鄰接防重疊與交錯 <code>polygonOffset</code>、拉開大都市格位間距並調升攝影機近裁面，根除高雄港灣與百貨等底盤閃爍（Z-fighting）；新增 3D 骰子落地墊、縮小骰體並依視角側向動態避讓玩家棋子，擲骰結束後自動收合隱藏，避免與棋子重疊遮擋。</p></div>
         <div class="cl-item"><span class="cl-ver">v172</span><span class="cl-date">2026.11.15</span><p>【環島富豪 125 格地形地標・全點位特產事件・3D 穿戴放大檢視】125 格依地形與機能打造差異化立體底座與專屬地標建築（101 大樓、燈塔、溫泉、港口等）；全點位（0..124）皆可觸發道具／特產事件並彈出圖文說明對話框；4 AI 與鏡頭流暢節奏聯動調校；左上玩家卡片改為半透明玻璃質感，點擊可開啟可旋轉 3D 穿戴放大檢視與即時試穿。</p></div>
-        <div class="cl-item"><span class="cl-ver">v171</span><span class="cl-date">2026.11.15</span><p>【環島富豪 修復神明退駕隱遁期間 AI 回合卡死 Bug】修復神明附身 5 回合結束進入 10 回合隱遁期間，因 3D NPC 隱藏跳過 `moveN` 同步而導致 `isMoving()` 恆為 true、使 4 AI 自動回合卡在「電腦思考中…」之問題。</p></div>
+        <div class="cl-item"><span class="cl-ver">v171</span><span class="cl-date">2026.11.15</span><p>【環島富豪 修復神明退駕隱遁期間 AI 回合卡死 Bug】修復神明附身 5 回合結束進入 10 回合隱遁期間，因 3D NPC 隱藏跳過 <code>moveN</code> 同步而導致 <code>isMoving()</code> 恆為 true、使 4 AI 自動回合卡在「電腦思考中…」之問題。</p></div>
         <div class="cl-item"><span class="cl-ver">v170</span><span class="cl-date">2026.11.15</span><p>【環島富豪 125 格全島重製・造型汽車・漸進式 6 階建築・離島不規則小地圖】全台灣棋盤擴增至 125 格（含鄉鎮、美食、景點、連鎖飯店、遊樂場、百貨公司，澎湖 12 格與金門 14 格不規則離島小地圖）；新增 3D 霓虹看板、造型服飾店（太空裝/牛仔/名牌/忍者/賽車服）、汽車展示中心（坐車移動＋汽車音效）、卡片商店、台灣股市與夜市小遊戲；首次僅購地、後續逐階蓋成洋房/高級住宅/摩天大樓/五星飯店/連鎖旗艦店；棋格佔地放大 4 倍、字型放大 1.3 倍、移動更流暢；神明與野狗改為定點觸發且神明退駕 10 回合後重生；Breaking News 移至右上角圖文簡報。</p></div>
         <div class="cl-item"><span class="cl-ver">v169</span><span class="cl-date">2026.11.15</span><p>【環島富豪 鏡頭焦點模式切換・特產擴充至 24 種・修復收藏卸下 Bug】右下角鏡頭按鈕升級為四段焦點切換（🎯原本自動 → 👤鎖定玩家 → 🐕鎖定野狗 → 📌固定視角）；修復在他人回合打開玩家收藏無法穿戴／卸下特產之 Bug；台灣各地特產由 12 種大幅擴充至 24 種（含台北小籠包、基隆天婦羅、大溪豆干、大湖草莓、高雄船長帽、東港黑鮪魚、九份淘金、花蓮大理石、馬祖藍眼淚等），並提升自家地標巡視與 AI 商店盲盒收集率。</p></div>
         <div class="cl-item"><span class="cl-ver">v168</span><span class="cl-date">2026.11.15</span><p>【環島富豪 各地特色特產道具系統・3D 棋子外觀修飾】新增 12 種台灣各地特色特產（珍珠奶茶、鳳梨酥禮盒、愛文芒果冰、金門高粱酒、宜蘭三星蔥、原民彩羽冠、澎湖仙人掌、阿里山茶簍、竹科光翼、北港平安令旗、平溪祈福天燈、三義木雕貓頭鷹），涵蓋手持／頭飾／背飾／伴隨 4 大部位；買地、建設、參拜、造訪國家公園或於道具屋開啟「台灣特產盲盒」皆可收集，並於玩家詳情與道具欄隨時穿戴／卸下即時修飾 3D 棋子。</p></div>
@@ -1555,7 +1556,7 @@ function showToast(text) {
 
 function openMainMenu() {
   loadCamp();
-  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v172</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
+  openModal(`<div class="mainmenu"><div class="logo">大戰略<span class="logo-ver">v173</span></div><div class="tagline">現代戰爭 · 台灣海峽</div>
     <button class="primary big" id="mmCamp">📖 劇情模式<small>昇龍 2031・六個時刻</small></button>
     <button class="big" id="mmFree">⚔️ 自由對戰<small>16 國 · 隨機地圖 · 對電腦或雙人</small></button>
     <button class="big" id="mmRich">🎲 環島富豪 3D<small>新遊戲 · 擲骰買地 · 線上多人對戰</small></button>
